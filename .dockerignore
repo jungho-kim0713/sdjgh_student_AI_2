@@ -1,0 +1,31 @@
+# Python 가상환경
+venv/
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# 로컬 데이터베이스 및 업로드
+instance/
+uploads/
+
+# Git 및 VSCode 설정
+.git/
+.gitignore
+.vscode/
+
+# 로컬 환경 변수 파일 (중요!)
+.env
+
+# 프로젝트 문서 및 상태 파일
+project_status.txt
+gcp_deploy.md
+gcp_deploy_fixed.md
+gcp_deploy_final.md
+gcp_deploy_final_v2.md
+gcp_deploy_final_v3.md
+README.md
+
+# 로컬 이미지 파일 (static 폴더 외)
+*.png
+*.jpg

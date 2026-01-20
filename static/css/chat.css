@@ -1,0 +1,493 @@
+/* --- 클래스 문서 (Chat) ---
+   .chat-window: 메시지 리스트 영역
+   .message-wrapper/.message-wrapper.user: 좌/우 정렬
+   .ai-message/.user-message: AI/사용자 버블(배경색 상이)
+   .message-sender: 발신자 라벨
+   .message-image: 메시지 이미지 미리보기
+   .message-content: 마크다운 렌더링 텍스트
+   .code-preview-block/header/content: 코드 미리보기 영역
+   .open-canvas-btn: 캔버스 열기 버튼(hover: #DB2777)
+   .chat-input-area: 입력 영역
+   .chat-form: 입력 폼
+   .textarea-wrapper: 입력 래퍼(focus-within: #F472B6)
+   .user-input: 입력 텍스트(focus: outline 제거)
+   .expand-input-btn: 입력 확장 버튼(hover: #E5E7EB)
+   .voice-input-btn: 음성 버튼(hover: #F3F4F6, recording: 빨강)
+   .chat-form.expanded-form/.user-input.expanded-input: 확장 모드
+   .send-button: 전송 버튼(hover: 확대/진한 핑크)
+   .file-upload-button: 첨부 버튼(hover: #E5E7EB)
+   .copy-msg-btn: 복사 버튼(hover/ copied 상태)
+   .drag-overlay/.drag-overlay.visible: 드래그 오버레이
+   #image-preview-container/.preview-item/.preview-image: 미리보기
+   .remove-preview-button: 미리보기 제거 버튼
+   .loading-spinner: 로딩 스피너 */
+/* --- Chat Window ---
+   메시지 목록 영역.
+   UI 규칙:
+   - AI/사용자 버블은 좌/우 정렬
+   - 스크롤바는 얇고 연한 톤 */
+.chat-window {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+/* 메시지 래퍼: 버블 정렬 기준 */
+.message-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 1.5rem;
+    animation: fade-in-up 0.4s ease-out forwards;
+}
+/* 사용자 메시지는 우측 정렬 */
+.message-wrapper.user {
+    justify-content: flex-end;
+}
+/* 메시지 버블 기본 스타일 */
+.ai-message, .user-message {
+    max-width: 75%;
+    padding: 1rem;
+    border-radius: 1.5rem;
+}
+/* AI 메시지 버블: 회색 배경 */
+.ai-message {
+    background-color: #F3F4F6;
+    color: #1F2937;
+    border-bottom-left-radius: 0.5rem;
+}
+/* 사용자 메시지 버블: 브랜드 핑크 */
+.user-message {
+    background-color: #EC4899;
+    color: white;
+    border-bottom-right-radius: 0.5rem;
+}
+/* 발신자 이름 */
+.message-sender {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+/* 사용자 메시지 발신자 */
+.user-message .message-sender {
+    color: white;
+    text-align: left;
+}
+/* 메시지 내 이미지 미리보기 */
+.message-image {
+    max-width: 200px; max-height: 200px; border-radius: 10px;
+    margin-top: 5px; margin-bottom: 5px;
+}
+/* 스크롤바 스타일(웹킷) */
+.chat-window::-webkit-scrollbar, .chat-history::-webkit-scrollbar { width: 8px; }
+/* 스크롤바 트랙 */
+.chat-window::-webkit-scrollbar-track, .chat-history::-webkit-scrollbar-track { background: #f1f5f9; }
+.chat-window::-webkit-scrollbar-thumb, .chat-history::-webkit-scrollbar-thumb {
+    background: #cbd5e1; border-radius: 10px;
+}
+/* 스크롤바 thumb hover */
+.chat-window::-webkit-scrollbar-thumb:hover, .chat-history::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Markdown Content Styling
+   AI 응답 렌더링 스타일.
+   규칙: 제목은 굵게, 리스트는 들여쓰기 */
+.message-content {
+    line-height: 1.6;
+}
+/* 문단 */
+.message-content p {
+    margin: 0 0 0.8rem 0;
+}
+/* 마지막 문단 여백 제거 */
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+/* 제목(h1~h3) */
+.message-content h1, .message-content h2, .message-content h3 {
+    margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 700; line-height: 1.3;
+}
+/* 제목 크기 규칙 */
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.1em; }
+/* 리스트 */
+.message-content ul, .message-content ol {
+    margin: 0 0 1rem 1.5rem; padding: 0;
+}
+/* 리스트 항목 */
+.message-content li {
+    margin-bottom: 0.3rem;
+}
+/* 강조 텍스트(기본) */
+.message-content strong {
+    font-weight: 700;
+    color: #BE185D;
+}
+/* AI 메시지 내 강조 색상 */
+.ai-message .message-content strong {
+    color: #9D174D;
+}
+/* 사용자 메시지 내 강조 색상 */
+.user-message .message-content strong {
+    color: #FDF2F8;
+}
+/* 인라인 코드 */
+.message-content code {
+    background-color: rgba(0,0,0,0.08);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+/* 사용자 메시지 인라인 코드: 반투명 배경 */
+.user-message .message-content code {
+    background-color: rgba(255,255,255,0.2);
+}
+
+/* Code Preview Block in Chat
+   코드 미리보기 블록.
+   다크 테마 유지 */
+.code-preview-block {
+    background-color: #1e1e1e;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    border: 1px solid #374151;
+}
+/* 미리보기 헤더(언어/버튼) */
+.code-preview-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.3rem 0.8rem; background-color: #2d2d2d; color: #d4d4d4; font-size: 0.8rem;
+}
+/* 캔버스 열기 버튼 */
+.open-canvas-btn {
+    background-color: #EC4899; border: none; color: white; padding: 0.2rem 0.6rem;
+    border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem; font-weight: bold;
+    transition: background-color 0.2s;
+}
+/* hover: 브랜드 컬러 진하게 */
+.open-canvas-btn:hover { background-color: #DB2777; }
+/* 코드 미리보기 본문 */
+.code-preview-content {
+    padding: 0.8rem; font-family: monospace; color: #d4d4d4; font-size: 0.85rem;
+    max-height: 150px; overflow: hidden; position: relative;
+    background: linear-gradient(to bottom, #1e1e1e 80%, #1e1e1e00 100%);
+    white-space: pre-wrap;
+}
+
+/* --- Chat Input Area ---
+   입력창/첨부/전송 영역.
+   UI 규칙: 둥근 입력창 + 아이콘 버튼 */
+.chat-input-area {
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: white;
+    position: relative;
+}
+/* 입력 폼 컨테이너 */
+.chat-form {
+    display: flex; align-items: flex-end;
+    gap: 0.75rem;
+    background-color: transparent; padding: 0; border-radius: 0;
+    position: relative;
+}
+/* 포커스 시 불필요한 그림자 제거 */
+.chat-form:focus-within { box-shadow: none; }
+
+/* 입력창 래퍼(버튼 포함) */
+.textarea-wrapper {
+    flex: 1;
+    position: relative;
+    background-color: #F3F4F6;
+    border-radius: 1.5rem;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    /* [Season 5] 보이스 인코더 버튼 위치 잡기를 위해 flex 사용 */
+    display: flex;
+    align-items: center;
+}
+/* 포커스 시 외곽선 강조 */
+.textarea-wrapper:focus-within {
+    box-shadow: 0 0 0 2px #F472B6;
+    border-color: #F472B6;
+}
+
+/* 텍스트 입력 */
+.user-input {
+    width: 100%;
+    /* [수정] 오른쪽 버튼(확대 + 마이크) 공간 확보를 위해 padding-right 늘림 */
+    padding: 0.75rem 70px 0.75rem 1.25rem;
+    border: none;
+    background-color: transparent;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: none;
+    max-height: 200px;
+    overflow-y: auto;
+    display: block;
+    border-radius: 1.5rem;
+}
+/* 포커스 시 기본 아웃라인 제거 */
+.user-input:focus { outline: none; }
+
+/* 입력창 확대 버튼 */
+.expand-input-btn {
+    position: absolute;
+    /* [수정] flex 컨테이너 안에서의 정렬을 위해 top/transform 대신 flex-end 정렬 고려 */
+    /* 하지만 textarea가 커질 때 버튼 위치 고정을 위해 absolute 유지하되 위치 조정 */
+    bottom: 8px; /* 아래쪽에 고정 */
+    right: 8px; /* 가장 오른쪽 */
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+/* hover: 회색 강조 */
+.expand-input-btn:hover { color: #6B7280; background-color: #E5E7EB; }
+
+/* [Season 5] 보이스 인코더 버튼 스타일 */
+.voice-input-btn {
+    position: absolute;
+    bottom: 8px; /* 아래쪽에 고정 */
+    right: 40px; /* 확대 버튼 왼쪽 */
+    background: none;
+    border: none;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* hover: 톤 다운 */
+.voice-input-btn:hover {
+    color: #4B5563;
+    background-color: #F3F4F6;
+}
+
+/* 음성 인식 중 상태(빨간색 강조) */
+.voice-input-btn.recording {
+    color: #EF4444; /* 빨간색 */
+    background-color: #FEE2E2;
+    animation: pulse-red 1.5s infinite;
+}
+
+/* 녹음 펄스 애니메이션 */
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* 입력창 확장 모드 */
+.chat-form.expanded-form {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background-color: white;
+    padding: 1rem;
+    z-index: 50;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    align-items: flex-start;
+}
+/* 확장된 입력창 높이 규칙 */
+.user-input.expanded-input {
+    max-height: 50vh;
+    min-height: 300px;
+}
+
+/* 전송 버튼: 주요 액션 */
+.send-button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 9999px;
+    background-color: #EC4899;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+}
+/* hover: 확대/강조 */
+.send-button:hover {
+    background-color: #DB2777;
+    transform: scale(1.1);
+}
+/* 파일 첨부 버튼: 보조 액션 */
+.file-upload-button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 9999px;
+    background-color: #F3F4F6;
+    color: #6B7280;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+}
+/* hover: 배경 강조 */
+.file-upload-button:hover {
+    background-color: #E5E7EB;
+}
+/* 메시지 등장 애니메이션 */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* [Season 5] 스마트 복사 버튼 (Smart Copy Button)
+   UI 규칙: hover 시만 표시(모바일 제외) */
+/* 중요: 버튼을 말풍선(bubble) 기준으로 배치하기 위해 relative 설정 */
+.ai-message, .user-message {
+    position: relative;
+}
+
+/* 복사 버튼 공통 스타일 */
+.copy-msg-btn {
+    position: -webkit-sticky; /* 사파리 호환 */
+    position: sticky;         /* 핵심: 스크롤 따라오기 */
+    top: 10px;                /* 화면 상단에서 10px 위치에 고정 */
+    width: 28px;
+    height: 28px;
+    background-color: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    opacity: 0;    /* 평소엔 숨김 */
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    z-index: 10;
+}
+
+/* AI 메시지: 버튼 우측 상단 */
+.ai-message .copy-msg-btn {
+    float: right;          /* 오른쪽으로 둥둥 띄움 */
+    margin-right: -42px;   /* 말풍선 바깥으로 밀어내기 (패딩 고려) */
+    margin-top: -5px;      /* 위치 미세 조정 */
+}
+
+/* 사용자 메시지: 버튼 좌측 상단 */
+.user-message .copy-msg-btn {
+    float: left;           /* 왼쪽으로 둥둥 띄움 */
+    margin-left: -42px;    /* 말풍선 바깥으로 밀어내기 */
+    margin-top: -5px;
+}
+
+/* hover: 복사 버튼 표시 */
+.ai-message:hover .copy-msg-btn,
+.user-message:hover .copy-msg-btn {
+    opacity: 1;
+}
+
+/* 버튼 hover 효과 */
+.copy-msg-btn:hover {
+    background-color: #F3F4F6;
+    color: #374151;
+    transform: scale(1.1);
+}
+
+/* 복사 성공 시 상태 */
+.copy-msg-btn.copied {
+    background-color: #D1FAE5;
+    color: #059669;
+    border-color: #10B981;
+}
+
+/* 모바일 대응: 항상 표시 + 위치 고정 */
+@media (max-width: 768px) {
+    /* 모바일에서는 공간이 좁으므로 안쪽으로 배치하거나 아래로 이동 */
+    .copy-msg-btn {
+        opacity: 1; /* 모바일은 항상 보이게 (터치 이슈 방지) */
+        width: 24px;
+        height: 24px;
+        position: absolute; /* 모바일은 그냥 하단 고정 (Sticky 해제) */
+        top: auto;
+        float: none;
+        margin: 0;
+    }
+
+    /* AI: 우측 하단 안쪽 */
+    .ai-message .copy-msg-btn {
+        right: 0;
+        bottom: -30px;
+    }
+
+    /* User: 좌측 하단 안쪽 */
+    .user-message .copy-msg-btn {
+        left: 0;
+        bottom: -30px;
+    }
+
+    .message-wrapper {
+        margin-bottom: 2rem; /* 버튼 공간 확보 */
+    }
+}
+
+/* --- Drag & Drop Overlay ---
+   파일 드래그 시 표시되는 오버레이 */
+.drag-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(254, 242, 242, 0.85);
+    border: 3px dashed #EC4899;
+    border-radius: 1.5rem;
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; pointer-events: none;
+}
+/* visible: 오버레이 표시 */
+.drag-overlay.visible { display: flex; }
+/* 안내 문구 */
+.drag-overlay p {
+    font-size: 1.5rem; font-weight: 700; color: #DB2777;
+}
+
+/* --- Image Preview ---
+   업로드 미리보기 썸네일 */
+#image-preview-container {
+    position: absolute; bottom: 100%; left: 1rem; margin-bottom: 0.5rem;
+    display: flex; gap: 0.5rem;
+}
+/* 미리보기 아이템 래퍼 */
+.preview-item { position: relative; }
+/* 미리보기 이미지 */
+.preview-image {
+    height: 60px; width: auto; border-radius: 0.5rem;
+    border: 2px solid #FBCFE8;
+}
+/* 미리보기 제거 버튼 */
+.remove-preview-button {
+    position: absolute; top: -8px; right: -8px; width: 20px; height: 20px;
+    background-color: #4B5563; color: white; border: none; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1; font-weight: bold;
+}
+
+/* 로딩 스피너 애니메이션 */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 3px solid #E5E7EB;
+    border-top: 3px solid #EC4899;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+/* 스피너 회전 애니메이션 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

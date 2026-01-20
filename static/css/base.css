@@ -1,0 +1,53 @@
+/* --- 기본 설정 & 폰트 ---
+   전체 페이지 공통 규칙과 기본 텍스트/배경 정의.
+   컬러 규칙:
+   - 기본 텍스트: #111827 (고대비 본문 텍스트)
+   - 플레이스홀더: #9CA3AF (보조 텍스트) */
+* {
+    /* 모든 요소의 박스 모델 통일 */
+    box-sizing: border-box;
+}
+
+/* body, html: 페이지 기본 레이아웃/폰트/배경 */
+body, html {
+    /* 기본 여백 제거 */
+    margin: 0;
+    padding: 0;
+    /* [수정] 모바일 브라우저 주소창 대응 (dvh 사용) */
+    height: 100vh;
+    height: 100dvh;
+    /* 기본 글꼴 설정 */
+    font-family: 'Noto Sans KR', sans-serif;
+    /* 전체 배경은 흰색 유지 */
+    background-color: #FFFFFF;
+    /* 기본 글자색은 검정 계열 */
+    color: #111827;
+    /* 전체 스크롤은 개별 영역에서 처리 */
+    overflow: hidden;
+}
+
+/* 입력 계열 공통 글자색/가독성 규칙 */
+input, textarea, select {
+    /* 입력 텍스트는 기본 본문 색상 */
+    color: #111827;
+}
+/* placeholder는 보조 텍스트 색상으로 약하게 */
+input::placeholder, textarea::placeholder {
+    color: #9CA3AF;
+}
+
+/* .main-app-wrapper: 앱 최상위 레이아웃 래퍼 */
+.main-app-wrapper {
+    /* 화면 전체를 채우는 flex 레이아웃 */
+    display: flex;
+    /* [수정] 모바일 브라우저 주소창 대응 (dvh 사용) */
+    height: 100vh;
+    height: 100dvh;
+    width: 100%;
+    /* 기본 배경은 흰색 */
+    background-color: #FFFFFF;
+    /* 내부 영역에서 스크롤 처리 */
+    overflow: hidden;
+    /* 오버레이/절대배치 기준 */
+    position: relative;
+}

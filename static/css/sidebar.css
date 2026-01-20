@@ -1,0 +1,723 @@
+/* --- 클래스 문서 (Sidebar) ---
+   .menu-toggle-button[id*="desktop"]: 데스크톱 토글 버튼(hover: #F3F4F6)
+   .menu-toggle-button[id*="mobile"]: 모바일 토글 버튼(hover: #F3F4F6)
+   .sidebar: 좌측 사이드바 기본(배경 #F9FAFB)
+   .sidebar.active: 모바일에서 열림 상태
+   .sidebar.collapsed: 데스크톱 접힘 상태
+   .sidebar-close-btn: 모바일 닫기 버튼(hover: #F3F4F6)
+   .sidebar-resizer: 너비 조절 핸들(hover/drag: #EC4899)
+   .sidebar-header: 상단 헤더 영역
+   .new-chat-button: 새 채팅 버튼(hover: #E5E7EB)
+   .new-chat-button .button-text: 접힘 시 숨김
+   .search-area: 검색/필터 영역
+   .filter-button: 내 대화 필터(hover/active: #EC4899)
+   .filter-button .tooltip-text: 툴팁 표시(hover 시 노출)
+   .search-input: 검색 입력(focus: #F472B6)
+   .sidebar-nav-tabs: 탭 컨테이너
+   .sidebar-tab.active: 선택 탭 강조(#EC4899)
+   .chat-history: 기록 리스트 영역
+   .history-title: 섹션 타이틀
+   .history-username: 타 사용자 표시
+   .history-menu-btn: 옵션 버튼(hover: #D1D5DB)
+   .history-context-menu: 우클릭 메뉴(show: 표시)
+   .file-modal: 파일 모달(show: 표시)
+   .file-modal-header/title/close: 모달 헤더 구성
+   .file-modal-body: 모달 본문
+   .file-section/title/list: 파일 섹션 구성
+   .no-files-message: 비어 있음/오류 메시지
+   .file-item/file-info/file-name: 파일 항목 표시(hover: #E5E7EB)
+   .file-meta/.file-uploader: 파일 메타 정보
+   .download-file-btn: 다운로드 버튼(hover: #D1FAE5)
+   .sidebar-footer: 하단 영역
+   .logout-button: 로그아웃 버튼(hover: #FEE2E2) */
+/* --- [수정] 메뉴 토글 버튼 ---
+   데스크톱/모바일 공통 토글 버튼 스타일 */
+.menu-toggle-button[id*="desktop"] {
+    position: absolute;
+    top: 1rem;
+    left: 18px;
+    z-index: 120;
+    background: white;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #EC4899;
+    transition: background-color 0.2s;
+}
+.menu-toggle-button[id*="desktop"]:hover {
+    background-color: #F3F4F6;
+}
+
+.menu-toggle-button[id*="mobile"] {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+}
+.menu-toggle-button[id*="mobile"]:hover {
+    background-color: #F3F4F6;
+}
+
+/* --- Sidebar ---
+   좌측 메뉴 영역 기본 스타일 */
+.sidebar {
+    width: 260px;
+    background-color: #F9FAFB;
+    border-right: 1px solid #E5E7EB;
+    display: flex;
+    flex-direction: column;
+    /* [수정] 모바일 브라우저 주소창 대응 */
+    height: 100vh;
+    height: 100dvh;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+    z-index: 110;
+}
+
+/* [신규] 모바일 사이드바 닫기 버튼
+   데스크톱 토글 위치와 동일하게 정렬 */
+.sidebar-close-btn {
+    display: none; /* 데스크탑에선 숨김 */
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #EC4899; /* 데스크탑 버튼과 동일한 핑크색 */
+    padding: 0.4rem;
+    border-radius: 50%;
+
+    /* 위치를 데스크탑 메뉴 버튼과 완전히 동일하게 설정 */
+    position: absolute;
+    top: 1rem;
+    left: 18px;
+    z-index: 2001; /* 사이드바(2000)보다 위에 배치 */
+
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sidebar-close-btn:hover {
+    background-color: #F3F4F6;
+}
+
+/* --- Sidebar Resizer ---
+   데스크톱에서 너비 조절 핸들 */
+.sidebar-resizer {
+    width: 5px;
+    background-color: transparent;
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    z-index: 115;
+    /* [수정] 모바일 브라우저 주소창 대응 */
+    height: 100vh;
+    height: 100dvh;
+    flex-shrink: 0;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.resizing {
+    background-color: #EC4899;
+}
+
+@media (min-width: 769px) {
+    .sidebar {
+        position: relative;
+        transform: translateX(0);
+        width: 260px;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .sidebar.collapsed {
+        width: 68px !important;
+        min-width: 68px !important;
+        opacity: 1;
+        visibility: visible;
+        overflow: hidden;
+        align-items: center;
+    }
+
+    .sidebar.collapsed .search-area,
+    .sidebar.collapsed .sidebar-nav-tabs,
+    .sidebar.collapsed .chat-history,
+    .sidebar.collapsed .sidebar-footer {
+        display: none !important;
+        opacity: 0;
+    }
+
+    .sidebar.collapsed + .sidebar-resizer {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    /* [수정] 사이드바 풀스크린 모드 적용 */
+    .sidebar {
+        width: 100% !important; /* 전체 화면 */
+        max-width: 100%;
+        /* [수정] 모바일 브라우저 주소창 대응 */
+        height: 100vh;
+        height: 100dvh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+        box-shadow: none;
+        z-index: 2000;
+        background-color: #F9FAFB;
+    }
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    /* [신규] 모바일에서 닫기 버튼 보이기 */
+    .sidebar-close-btn {
+        display: flex;
+    }
+
+    /* [신규] 모바일에서 사이드바 리사이저 숨김 (분홍색 줄 제거) */
+    .sidebar-resizer {
+        display: none !important;
+    }
+
+    /* [수정] 모바일에서는 collapsed 클래스가 있어도 강제로 펼쳐진 스타일 적용 */
+    .sidebar.collapsed .sidebar-header,
+    .sidebar .sidebar-header {
+        padding: 1rem !important; /* 좌우 패딩 복구 */
+        padding-top: 4rem !important; /* 상단 여백 (버튼 공간) */
+        padding-right: 1rem !important;
+        justify-content: center !important;
+        border-bottom: 1px solid #E5E7EB !important; /* 경계선 복구 */
+    }
+
+    /* [수정] 새 채팅 버튼 강제 복구 (collapsed 무시) */
+    .sidebar.collapsed .new-chat-button,
+    .sidebar .new-chat-button {
+        width: 100% !important;
+        height: 44px !important;
+        padding: 0.7rem 1rem !important;
+        border-radius: 0.5rem !important;
+        border: 1px solid #D1D5DB !important;
+        background-color: #F3F4F6 !important;
+        justify-content: center !important;
+        display: flex !important;
+    }
+
+    .sidebar.collapsed .new-chat-button:hover,
+    .sidebar .new-chat-button:hover {
+        background-color: #E5E7EB !important;
+    }
+
+    /* [수정] 새 채팅 버튼 텍스트 보이기 */
+    .sidebar.collapsed .new-chat-button .button-text,
+    .sidebar .new-chat-button .button-text {
+        display: inline !important;
+    }
+
+    /* [수정] 연필 아이콘 위치 고정 (absolute) */
+    .sidebar.collapsed .new-chat-button svg,
+    .sidebar .new-chat-button svg {
+        position: absolute !important;
+        left: 8px !important;
+        color: #EC4899;
+    }
+
+    /* [수정] 모바일에서 숨겨졌던 내부 요소들 강제 표시 */
+    .sidebar.collapsed .search-area,
+    .sidebar.collapsed .sidebar-nav-tabs,
+    .sidebar.collapsed .chat-history,
+    .sidebar.collapsed .sidebar-footer {
+        display: flex !important; /* search-area, tabs, footer는 flex */
+        opacity: 1 !important;
+    }
+    .sidebar.collapsed .chat-history {
+        display: block !important; /* chat-history는 block */
+    }
+}
+
+.sidebar-header {
+    padding: 1rem;
+    padding-top: 4rem;
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    transition: padding 0.3s;
+}
+.sidebar.collapsed .sidebar-header {
+    border-bottom: none;
+    padding: 4rem 0 0 0;
+}
+
+/* 새 채팅 버튼 */
+.new-chat-button {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    background-color: #F3F4F6;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #374151;
+    transition: all 0.2s;
+    height: 44px;
+    overflow: hidden;
+    position: relative;
+}
+
+.new-chat-button:hover {
+    background-color: #E5E7EB;
+}
+
+.new-chat-button svg {
+    flex-shrink: 0;
+    color: #EC4899;
+    position: absolute;
+    left: 8px;
+}
+
+.sidebar.collapsed .new-chat-button {
+    width: 44px; /* 버튼 크기 */
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background-color: transparent;
+    color: #4B5563;
+    justify-content: center;
+}
+
+.sidebar.collapsed .new-chat-button svg {
+    position: static;
+}
+
+.sidebar.collapsed .new-chat-button:hover {
+    background-color: #E5E7EB;
+}
+
+.sidebar.collapsed .new-chat-button .button-text {
+    display: none;
+}
+
+/* --- Search Area ---
+   기록 검색/필터 영역 */
+.search-area {
+    padding: 1rem;
+    border-bottom: 1px solid #E5E7EB;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+/* 필터 버튼 (내 대화만 보기) */
+.filter-button {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #D1D5DB;
+    background-color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.filter-button:hover {
+    border-color: #EC4899;
+}
+
+.filter-button.active {
+    background-color: #EC4899;
+    border-color: #EC4899;
+}
+
+/* 말풍선 툴팁 */
+.filter-button .tooltip-text {
+    visibility: hidden;
+    width: max-content;
+    min-width: 90px;
+    background-color: #374151;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 8px;
+
+    position: absolute;
+    z-index: 1;
+    bottom: 160%;
+    left: 0;
+    margin-left: -10px;
+
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    pointer-events: none;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-button .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 18px;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #374151 transparent transparent transparent;
+}
+
+.filter-button:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid #D1D5DB;
+    background-color: #F3F4F6;
+    font-size: 0.9rem;
+}
+.search-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #F472B6;
+    border-color: #F472B6;
+}
+
+/* --- Sidebar Tabs ---
+   대화 기록/파일 탭 */
+.sidebar-nav-tabs {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 1rem;
+    border-bottom: 1px solid #E5E7EB;
+    flex-shrink: 0;
+    margin-top: 1rem;
+    width: 100%;
+    gap: 8px;
+}
+
+.sidebar-tab#tab-history {
+    flex: 0 0 85%; /* 85% */
+    text-align: center;
+    padding: 0.5rem 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6B7280;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.sidebar-tab#open-current-files-btn {
+    flex: 0 0 15%; /* 15% */
+    min-width: 0;
+    text-align: center;
+    padding: 0.5rem 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6B7280;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.sidebar-tab.active {
+    color: #EC4899;
+    border-bottom-color: #EC4899;
+    font-weight: 700;
+}
+.sidebar-tab:hover {
+    color: #DB2777;
+}
+
+/* --- History Lists ---
+   대화 기록 리스트 */
+.chat-history {
+    padding: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    width: 100%;
+}
+.chat-history.active {
+    display: block;
+}
+.history-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6B7280;
+    padding: 0 0.5rem 0.5rem 0.5rem;
+}
+.chat-history ul { list-style: none; padding: 0; margin: 0; }
+
+.chat-history li {
+    position: relative;
+    margin-bottom: 2px;
+}
+.chat-history li a {
+    display: block;
+    padding: 0.6rem 10px 0.6rem 1rem;
+    text-decoration: none;
+    color: #374151;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s, padding-right 0.1s;
+}
+.chat-history li:hover a {
+    background-color: #E5E7EB;
+    padding-right: 35px;
+}
+.chat-history li a.active {
+    background-color: #FCE7F3;
+    color: #831843;
+    font-weight: 500;
+}
+.history-username {
+    font-size: 0.8rem;
+    color: #EC4899;
+    margin-left: 4px;
+    font-weight: 400;
+}
+
+.history-menu-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 10;
+    transition: background-color 0.2s;
+}
+.chat-history li:hover .history-menu-btn,
+.history-menu-btn.active {
+    display: flex;
+}
+.history-menu-btn:hover {
+    background-color: #D1D5DB;
+    color: #1F2937;
+}
+
+.history-context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    min-width: 120px;
+    overflow: hidden;
+    padding: 4px 0;
+    animation: fadeInMenu 0.1s ease-out;
+}
+@keyframes fadeInMenu {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.history-context-menu.show {
+    display: flex;
+}
+.history-context-menu button {
+    text-align: left;
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+.history-context-menu button:hover {
+    background-color: #F3F4F6;
+}
+.history-context-menu button.delete-btn {
+    color: #B91C1C;
+}
+.history-context-menu button.delete-btn:hover {
+    background-color: #FEE2E2;
+}
+
+/* --- [복구] File Modal & Items (누락된 스타일 추가) ---
+   현재 채팅방 파일 모달 */
+.file-modal {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    width: 90%; max-width: 500px;
+    max-height: 80vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 2001;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.file-modal.show { opacity: 1; }
+
+.file-modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.file-modal-title { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.file-modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280; }
+
+.file-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    background-color: #F9FAFB;
+}
+.file-section { margin-bottom: 1.5rem; }
+.file-section:last-child { margin-bottom: 0; }
+.file-section-title { font-size: 0.9rem; font-weight: 600; color: #4B5563; margin-bottom: 0.5rem; }
+.file-list { list-style: none; padding: 0; margin: 0; background: white; border-radius: 8px; border: 1px solid #E5E7EB; overflow: hidden; }
+
+/* 파일 아이템 (모달 내부 & 기존) */
+#chat-files-list { list-style: none; padding: 0; margin: 0; }
+.no-files-message {
+    list-style: none;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+}
+.no-files-message.error {
+    color: #B91C1C;
+}
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.5rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+    /* 모달 내부에서는 border-bottom이 있으므로 아래 추가 */
+}
+.file-list .file-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: 0;
+}
+.file-list .file-item:last-child { border-bottom: none; }
+
+.file-item:hover {
+    background-color: #E5E7EB;
+}
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    overflow: hidden;
+}
+.file-info svg {
+    color: #4B5563;
+}
+.file-name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #374151;
+    cursor: pointer;
+}
+.file-name:hover { color: #EC4899; text-decoration: underline; }
+
+.file-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #9CA3AF;
+    flex-shrink: 0;
+}
+.file-uploader {
+    font-weight: 500;
+    padding: 0 0.25rem;
+}
+.download-file-btn {
+    background: none;
+    border: none;
+    color: #10B981;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+.download-file-btn:hover {
+    background-color: #D1FAE5;
+}
+
+/* --- Sidebar Footer ---
+   관리자/로그아웃 영역 */
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid #E5E7EB;
+    flex-shrink: 0;
+    width: 100%;
+}
+.logout-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    text-decoration: none;
+    color: #4B5563;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+}
+.logout-button:hover {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}

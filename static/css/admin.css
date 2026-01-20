@@ -1,0 +1,124 @@
+/* --- Admin Panel & Modal ---
+   관리자 패널과 모달 공통 스타일.
+   UI 규칙:
+   - 테이블은 상단 헤더 강조
+   - 버튼은 상태(위험/보조) 색상 구분 */
+.admin-panel-button {
+    /* 사이드바 관리자 버튼 */
+    display: flex; align-items: center; width: 100%; gap: 0.75rem; padding: 0.6rem 1rem;
+    margin-bottom: 0.5rem; border: none; text-align: left; text-decoration: none;
+    color: #4B5563; background-color: #F9FAFB; border-radius: 0.5rem;
+    font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+/* hover: 강조 색상으로 전환 */
+.admin-panel-button:hover {
+    background-color: #E0E7FF; color: #3730A3;
+}
+/* 모달 오버레이 */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: none;
+}
+/* 관리자 모달 본문 */
+.admin-modal {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background-color: white; border-radius: 1rem;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    z-index: 1001; width: 90%; max-width: 900px; max-height: 80vh; display: none; flex-direction: column;
+}
+/* 모달 헤더 */
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #E5E7EB; }
+.modal-title { font-size: 1.25rem; font-weight: 600; margin: 0; }
+.modal-close-button { background: none; border: none; font-size: 1.75rem; font-weight: 300; color: #9CA3AF; cursor: pointer; padding: 0 0.5rem; }
+.modal-body { padding: 1.5rem; overflow-y: auto; }
+
+/* Admin Navigation Tab
+   상단 탭 버튼 영역 */
+.admin-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+    padding-bottom: 0.5rem;
+}
+.admin-nav-btn {
+    /* 탭 버튼 기본 */
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    color: #6B7280;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+.admin-nav-btn:hover {
+    /* hover: 밝은 회색 배경 */
+    background-color: #F3F4F6;
+    color: #374151;
+}
+.admin-nav-btn.active {
+    /* active: 선택 강조 */
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    font-weight: 600;
+}
+
+/* Model Config Table & Dropdown
+   페르소나별 모델 설정 테이블 */
+.config-table td {
+    vertical-align: top;
+}
+.model-select-wrapper {
+    /* 드롭다운 래퍼 */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+.model-select {
+    /* 모델 선택 드롭다운 */
+    padding: 0.4rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    color: #374151;
+    background-color: #FFFFFF;
+}
+.token-input {
+    /* 토큰 입력 필드 */
+    padding: 0.4rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    color: #111827;
+    background-color: #FFFFFF;
+}
+.price-info-box {
+    /* 가격 정보 배지 */
+    background-color: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: #15803D;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* 관리자 테이블 기본 스타일 */
+.table-container { width: 100%; overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 0.5rem; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+/* 테이블 셀/헤더 */
+.admin-table th, .admin-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
+.admin-table th { background-color: #F9FAFB; font-weight: 600; color: #374151; }
+/* 관리자 배지 */
+.admin-table .admin-badge { background-color: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.admin-table td .btn-group { display: flex; gap: 0.5rem; }
+/* 보조 버튼 */
+.btn-secondary { background-color: #E5E7EB; color: #374151; border: none; padding: 0.3rem 0.6rem; border-radius: 0.375rem; cursor: pointer; }
+/* 위험(삭제) 버튼 */
+.btn-danger { background-color: #FEE2E2; color: #B91C1C; border: none; padding: 0.3rem 0.6rem; border-radius: 0.375rem; cursor: pointer; }

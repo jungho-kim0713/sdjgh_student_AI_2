@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko" data-is-admin="{{ is_admin }}" data-username="{{ current_user.username }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서대전여고 수업용 AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ version }}">
+</head>
+<body>
+    <div class="main-app-wrapper">
+        <div id="mobile-overlay" class="mobile-overlay"></div>
+        
+        <!-- [수정] 메뉴 버튼 크기 조절을 위해 클래스 유지, SVG 크기 속성 변경 -->
+        <button id="menu-toggle-button-desktop" class="menu-toggle-button" title="메뉴 열기/닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <!-- [수정] 모바일 사이드바 닫기 버튼: X 아이콘 -> 3줄 아이콘으로 변경 -->
+                <button id="sidebar-close-btn" class="sidebar-close-btn" title="메뉴 닫기">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+
+                <button class="new-chat-button" title="새 채팅"> 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span class="button-text">새 채팅</span>
+                </button>
+            </div>
+            
+            <div class="search-area">
+                <button id="my-chat-filter-btn" class="filter-button">
+                    <span class="tooltip-text">내 대화만 보기</span>
+                </button>
+                <input type="search" id="search-input" placeholder="채팅 기록 검색..." class="search-input">
+            </div>
+            
+            <div class="sidebar-nav-tabs">
+                <button id="tab-history" class="sidebar-tab active">대화 기록</button>
+                <button id="open-current-files-btn" class="sidebar-tab" title="현재 채팅방 파일 보기" style="min-width: 30px;">📂</button>
+            </div>
+
+            <nav id="chat-history-view" class="chat-history active">
+                <p id="history-title" class="history-title">대화 목록</p>
+                <ul id="chat-history-list"></ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                {% if is_admin %}
+                <button id="admin-panel-button" class="admin-panel-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.5a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73 2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>관리자 패널</span>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="logout-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>로그아웃 ({{ current_user.username }})</span>
+                </a>
+            </div>
+        </aside>
+
+        <div id="sidebar-resizer" class="sidebar-resizer"></div> 
+
+        <div id="main-content" class="container">
+            <div class="chat-container">
+                <div id="drag-overlay" class="drag-overlay"><p>여기에 이미지를 드롭하세요</p></div>
+                <header class="header">
+                     <div class="header-left-group">
+                         <button id="menu-toggle-button-mobile" class="menu-toggle-button" title="메뉴 열기/닫기">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                         </button>
+                         <div class="header-left">
+                            <img src="{{ url_for('static', filename='images/logo.png') }}" onerror="this.onerror=null; this.src='https://placehold.co/28x28/EC4899/ffffff?text=AI';" alt="School Logo" class="logo">
+                            <!-- [수정] AI 화가 페르소나 추가 -->
+                            <select id="model-selector" class="model-selector">
+                                <option value="wangchobo_tutor">왕초보 튜터</option>
+                                <option value="ai_principles">AI 원리 학습</option>
+                                <option value="ai_web_game_maker">AI 웹게임 메이커</option>
+                                <option value="ai_illustrator">AI 화가 (이미지 생성)</option>
+                                <option value="general">일반 (자유 대화)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <h1 class="main-title">서대전여고 수업용 AI</h1>
+                    <div class="header-right">
+                        <div class="provider-dropdown">
+                            <button id="current-provider-btn" class="provider-trigger" title="AI 모델 변경">
+                                <img id="current-provider-icon" src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude" class="provider-icon-main">
+                                <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <div id="provider-menu" class="provider-menu">
+                                <button class="provider-option active" data-provider="anthropic">
+                                    <img src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude" class="provider-icon-small">
+                                    <span>Claude</span>
+                                </button>
+                                <button class="provider-option" data-provider="openai">
+                                    <img src="{{ url_for('static', filename='images/gpt.png') }}" alt="GPT" class="provider-icon-small">
+                                    <span>GPT</span>
+                                </button>
+                                <button class="provider-option" data-provider="google">
+                                    <img src="{{ url_for('static', filename='images/gemini.png') }}" alt="Gemini" class="provider-icon-small">
+                                    <span>Gemini</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {% if is_admin %}
+                        <button id="status-button" class="status-button active" title="상태 변경 (관리자용)">
+                            <span class="status-text">사용 가능</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </header>
+
+                <main id="chat-window" class="chat-window">
+                    <div class="message-wrapper">
+                        <div class="ai-message">
+                            <p class="message-sender">코딩 AI 도우미</p>
+                            <p>안녕하세요! {{ current_user.username }}님, 무엇이든 물어보세요! 😊</p>
+                        </div>
+                    </div>
+                </main>
+
+                <footer class="chat-input-area">
+                    <div id="image-preview-container"></div>
+                    <form id="chat-form" class="chat-form">
+                        <label for="file-upload" class="file-upload-button" title="파일 첨부">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        </label>
+                        <input type="file" id="file-upload" accept="image/*,.py,.txt,.md,.csv,.json,.js,.html,.css,.c,.cpp,.java" style="display:none;">
+                        
+                        <div class="textarea-wrapper">
+                            <textarea id="user-input" class="user-input" placeholder="AI에게 질문을 입력하세요... (Shift+Enter로 줄바꿈)" rows="1"></textarea>
+                            
+                            <!-- [Season 5] 보이스 인코더 (음성 인식) 버튼 추가 -->
+                            <button type="button" id="voice-input-btn" class="voice-input-btn" title="음성으로 입력하기">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                            </button>
+
+                            <button type="button" id="expand-input-btn" class="expand-input-btn" title="입력창 확대/축소">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                            </button>
+                        </div>
+
+                        <button type="submit" id="send-button" class="send-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </form>
+                </footer>
+            </div>
+        </div>
+
+        <aside id="code-canvas" class="code-canvas">
+            <div id="canvas-resizer" class="canvas-resizer"></div>
+            <div class="canvas-header">
+                <div class="canvas-title-group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span id="canvas-filename" class="canvas-title">Code Canvas</span>
+                </div>
+                <div class="canvas-actions">
+                    <button id="canvas-copy-btn" class="canvas-action-btn" title="코드 복사">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <button id="canvas-close-btn" class="canvas-action-btn close-btn" title="닫기">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="canvas-body">
+                <pre><code id="canvas-code-block"></code></pre>
+            </div>
+        </aside>
+    </div> 
+
+    {% if is_admin %}
+    <div id="admin-modal-overlay" class="modal-overlay"></div>
+    <div id="admin-modal" class="admin-modal">
+        <div class="modal-header">
+            <h2 class="modal-title">관리자 패널</h2>
+            <button id="admin-modal-close-button" class="modal-close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-nav">
+                <button id="nav-user-list" class="admin-nav-btn active">사용자 관리</button>
+                <button id="nav-model-config" class="admin-nav-btn">AI 모델 설정</button>
+            </div>
+            <div id="admin-user-list-view">
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>ID</th><th>Username</th><th>Admin</th><th>작업</th></tr>
+                        </thead>
+                        <tbody id="admin-user-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="admin-model-config-view" style="display: none;">
+                <!-- [신규] 공급사 상태 관리 섹션 -->
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: #374151;">공급사 상태 관리 (선택 제한 설정)</h3>
+                <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #6B7280;">
+                    특정 공급사의 API 비용 문제 등으로 사용을 일시 중단해야 할 때 '제한됨'으로 설정하세요.<br>
+                    사용자가 제한된 모델을 선택하면 자동으로 대체 모델(Gemini > Claude > GPT)로 전환됩니다.
+                </p>
+                <div class="table-container" style="margin-bottom: 2rem;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>공급사 (Provider)</th>
+                                <th>현재 상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-provider-status-body">
+                            <!-- JS로 동적 생성 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: #374151;">페르소나별 모델 상세 설정</h3>
+                <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #6B7280;">
+                    각 역할별로 3가지 공급사의 모델을 지정할 수 있습니다. 마우스를 올리면 가격이 보입니다.<br>
+                    * 토큰은 4096(표준) 등을 입력하세요. (입력 제한 없음)
+                </p>
+                <div class="table-container">
+                    <table class="admin-table config-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 14%;">역할 (Role)</th>
+                                <th style="width: 22%;">OpenAI (GPT)</th>
+                                <th style="width: 22%;">Anthropic (Claude)</th>
+                                <th style="width: 22%;">Google (Gemini)</th>
+                                <th style="width: 20%;">토큰</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-model-config-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="admin-user-history-view" style="display: none;">
+                <h3><button id="admin-back-to-list-btn" class="btn-secondary">&larr; 뒤로</button> <span id="admin-history-username"></span> 님의 대화 기록</h3>
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead><tr><th>ID</th><th>대화 제목</th><th>AI 역할</th><th>시간</th><th>조회</th></tr></thead>
+                        <tbody id="admin-user-history-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app_registry.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/app_context.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui_utils.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/canvas.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/provider.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/messages.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/files.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/sidebar.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/sessions.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/chat.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/voice.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/status_admin.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/app_entry.js') }}?v={{ version }}"></script>
+</body>
+</html>

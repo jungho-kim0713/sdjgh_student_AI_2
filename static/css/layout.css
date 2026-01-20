@@ -1,0 +1,347 @@
+/* --- 클래스 문서 (Layout) ---
+   .container: 메인 레이아웃 컨테이너
+   .code-canvas/.code-canvas.open: 코드 패널(열림 상태)
+   .canvas-resizer: 리사이저(hover/drag: #EC4899)
+   .canvas-header/.canvas-title-group/.canvas-title: 캔버스 헤더
+   .canvas-action-btn: 헤더 버튼(hover/close hover)
+   .canvas-body pre/code: 코드 영역
+   .chat-container: 중앙 카드형 컨테이너
+   .mobile-overlay/.mobile-overlay.active: 모바일 오버레이
+   .header/.header-left-group/.header-left: 헤더 레이아웃
+   .logo: 로고 이미지
+   .model-selector: 페르소나 셀렉터(focus: #F472B6)
+   .main-title: 그라데이션 타이틀
+   .header-right: 우측 컨트롤 영역
+   .provider-dropdown/trigger/menu/option: 공급사 드롭다운
+   .provider-option.active: 선택 강조(#EC4899)
+   .status-button(.active/.inactive): 상태 표시 */
+/* --- Main Layout ---
+   중앙 콘텐츠 컬럼 레이아웃.
+   UI 규칙:
+   - 컨테이너는 화면 높이를 채우고 내부 스크롤은 개별 영역에서 처리 */
+.container {
+    /* 사이드바를 제외한 메인 콘텐츠 영역 */
+    flex-grow: 1;
+    /* [수정] 모바일 브라우저 주소창 대응 (dvh 사용) */
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.3s ease;
+    min-width: 0;
+    padding: 1rem;
+}
+
+/* --- Code Canvas (Right Sidebar) ---
+   코드 미리보기 사이드 패널.
+   컬러 규칙:
+   - 배경: #1e1e1e (다크)
+   - 코드 텍스트: #d4d4d4 */
+.code-canvas {
+    width: 0;
+    background-color: #1e1e1e;
+    border-left: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    /* [수정] 모바일 브라우저 주소창 대응 (dvh 사용) */
+    height: 100vh;
+    height: 100dvh;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    z-index: 105;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+}
+
+/* 캔버스 리사이저 핸들
+   상태: hover/drag 시 강조색 */
+.canvas-resizer {
+    width: 5px;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    cursor: ew-resize;
+    z-index: 110;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+/* hover/drag: 브랜드 컬러 강조 */
+.canvas-resizer:hover, .canvas-resizer.resizing { background-color: #EC4899; }
+
+/* 캔버스 열림 상태 폭(데스크톱 기준) */
+.code-canvas.open {
+    width: 450px;
+}
+@media (max-width: 1024px) {
+    /* 중간 화면에서는 폭 축소 */
+    .code-canvas.open { width: 350px; }
+}
+/* 모바일에서 캔버스는 풀스크린 동작 */
+@media (max-width: 768px) {
+    .code-canvas {
+        position: fixed; right: 0; top: 0; bottom: 0;
+        width: 0; border-left: none;
+        z-index: 200;
+    }
+    .code-canvas.open { width: 100%; }
+    .canvas-resizer { display: none; }
+}
+
+/* 캔버스 헤더(파일명/버튼) */
+.canvas-header {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #252526;
+    flex-shrink: 0;
+}
+/* 헤더 내 파일명 그룹 */
+.canvas-title-group { display: flex; align-items: center; gap: 0.5rem; }
+/* 파일명 텍스트 */
+.canvas-title { font-weight: 500; color: #cccccc; font-size: 0.9rem; }
+
+.canvas-actions { display: flex; gap: 0.5rem; }
+.canvas-action-btn {
+    /* 아이콘 버튼 */
+    background: #3c3c3c; border: 1px solid #3c3c3c; border-radius: 0.3rem;
+    padding: 0.3rem; cursor: pointer; color: #cccccc; display: flex;
+    align-items: center; justify-content: center; transition: all 0.2s;
+}
+.canvas-action-btn:hover { background-color: #505050; color: white; }
+/* 닫기 버튼 hover: 위험 색상 */
+.canvas-action-btn.close-btn:hover { background-color: #c53030; border-color: #c53030; }
+
+/* 캔버스 본문(코드 영역) */
+.canvas-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0;
+    background-color: #1e1e1e;
+}
+.canvas-body pre {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+/* 코드 블록 텍스트 */
+.canvas-body code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    height: 100%;
+    display: block;
+    padding: 1rem;
+    color: #d4d4d4 !important;
+}
+
+/* Chat Container & Mobile Overlay
+   중앙 카드형 컨테이너와 모바일 오버레이.
+   UI 규칙: 카드 배경은 흰색, 그림자는 부드럽게 */
+.chat-container {
+    max-width: 56rem;
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+}
+
+/* 모바일 오버레이(사이드바 열림 시 배경) */
+.mobile-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 105;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+}
+/* 활성 상태: 오버레이 표시 */
+.mobile-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* --- Header ---
+   상단 헤더 영역 */
+.header {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+/* 좌측 그룹(메뉴/로고/셀렉터) */
+.header-left-group {
+    display: flex; align-items: center; gap: 1rem;
+}
+/* 좌측 정렬 영역 */
+.header-left {
+    display: flex; align-items: flex-end; flex-direction: column;
+}
+/* 학교 로고 이미지 */
+.logo {
+    height: 28px; margin-bottom: 8px;
+    object-fit: contain;
+    object-position: center;
+}
+/* 페르소나 선택 드롭다운 */
+.model-selector {
+    border-radius: 0.5rem;
+    border: 1px solid #D1D5DB;
+    font-size: 0.875rem;
+    color: #374151;
+    padding: 0.5rem 0.75rem;
+    background-color: #F3F4F6;
+    cursor: pointer;
+}
+/* 포커스 시 강조 테두리 */
+.model-selector:focus {
+    outline: 2px solid #F472B6;
+}
+
+/* 메인 타이틀(그라데이션 텍스트) */
+.main-title {
+    font-family: 'Gaegu', cursive;
+    font-size: 1.875rem;
+    font-weight: 700;
+    background-image: linear-gradient(to right, #EC4899, #8B5CF6);
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+/* 우측 컨트롤 영역(공급사/상태) */
+.header-right {
+    min-width: 110px; display: flex; justify-content: flex-end; align-items: center;
+}
+
+/* 공급사 드롭다운 래퍼 */
+.provider-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-right: 15px;
+}
+
+/* 공급사 트리거 버튼 */
+.provider-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 9999px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.provider-trigger:hover {
+    /* hover: 밝은 회색 배경 */
+    background-color: #F9FAFB;
+    border-color: #D1D5DB;
+}
+
+/* 메인 아이콘 이미지 */
+.provider-icon-main {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* 드롭다운 화살표 */
+.dropdown-arrow {
+    color: #6B7280;
+}
+
+/* 공급사 메뉴 패널 */
+.provider-menu {
+    display: none;
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background-color: white;
+    min-width: 140px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-radius: 0.5rem;
+    border: 1px solid #E5E7EB;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 0.25rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* 메뉴 표시 상태 */
+.provider-menu.show {
+    display: block;
+}
+
+/* 공급사 옵션 버튼 */
+.provider-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    color: #374151;
+    transition: background-color 0.15s;
+}
+
+/* hover: 회색 배경 */
+.provider-option:hover {
+    background-color: #F3F4F6;
+}
+
+/* active: 브랜드 컬러 강조 */
+.provider-option.active {
+    background-color: #EC4899;
+    color: white;
+}
+
+/* 메뉴 내 아이콘 */
+.provider-icon-small {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    border-radius: 3px;
+}
+
+/* 페이드 인 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 서비스 상태 버튼 */
+.status-button {
+    border: none; cursor: pointer; padding: 8px 15px; border-radius: 20px;
+    display: flex; align-items: center; color: white; font-weight: bold; transition: background-color 0.3s;
+}
+/* 상태 점 */
+.status-button::before {
+    content: ''; display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; margin-right: 8px; background-color: white;
+}
+/* active: 사용 가능 */
+.status-button.active { background-color: #28a745; }
+/* inactive: 사용 중지 */
+.status-button.inactive { background-color: #dc3545; }

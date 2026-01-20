@@ -1,0 +1,31 @@
+# 1. 가상환경 및 시스템 파일
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# 2. Flask 및 데이터베이스 관련
+instance/
+.env
+chatbot.db
+*.db
+*.sqlite3
+
+# 3. 업로드 파일 (사용자 데이터는 깃에 올리지 않음)
+static/uploads/
+
+# 4. 보안 및 인증서 (가장 중요!) 🔒
+certs/
+*.key
+*.pub
+*.pem
+*.p12
+
+# 5. 백업 파일 및 로그
+*.sql
+*.log
+*.bak
+
+# 6. (혹시 몰라 추가) 확장자 없는 키 파일 방지
+sdjgh_key_*

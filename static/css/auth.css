@@ -1,0 +1,45 @@
+/* --- Auth Pages ---
+   로그인/회원가입 화면 전용 스타일.
+   컬러 규칙:
+   - 주요 버튼: #EC4899 (브랜드 컬러)
+   - 보조 텍스트: #6B7280 */
+.auth-body {
+    /* 전체 화면 중앙 정렬 */
+    background-color: #FFFFFF; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Noto Sans KR', sans-serif;
+}
+.auth-container {
+    /* 카드형 컨테이너 */
+    background-color: white; padding: 2.5rem 3rem; border-radius: 1.5rem;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15); width: 100%; max-width: 400px; text-align: center;
+}
+/* 제목 텍스트 */
+.auth-container h2 { font-size: 1.5rem; color: #374151; margin-top: 0.5rem; margin-bottom: 1.5rem; }
+/* 폼 기본 스타일 */
+.auth-form .form-group { margin-bottom: 1.25rem; text-align: left; position: relative; }
+/* 레이블 */
+.auth-form label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #4B5563; }
+.auth-form input {
+    /* 입력창 기본 스타일 */
+    width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem;
+    background-color: #F9FAFB; box-sizing: border-box;
+}
+/* 포커스 시 강조 테두리 */
+.auth-form input:focus { outline: none; border-color: #EC4899; box-shadow: 0 0 0 2px #FBCFE8; }
+.auth-button {
+    /* 주요 액션 버튼 */
+    width: 100%; padding: 0.75rem; border: none; border-radius: 0.5rem;
+    background-color: #EC4899; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s;
+}
+/* hover: 브랜드 컬러 진하게 */
+.auth-button:hover { background-color: #DB2777; }
+/* 하단 링크 */
+.auth-switch a { color: #EC4899; text-decoration: none; font-weight: 500; }
+/* 플래시 메시지 리스트 */
+.flashes { list-style: none; padding: 0; margin-bottom: 1rem; }
+.flashes li { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
+/* 플래시 메시지 색상 */
+.flashes li.success { background-color: #D1FAE5; color: #065F46; }
+.flashes li.error { background-color: #FEE2E2; color: #991B1B; }
+.flashes li.info { background-color: #DBEAFE; color: #1E40AF; }
+/* 보조 힌트 텍스트 */
+.form-hint { font-size: 0.8rem; color: #6B7280; position: absolute; top: 4px; right: 0; }
