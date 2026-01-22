@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)  # 로그인 ID (고유값)
     password_hash = db.Column(db.String(200), nullable=False)         # 암호화된 비밀번호
     is_admin = db.Column(db.Boolean, default=False)                   # 관리자 여부
+    role = db.Column(db.String(20), default="user", nullable=False)   # 사용자 역할(user|teacher)
 
     def set_password(self, password):
         """비밀번호를 안전하게 해시화하여 저장합니다."""
@@ -96,3 +97,8 @@ class PersonaConfig(db.Model):
     model_google = db.Column(db.String(100), default="gemini-2.0-flash")
     max_tokens = db.Column(db.Integer, default=4096) 
     model_id = db.Column(db.String(100), nullable=True) # (구버전 호환용)
+    allow_user = db.Column(db.Boolean, default=True)
+    allow_teacher = db.Column(db.Boolean, default=True)
+    restrict_google = db.Column(db.Boolean, default=False)
+    restrict_anthropic = db.Column(db.Boolean, default=False)
+    restrict_openai = db.Column(db.Boolean, default=False)

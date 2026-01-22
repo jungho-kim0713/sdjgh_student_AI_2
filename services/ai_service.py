@@ -42,14 +42,19 @@ AVAILABLE_MODELS = {
     "claude-sonnet-4-5-20250929": {"name": "Claude Sonnet 4.5", "provider": "anthropic", "input_price": 3.00, "output_price": 15.00},
     "claude-opus-4-1-20250805": {"name": "Claude Opus 4.1", "provider": "anthropic", "input_price": 15.00, "output_price": 75.00},
     "gemini-2.0-flash": {"name": "Gemini 2.0 Flash", "provider": "google", "input_price": 0.10, "output_price": 0.40},
-    "gemini-3-pro-preview": {"name": "Gemini 3.0 Pro", "provider": "google", "input_price": 0, "output_price": 0},
+    "gemini-3-flash-preview": {"name": "Gemini 3 Flash", "provider": "google", "input_price": 0.0, "output_price": 0.0},
+    "gemini-3-pro-preview": {"name": "Gemini 3 Pro", "provider": "google", "input_price": 0.0, "output_price": 0.0},
+    "gemini-2.0-flash-exp-image-generation": {"name": "Gemini 2.0 Flash (Exp) Image", "provider": "google", "input_price": 0.0006, "output_price": 0.0006},
+    "gemini-2.5-flash-image": {"name": "Gemini 2.5 Flash Image", "provider": "google", "input_price": 0.02, "output_price": 0.02},
+    "gemini-3-pro-image-preview": {"name": "Gemini 3.0 Pro Image", "provider": "google", "input_price": 0.03, "output_price": 0.03},
+    "imagen-4.0-ultra-generate-001": {"name": "Imagen 4.0 (Ultra)", "provider": "google", "input_price": 0.06, "output_price": 0.06},
 }
 
 # 공급사별 기본 모델 아이디(모델 정보 누락 시 fallback)
 DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
     "anthropic": "claude-haiku-4-5-20251001",
-    "google": "gemini-2.0-flash",
+    "google": "gemini-3-flash-preview",
 }
 DEFAULT_MODEL = DEFAULT_MODELS["anthropic"]
 DEFAULT_MAX_TOKENS = 4096

@@ -180,32 +180,29 @@ window.App.registerModule((ctx) => {
             dom.adminProviderStatusBody.innerHTML = '';
 
             const providers = ['google', 'anthropic', 'openai'];
-
+            const tr = document.createElement('tr');
             providers.forEach(p => {
-                const tr = document.createElement('tr');
                 const status = statuses[p];
                 const isActive = status === 'active';
-
-                tr.innerHTML = `
-                    <td><strong>${p.toUpperCase()}</strong></td>
+                tr.innerHTML += `
                     <td>
-                        <span class="status-badge ${isActive ? 'active' : 'restricted'}">
-                            ${isActive ? 'Active (사용 가능)' : 'Restricted (제한됨)'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn-toggle-status ${isActive ? 'btn-danger' : 'btn-success'}" data-provider="${p}">
-                            ${isActive ? '제한하기 (Disable)' : '활성화 (Enable)'}
-                        </button>
+                        <div class="provider-status-cell">
+                            <div class="provider-name">${p.toUpperCase()}</div>
+                            <select class="provider-status-select" data-provider="${p}">
+                                <option value="active" ${isActive ? 'selected' : ''}>사용 가능</option>
+                                <option value="restricted" ${!isActive ? 'selected' : ''}>제한하기</option>
+                            </select>
+                        </div>
                     </td>
                 `;
-                dom.adminProviderStatusBody.appendChild(tr);
             });
+            dom.adminProviderStatusBody.appendChild(tr);
 
-            document.querySelectorAll('.btn-toggle-status').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
+            document.querySelectorAll('.provider-status-select').forEach(select => {
+                select.addEventListener('change', async (e) => {
                     const provider = e.target.dataset.provider;
-                    await toggleProviderStatus(provider);
+                    const status = e.target.value;
+                    await setProviderStatus(provider, status);
                 });
             });
 
@@ -219,12 +216,12 @@ window.App.registerModule((ctx) => {
      * 공급사 상태를 토글한다(서버 저장).
      * @param {string} provider - 공급사 키
      */
-    async function toggleProviderStatus(provider) {
+    async function setProviderStatus(provider, status) {
         try {
-            const response = await fetch('/api/admin/toggle_provider_status', {
+            const response = await fetch('/api/admin/set_provider_status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: provider })
+                body: JSON.stringify({ provider: provider, status: status })
             });
             if (response.ok) {
                 loadProviderStatus();
@@ -244,7 +241,7 @@ window.App.registerModule((ctx) => {
     async function loadModelConfig() {
         if (!dom.adminModelConfigBody) return;
         try {
-            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="5">설정을 불러오는 중...</td></tr>';
+            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="4">설정을 불러오는 중...</td></tr>';
             const response = await fetch('/api/admin/get_persona_config');
             if (!response.ok) throw new Error('Failed to fetch config');
 
@@ -261,17 +258,44 @@ window.App.registerModule((ctx) => {
 
             dom.adminModelConfigBody.innerHTML = '';
 
+            const GOOGLE_TEXT_MODELS = ['gemini-3-flash-preview', 'gemini-3-pro-preview'];
+            const GOOGLE_IMAGE_MODELS = [
+                'gemini-2.5-flash-image',
+                'gemini-3-pro-image-preview',
+                'imagen-4.0-ultra-generate-001'
+            ];
+            const IMAGE_TOOLTIPS = {
+                'gemini-2.5-flash-image': '이미지당 약 $0.01 ~ $0.02 · 성능 대비 경제성이 매우 뛰어남',
+                'gemini-3-pro-image-preview': '이미지당 약 $0.03 ~ $0.05 · 4K 고해상도 및 추론 기능 포함',
+                'imagen-4.0-ultra-generate-001': '이미지당 약 $0.06 · 극사실주의(Photorealism) 최고 품질을 제공하는 가장 고가의 옵션'
+            };
+
             personas.forEach(p => {
                 const tr = document.createElement('tr');
-                const createSelectCell = (provider, currentModelId) => {
+                const createSelectRow = (provider, label, currentModelId, isRestricted) => {
                     let options = '';
-                    modelsByProvider[provider].forEach(m => {
+                    const restrictedSelected = isRestricted ? 'selected' : '';
+                    options += `<option value="__restricted__" ${restrictedSelected}>모델 제한하기</option>`;
+                    const allowedModelIds = (() => {
+                        if (provider !== 'google') return null;
+                        if (p.role_key === 'ai_illustrator') return GOOGLE_IMAGE_MODELS;
+                        return GOOGLE_TEXT_MODELS;
+                    })();
+                    const filteredModels = allowedModelIds
+                        ? modelsByProvider[provider].filter(m => allowedModelIds.includes(m.id))
+                        : modelsByProvider[provider];
+
+                    filteredModels.forEach(m => {
                         const selected = (m.id === currentModelId) ? 'selected' : '';
-                        const priceTooltip = `입력 $${m.input_price} / 출력 $${m.output_price}`;
-                        options += `<option value="${m.id}" ${selected} title="${priceTooltip}">${m.name}</option>`;
+                        let optionTitle = `입력 $${m.input_price} / 출력 $${m.output_price}`;
+                        if (provider === 'google' && p.role_key === 'ai_illustrator' && IMAGE_TOOLTIPS[m.id]) {
+                            optionTitle = IMAGE_TOOLTIPS[m.id];
+                        }
+                        options += `<option value="${m.id}" ${selected} title="${optionTitle}">${m.name}</option>`;
                     });
                     return `
-                        <div class="model-select-wrapper" title="마우스를 올리면 가격이 보입니다">
+                        <div class="model-select-row" title="마우스를 올리면 가격이 보입니다">
+                            <span class="model-label">${label}</span>
                             <select class="model-select" data-role-key="${p.role_key}" data-target-provider="model_${provider}">
                                 ${options}
                             </select>
@@ -281,11 +305,27 @@ window.App.registerModule((ctx) => {
 
                 tr.innerHTML = `
                     <td><strong>${p.role_name}</strong><br><span style="font-size:0.8rem; color:#666;">(${p.role_key})</span></td>
-                    <td>${createSelectCell('openai', p.model_openai)}</td>
-                    <td>${createSelectCell('anthropic', p.model_anthropic)}</td>
-                    <td>${createSelectCell('google', p.model_google)}</td>
+                    <td>
+                        <div class="model-config-stack">
+                            ${createSelectRow('google', 'Google (Gemini)', p.model_google, p.restrict_google)}
+                            ${createSelectRow('anthropic', 'Anthropic (Claude)', p.model_anthropic, p.restrict_anthropic)}
+                            ${createSelectRow('openai', 'OpenAI (GPT)', p.model_openai, p.restrict_openai)}
+                        </div>
+                    </td>
                     <td>
                         <input type="number" class="token-input" data-role-key="${p.role_key}" value="${p.max_tokens}" style="width: 100%;">
+                    </td>
+                    <td>
+                        <div class="role-allow-group">
+                            <label class="role-allow">
+                                <input type="checkbox" class="allow-toggle" data-role-key="${p.role_key}" data-allow-type="allow_user" ${p.allow_user ? 'checked' : ''}>
+                                user
+                            </label>
+                            <label class="role-allow">
+                                <input type="checkbox" class="allow-toggle" data-role-key="${p.role_key}" data-allow-type="allow_teacher" ${p.allow_teacher ? 'checked' : ''}>
+                                teacher
+                            </label>
+                        </div>
                     </td>
                 `;
                 dom.adminModelConfigBody.appendChild(tr);
@@ -297,7 +337,15 @@ window.App.registerModule((ctx) => {
                     const roleKey = e.target.dataset.roleKey;
                     const targetField = e.target.dataset.targetProvider;
                     const newValue = e.target.value;
-                    await updateConfig(roleKey, { [targetField]: newValue });
+                    if (newValue === '__restricted__') {
+                        const providerKey = targetField.replace('model_', '');
+                        const restrictField = `restrict_${providerKey}`;
+                        await updateConfig(roleKey, { [restrictField]: true });
+                    } else {
+                        const providerKey = targetField.replace('model_', '');
+                        const restrictField = `restrict_${providerKey}`;
+                        await updateConfig(roleKey, { [targetField]: newValue, [restrictField]: false });
+                    }
                 });
             });
 
@@ -306,6 +354,15 @@ window.App.registerModule((ctx) => {
                 input.addEventListener('change', async (e) => {
                     const roleKey = e.target.dataset.roleKey;
                     await updateConfig(roleKey, { max_tokens: e.target.value });
+                });
+            });
+
+            // 사용자 제한 변경 저장.
+            document.querySelectorAll('.allow-toggle').forEach(toggle => {
+                toggle.addEventListener('change', async (e) => {
+                    const roleKey = e.target.dataset.roleKey;
+                    const allowType = e.target.dataset.allowType;
+                    await updateConfig(roleKey, { [allowType]: e.target.checked });
                 });
             });
 
@@ -331,7 +388,7 @@ window.App.registerModule((ctx) => {
             }
         } catch (error) {
             console.error("Failed to load model config:", error);
-            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="5">설정 로드 실패.</td></tr>';
+            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="4">설정 로드 실패.</td></tr>';
         }
     }
 
@@ -350,10 +407,16 @@ window.App.registerModule((ctx) => {
 
             users.forEach(user => {
                 const tr = document.createElement('tr');
+                const roleCell = user.is_admin
+                    ? '<span class="admin-badge">admin</span>'
+                    : `<select class="user-role-select" data-user-id="${user.id}">
+                            <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+                            <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>teacher</option>
+                        </select>`;
                 tr.innerHTML = `
                     <td>${user.id}</td>
                     <td>${user.username}</td>
-                    <td>${user.is_admin ? '<span class="admin-badge">Admin</span>' : 'User'}</td>
+                    <td>${roleCell}</td>
                     <td>
                         <div class="btn-group">
                             <button class="btn-secondary view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록 조회</button>
@@ -445,6 +508,29 @@ window.App.registerModule((ctx) => {
 
             if (target.classList.contains('view-history-btn')) {
                 loadUserHistory(userId, username);
+            }
+        });
+    }
+
+    // 사용자 역할 변경.
+    if (dom.adminUserListBody) {
+        dom.adminUserListBody.addEventListener('change', async (e) => {
+            const target = e.target;
+            if (!target.classList.contains('user-role-select')) return;
+            const userId = target.dataset.userId;
+            const newRole = target.value;
+            try {
+                const response = await fetch('/api/admin/update_user_role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(userId), role: newRole })
+                });
+                if (!response.ok) {
+                    throw new Error('역할 변경 실패');
+                }
+            } catch (error) {
+                console.error(error);
+                alert("역할 변경 실패");
             }
         });
     }

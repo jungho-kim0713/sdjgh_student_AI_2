@@ -26,9 +26,9 @@ services:
       - FLASK_APP=app.py
     volumes:
       - ./static/uploads:/app/static/uploads
-      # [수정] certs 폴더 안에 있는 인증서 파일을 컨테이너 내부로 마운트
-      - ./certs/origin.pem:/app/origin.pem:ro
-      - ./certs/privkey.pem:/app/privkey.pem:ro
+      # [수정] 외부 폴더의 인증서 파일을 컨테이너 내부로 마운트 (보안 강화)
+      - C:\jungho_webhome\[key 모음]\sdjgh_student_ai\origin.pem:/app/origin.pem:ro
+      - C:\jungho_webhome\[key 모음]\sdjgh_student_ai\privkey.pem:/app/privkey.pem:ro
     depends_on:
       - db
 

@@ -28,4 +28,4 @@ certs/
 *.bak
 
 # 6. (혹시 몰라 추가) 확장자 없는 키 파일 방지
-sdjgh_key_*
+sdjgh_key_*.claude/

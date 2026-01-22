@@ -267,7 +267,12 @@ window.App.registerModule((ctx) => {
             const selectedRoleKey = dom.modelSelector.value;
             ctx.sessions.startNewChat();
             ctx.sessions.fetchHistory(selectedRoleKey);
-            ctx.provider.updateProviderUI();
+            if (ctx.provider.fetchPersonaRestrictions) {
+                ctx.provider.fetchPersonaRestrictions(selectedRoleKey)
+                    .finally(() => ctx.provider.updateProviderUI());
+            } else {
+                ctx.provider.updateProviderUI();
+            }
         });
     }
 

@@ -1,7 +1,7 @@
 // 공급사 선택 모듈: 공급사 선택/제한 처리.
 window.App.registerModule((ctx) => {
     const { dom, state } = ctx;
-    // 제한 시 대체 우선순위.
+    // 제한 시 대체 우선순위(요청한 순서).
     const PROVIDER_PRIORITY = ['google', 'anthropic', 'openai'];
 
     /**
@@ -25,9 +25,13 @@ window.App.registerModule((ctx) => {
      * @param {boolean} isImageGen - 이미지 생성 모드 여부
      */
     ctx.provider.checkAndFallbackProvider = function checkAndFallbackProvider(isImageGen) {
+        const personaRestricted = state.personaProviderRestrictions || {};
         let isCurrentRestricted = (state.providerStatuses[state.currentProvider] === 'restricted');
 
         if (isImageGen && state.currentProvider !== 'google') {
+            isCurrentRestricted = true;
+        }
+        if (personaRestricted[state.currentProvider]) {
             isCurrentRestricted = true;
         }
 
@@ -38,7 +42,7 @@ window.App.registerModule((ctx) => {
                 nextProvider = 'google';
             } else {
                 for (const p of PROVIDER_PRIORITY) {
-                    if (state.providerStatuses[p] !== 'restricted') {
+                    if (state.providerStatuses[p] !== 'restricted' && !personaRestricted[p]) {
                         nextProvider = p;
                         break;
                     }
@@ -65,6 +69,7 @@ window.App.registerModule((ctx) => {
 
         const currentPersona = dom.modelSelector ? dom.modelSelector.value : 'general';
         const isImageGen = (currentPersona === 'ai_illustrator');
+        const personaRestricted = state.personaProviderRestrictions || {};
 
         dom.providerOptions.forEach(option => {
             const provider = option.dataset.provider;
@@ -75,23 +80,43 @@ window.App.registerModule((ctx) => {
                     isRestricted = true;
                 }
             }
+            if (personaRestricted[provider]) {
+                isRestricted = true;
+            }
 
             if (isRestricted) {
                 option.classList.add('restricted');
                 option.setAttribute('title', '(현재 사용할 수 없습니다.)');
-                option.style.pointerEvents = 'none';
+                option.style.display = 'none';
             } else {
                 option.classList.remove('restricted');
                 option.removeAttribute('title');
-                option.style.pointerEvents = 'auto';
+                option.style.display = '';
             }
         });
 
         ctx.provider.checkAndFallbackProvider(isImageGen);
     };
 
+    ctx.provider.fetchPersonaRestrictions = async function fetchPersonaRestrictions(roleKey) {
+        try {
+            const response = await fetch(`/api/get_persona_provider_restrictions?role_key=${encodeURIComponent(roleKey)}`);
+            if (!response.ok) throw new Error('Failed to fetch persona restrictions');
+            const data = await response.json();
+            state.personaProviderRestrictions = {
+                google: !!data.restrict_google,
+                anthropic: !!data.restrict_anthropic,
+                openai: !!data.restrict_openai
+            };
+        } catch (e) {
+            console.error("Persona restriction fetch error:", e);
+            state.personaProviderRestrictions = { google: false, anthropic: false, openai: false };
+        }
+    };
+
     // 초기 상태 동기화.
-    ctx.provider.updateProviderUI();
+    ctx.provider.fetchPersonaRestrictions(dom.modelSelector ? dom.modelSelector.value : 'general')
+        .finally(() => ctx.provider.updateProviderUI());
 
     // 드롭다운 열기/닫기.
     if (dom.currentProviderBtn) {

@@ -12,6 +12,7 @@ window.App.createContext = function createContext() {
     const htmlTag = document.documentElement;
     const isAdmin = htmlTag.dataset.isAdmin ? htmlTag.dataset.isAdmin.toLowerCase() === 'true' : false;
     const currentUsername = htmlTag.dataset.username || "Guest";
+    const currentUserRole = htmlTag.dataset.userRole || "user";
 
     // 자주 쓰는 DOM 요소를 한 곳에 캐시한다.
     const dom = {
@@ -137,8 +138,10 @@ window.App.createContext = function createContext() {
         state: {
             isAdmin,
             currentUsername,
+            currentUserRole,
             currentProvider: 'anthropic',
             providerStatuses: { google: 'active', anthropic: 'active', openai: 'active' },
+            personaProviderRestrictions: { google: false, anthropic: false, openai: false },
             currentSessionId: null,
             selectedFiles: [],
             isMyChatFilterActive: false,

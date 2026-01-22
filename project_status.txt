@@ -119,8 +119,8 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 ├── project_status.txt
 ├── prompts.py
 ├── requirements.txt
-├── ssh-key-2025-12-07.key
-├── ssh-key-2025-12-07.key.pub
+├── sdjgh_key_2026.key
+├── sdjgh_key_2026.key.pub
 ├── test_claude.py
 ├── test_gemini.py
 └── test_gpt.py
@@ -229,7 +229,7 @@ deactivate
 [ 3.1 서버 접속 및 기본 정보 ]
 
 접속 명령어 (PC 터미널):
-ssh -i "ssh-key-2025-12-07.key" ubuntu@152.67.193.142
+ssh oracle-student-ai
 
 폴더 이동:
 cd ~/sdjgh_ai
@@ -251,13 +251,15 @@ ARM64 호환성 문제로 docker-compose (하이픈 포함) 명령어 사용 권
 PC의 터미널(PowerShell)에서 실행 (키 파일 필요, 권한은 윈도우 사용자로 한정하기)
 
 개별 파일 업로드:
-scp -i "ssh-key-2025-12-07.key" app.py ubuntu@152.67.193.142:~/sdjgh_ai/
+scp -i "sdjgh_key_2026.key" app.py ubuntu@152.67.193.142:~/sdjgh_ai/
 
 폴더 업로드 (recursive):
-scp -i "ssh-key-2025-12-07.key" -r templates static ubuntu@152.67.193.142:~/sdjgh_ai/
+scp -i "sdjgh_key_2026.key" -r templates static ubuntu@152.67.193.142:~/sdjgh_ai/
 
 전체 업데이트 (이미지 제외):
-scp -i "ssh-key-2025-12-07.key" app.py requirements.txt docker-compose.yml prompts.py ubuntu@152.67.193.142:~/sdjgh_ai/
+rsync -avz --progress --exclude='venv' --exclude='__pycache__' --exclude='*.pyc'
+     --exclude='*.db' --exclude='certs' --exclude='.env' --exclude='static/uploads'
+     --exclude='*.key' --exclude='*.pem' --exclude='*.log' ./ oracle-student-ai:~/sdjgh_ai/
 
 [ 3.4 환경 변수 및 보안 설정 (.env) ]
 

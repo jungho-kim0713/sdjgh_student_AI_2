@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-is-admin="{{ is_admin }}" data-username="{{ current_user.username }}">
+<html lang="ko" data-is-admin="{{ is_admin }}" data-username="{{ current_user.username }}" data-user-role="{{ current_user_role }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,6 +100,10 @@
                                 <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                             </button>
                             <div id="provider-menu" class="provider-menu">
+                                <button class="provider-option" data-provider="google">
+                                    <img src="{{ url_for('static', filename='images/gemini.png') }}" alt="Gemini" class="provider-icon-small">
+                                    <span>Gemini</span>
+                                </button>
                                 <button class="provider-option active" data-provider="anthropic">
                                     <img src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude" class="provider-icon-small">
                                     <span>Claude</span>
@@ -107,10 +111,6 @@
                                 <button class="provider-option" data-provider="openai">
                                     <img src="{{ url_for('static', filename='images/gpt.png') }}" alt="GPT" class="provider-icon-small">
                                     <span>GPT</span>
-                                </button>
-                                <button class="provider-option" data-provider="google">
-                                    <img src="{{ url_for('static', filename='images/gemini.png') }}" alt="Gemini" class="provider-icon-small">
-                                    <span>Gemini</span>
                                 </button>
                             </div>
                         </div>
@@ -204,7 +204,7 @@
                 <div class="table-container">
                     <table class="admin-table">
                         <thead>
-                            <tr><th>ID</th><th>Username</th><th>Admin</th><th>작업</th></tr>
+                            <tr><th>ID</th><th>Username</th><th>Role</th><th>작업</th></tr>
                         </thead>
                         <tbody id="admin-user-list-body"></tbody>
                     </table>
@@ -221,9 +221,9 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>공급사 (Provider)</th>
-                                <th>현재 상태</th>
-                                <th>작업</th>
+                                <th>GOOGLE</th>
+                                <th>ANTHROPIC</th>
+                                <th>OPENAI</th>
                             </tr>
                         </thead>
                         <tbody id="admin-provider-status-body">
@@ -232,20 +232,19 @@
                     </table>
                 </div>
 
-                <h3 style="margin-top: 0; font-size: 1.1rem; color: #374151;">페르소나별 모델 상세 설정</h3>
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: #374151;">모델 설정 및 제한</h3>
                 <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #6B7280;">
-                    각 역할별로 3가지 공급사의 모델을 지정할 수 있습니다. 마우스를 올리면 가격이 보입니다.<br>
+                    각 역할별로 모델/토큰/사용자 제한을 지정할 수 있습니다. 마우스를 올리면 가격이 보입니다.<br>
                     * 토큰은 4096(표준) 등을 입력하세요. (입력 제한 없음)
                 </p>
                 <div class="table-container">
                     <table class="admin-table config-table">
                         <thead>
                             <tr>
-                                <th style="width: 14%;">역할 (Role)</th>
-                                <th style="width: 22%;">OpenAI (GPT)</th>
-                                <th style="width: 22%;">Anthropic (Claude)</th>
-                                <th style="width: 22%;">Google (Gemini)</th>
-                                <th style="width: 20%;">토큰</th>
+                                <th style="width: 18%;">역할 (Role)</th>
+                                <th style="width: 42%;">모델 설정</th>
+                                <th style="width: 20%;">토큰 설정</th>
+                                <th style="width: 20%;">사용자 제한</th>
                             </tr>
                         </thead>
                         <tbody id="admin-model-config-body"></tbody>
@@ -278,6 +277,7 @@
     <script src="{{ url_for('static', filename='js/modules/sessions.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/modules/chat.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/modules/voice.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/persona_visibility.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/modules/status_admin.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/app_entry.js') }}?v={{ version }}"></script>
 </body>

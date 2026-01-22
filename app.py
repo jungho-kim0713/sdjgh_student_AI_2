@@ -7,6 +7,7 @@ import os
 import datetime
 
 import certifi
+from sqlalchemy import inspect, text
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 
@@ -99,6 +100,31 @@ with app.app_context():
     # 앱 최초 구동 시 필요한 기본 레코드를 채운다.
     try:
         db.create_all()
+        # 기존 DB에 새 컬럼이 없으면 추가한다.
+        inspector = inspect(db.engine)
+
+        def ensure_column(table_name, column_name, ddl):
+            columns = [col["name"] for col in inspector.get_columns(table_name)]
+            if column_name in columns:
+                return
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {ddl}"))
+
+        ensure_column("user", "role", "role VARCHAR(20) DEFAULT 'user'")
+        ensure_column("persona_config", "allow_user", "allow_user BOOLEAN DEFAULT 1")
+        ensure_column("persona_config", "allow_teacher", "allow_teacher BOOLEAN DEFAULT 1")
+        ensure_column("persona_config", "restrict_google", "restrict_google BOOLEAN DEFAULT 0")
+        ensure_column("persona_config", "restrict_anthropic", "restrict_anthropic BOOLEAN DEFAULT 0")
+        ensure_column("persona_config", "restrict_openai", "restrict_openai BOOLEAN DEFAULT 0")
+
+        # 새 컬럼 기본값 보정(기존 레코드).
+        with db.engine.begin() as conn:
+            conn.execute(text("UPDATE user SET role='user' WHERE role IS NULL"))
+            conn.execute(text("UPDATE persona_config SET allow_user=1 WHERE allow_user IS NULL"))
+            conn.execute(text("UPDATE persona_config SET allow_teacher=1 WHERE allow_teacher IS NULL"))
+            conn.execute(text("UPDATE persona_config SET restrict_google=0 WHERE restrict_google IS NULL"))
+            conn.execute(text("UPDATE persona_config SET restrict_anthropic=0 WHERE restrict_anthropic IS NULL"))
+            conn.execute(text("UPDATE persona_config SET restrict_openai=0 WHERE restrict_openai IS NULL"))
         # 서비스 상태 기본값 시딩
         if not SystemConfig.query.filter_by(key="service_status").first():
             db.session.add(SystemConfig(key="service_status", value="active"))
