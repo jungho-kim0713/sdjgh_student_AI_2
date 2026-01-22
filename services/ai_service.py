@@ -224,7 +224,9 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
                 "Please continue.", generation_config=gen_config, safety_settings=safety_settings
             )
             return response.text
-        except ValueError:
+        except ValueError as e:
+            print(f"Gemini ValueError: {e}")
+            # ValueError는 보통 response.text 접근 시 발생 (candidates가 비어있거나 안전 차단)
             return "⚠️ [Google Gemini Error] 안전 정책에 의해 답변이 차단되었습니다."
         except Exception as e:
             print(f"Gemini API Error details: {e}")

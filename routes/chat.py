@@ -174,6 +174,10 @@ def chat():
             )
             final_prompt = prompt_optimizer.strip()
 
+            # 프롬프트 최적화가 실패했으면 원본 메시지 사용
+            if final_prompt.startswith("⚠️") or "차단" in final_prompt or "Error" in final_prompt:
+                final_prompt = user_message
+
             generated_image_filename = None
 
             if provider == "google":
