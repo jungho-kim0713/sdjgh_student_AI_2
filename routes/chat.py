@@ -219,8 +219,14 @@ def chat():
                     # Gemini 이미지 모델 사용
                     try:
                         genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+                        safety_settings = [
+                            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                        ]
                         image_model = genai.GenerativeModel(selected_model_id)
-                        response = image_model.generate_content(final_prompt)
+                        response = image_model.generate_content(final_prompt, safety_settings=safety_settings)
                         parts = response.candidates[0].content.parts if response.candidates else []
                         img_data = None
                         for part in parts:
