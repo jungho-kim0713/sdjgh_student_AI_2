@@ -47,7 +47,7 @@ AVAILABLE_MODELS = {
     "gemini-2.0-flash-exp-image-generation": {"name": "Gemini 2.0 Flash (Exp) Image", "provider": "google", "input_price": 0.0006, "output_price": 0.0006},
     "gemini-2.5-flash-image": {"name": "Gemini 2.5 Flash Image", "provider": "google", "input_price": 0.02, "output_price": 0.02},
     "gemini-3-pro-image-preview": {"name": "Gemini 3.0 Pro Image", "provider": "google", "input_price": 0.03, "output_price": 0.03},
-    "imagen-4.0-ultra-generate-001": {"name": "Imagen 4.0 (Ultra)", "provider": "google", "input_price": 0.06, "output_price": 0.06},
+    "imagen-4.0-generate-001": {"name": "Imagen 4.0", "provider": "google", "input_price": 0.04, "output_price": 0.04},
 }
 
 # 공급사별 기본 모델 아이디(모델 정보 누락 시 fallback)

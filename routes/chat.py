@@ -159,7 +159,7 @@ def chat():
 
             # Imagen 4.0 선택 시 대화/프롬프트는 Gemini 3 Pro로 고정
             prompt_model_id = selected_model_id
-            if provider == "google" and selected_model_id == "imagen-4.0-ultra-generate-001":
+            if provider == "google" and selected_model_id == "imagen-4.0-generate-001":
                 prompt_model_id = "gemini-3-pro-preview"
 
             # 프롬프트 최적화(텍스트 → 이미지 프롬프트)
@@ -184,11 +184,11 @@ def chat():
                 if not os.getenv("GOOGLE_API_KEY"):
                     raise ValueError("Google API Key Missing")
                 # Imagen 4.0 (Ultra) 선택 시 REST 호출
-                if selected_model_id == "imagen-4.0-ultra-generate-001":
+                if selected_model_id == "imagen-4.0-generate-001":
                     try:
                         api_url = (
                             "https://generativelanguage.googleapis.com/v1beta/models/"
-                            f"imagen-4.0-ultra-generate-001:predict?key={os.getenv('GOOGLE_API_KEY')}"
+                            f"imagen-4.0-generate-001:predict?key={os.getenv('GOOGLE_API_KEY')}"
                         )
                         headers = {"Content-Type": "application/json"}
                         payload = {
