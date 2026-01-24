@@ -235,7 +235,7 @@ def chat():
                         img_data = None
                         for part in parts:
                             if hasattr(part, "inline_data") and part.inline_data:
-                                img_data = base64.b64decode(part.inline_data.data)
+                                img_data = part.inline_data.data
                                 break
                             if isinstance(part, dict) and part.get("inline_data"):
                                 img_data = base64.b64decode(part["inline_data"]["data"])
