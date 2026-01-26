@@ -4,7 +4,7 @@
 
 PM: 🏗️ AI 플랫폼 빌더
 
-최종 업데이트: 2026년 1월 22일 (Season 6: 코드 구조 개선 & Git 기반 배포 자동화)
+최종 업데이트: 2026년 1월 24일 (Season 6.5: AI 화가 기능 정상화 & 이미지 생성 오류 수정)
 
 ###################################################
 
@@ -144,6 +144,19 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 ===================================================
 2. 프로젝트 히스토리 (History)
 ===================================================
+[ 2.05 Season 6.5. AI 화가 (Imagen) 오류 수정 및 정상화 (완료) ]
+기간: 2026.01.24
+목표: 'AI 화가' 기능에서 이미지가 생성되지 않고 깨지는(0byte/620byte) 오류 해결.
+주요 성과:
+
+원인 규명: Google GenAI SDK가 이미지를 decode된 bytes 형태로 반환함에도, 코드에서 중복 base64 decode를 수행하여 데이터 손상 발생.
+
+코드 수정: routes/chat.py에서 불필요한 base64.b64decode 제거.
+
+검증 완료: Gemini 3.0 Pro Image 모델 등에서 정상적인 이미지 생성 확인 (verify_fix.py).
+
+배포 완료: GitHub Push 및 OCI 서버 배포(Pull & Restart) 완료.
+
 [ 2.0 Season 6. 코드 구조 개선 및 배포 자동화 (완료) ]
 기간: 2026.01.22
 목표: 유지보수성 향상 및 배포 프로세스 간소화.
@@ -263,14 +276,21 @@ cd ~/sdjgh_ai
 웹 접속 주소: http://152.67.193.142:8081
 업로드 파일 위치: ~/sdjgh_ai/static/uploads
 
-[ 3.2 서버 관리 명령어 (Docker Compose) ]
-ARM64 호환성 문제로 docker-compose (하이픈 포함) 명령어 사용 권장.
+[ 3.2 Docker 명령어 (운영체제별 구분) ]
+- 로컬(Windows): sudo 없이 사용 (PowerShell)
+- 서버(Linux): sudo 필수 사용 (권한 문제 시)
 
-서버 켜기 (백그라운드): sudo docker-compose up -d
-서버 재시작 (코드 수정 반영): sudo docker-compose up -d --build --force-recreate
+A. 로컬 Windows (내 컴퓨터)
+서버 켜기: docker-compose up -d
+서버 재비(코드 반영): docker-compose up -d --build --force-recreate
+서버 끄기: docker-compose down
+로그 확인: docker-compose logs -f web
+
+B. 서버 Linux (OCI 클라우드)
+서버 켜기: sudo docker-compose up -d
+서버 재비(코드 반영): sudo docker-compose up -d --build --force-recreate
 서버 끄기: sudo docker-compose down
-실시간 로그 확인: sudo docker-compose logs -f web
-상태 확인: sudo docker-compose ps
+로그 확인: sudo docker-compose logs -f web
 
 [ 3.3 서버 코드 배포 (Git 기반) ]
 GitHub 저장소: https://github.com/jungho-kim0713/sdjgh_student_AI_2.git
