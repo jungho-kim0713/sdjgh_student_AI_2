@@ -25,9 +25,13 @@ load_dotenv()
 from services.ai_service import DEFAULT_MODELS, DEFAULT_MAX_TOKENS
 from routes import register_blueprints
 from routes.auth import init_oauth
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Flask 앱 인스턴스 생성(정적/템플릿 경로 지정)
 app = Flask(__name__, static_folder="static", template_folder="templates")
+# [ProxyFix] 리버스 프록시(Nginx/Cloudflare) 환경에서 HTTPS 및 실제 IP를 인식하도록 설정
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 # OAuth 초기화
