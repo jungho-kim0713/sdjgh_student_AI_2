@@ -3,107 +3,180 @@
 {% block content %}
 <div class="admin-container">
     <h2>👥 사용자 관리</h2>
-    
+
     <div class="card">
         <h3>일괄 등록 (이메일)</h3>
         <p>여기에 이메일을 입력하면 해당 구글 계정 사용자는 첫 로그인 시 자동 승인됩니다.</p>
-        <textarea id="emailList" rows="5" placeholder="user1@gmail.com&#10;user2@gmail.com" style="width:100%;"></textarea>
+        <textarea id="emailList" rows="5" placeholder="user1@gmail.com&#10;user2@gmail.com"
+            style="width:100%;"></textarea>
         <button onclick="batchAddUsers()" class="btn-primary" style="margin-top:10px;">일괄 등록</button>
     </div>
 
     <div class="card" style="margin-top: 20px;">
         <h3>사용자 목록</h3>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Username / Email</th>
-                    <th>Role</th>
-                    <th>승인 여부</th>
-                    <th>관리</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.id }}</td>
-                    <td>
-                        {{ user.username }}
-                        {% if user.email and user.email != user.username %}
-                        <br><span style="font-size:0.8em; color:#666;">({{ user.email }})</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ user.role }}</td>
-                    <td>
-                        {% if user.is_approved %}
+        <div class="table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username / Email</th>
+                        <th>Role</th>
+                        <th>승인 여부</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            {{ user.username }}
+                            {% if user.email and user.email != user.username %}
+                            <br><span style="font-size:0.8em; color:#666;">({{ user.email }})</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.role }}</td>
+                        <td>
+                            {% if user.is_approved %}
                             <span class="badge success">승인됨</span>
-                        {% else %}
+                            {% else %}
                             <span class="badge warning">대기중</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if not user.is_approved %}
-                        <button onclick="approveUser({{ user.id }})" class="btn-small">승인</button>
-                        {% endif %}
-                        <button onclick="deleteUser({{ user.id }})" class="btn-small danger">삭제</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not user.is_approved %}
+                            <button onclick="approveUser({{ user.id }})" class="btn-small">승인</button>
+                            {% endif %}
+                            <button onclick="deleteUser({{ user.id }})" class="btn-small danger">삭제</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-async function approveUser(userId) {
-    if (!confirm('이 사용자를 승인하시겠습니까?')) return;
-    const res = await fetch(`/admin/users/approve/${userId}`, { method: 'POST' });
-    const data = await res.json();
-    if (data.success) location.reload();
-    else alert(data.error);
-}
-
-async function batchAddUsers() {
-    const text = document.getElementById('emailList').value;
-    if (!text.trim()) return alert('이메일을 입력하세요.');
-    
-    const res = await fetch('/admin/users/batch_add', { 
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ emails: text })
-    });
-    const data = await res.json();
-    if (data.success) {
-        alert(`${data.added}명 등록 완료 (중복 ${data.duplicates}명)`);
-        location.reload();
-    } else {
-        alert(data.error);
+    async function approveUser(userId) {
+        if (!confirm('이 사용자를 승인하시겠습니까?')) return;
+        const res = await fetch(`/admin/users/approve/${userId}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert(data.error);
     }
-}
 
-async function deleteUser(userId) {
-    if (!confirm('정말 삭제하시겠습니까? (대화 내용도 삭제됩니다)')) return;
-    const res = await fetch('/api/admin/delete_user', { 
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ user_id: userId })
-    });
-    const data = await res.json();
-    if (data.success) location.reload();
-    else alert(data.error);
-}
+    async function batchAddUsers() {
+        const text = document.getElementById('emailList').value;
+        if (!text.trim()) return alert('이메일을 입력하세요.');
+
+        const res = await fetch('/admin/users/batch_add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emails: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`${data.added}명 등록 완료 (중복 ${data.duplicates}명)`);
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (!confirm('정말 삭제하시겠습니까? (대화 내용도 삭제됩니다)')) return;
+        const res = await fetch('/api/admin/delete_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert(data.error);
+    }
 </script>
 
 <style>
-.admin-container { padding: 20px; max-width: 1000px; margin: 0 auto; }
-.card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.admin-table th, .admin-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-.badge { padding: 3px 8px; border-radius: 10px; font-size: 0.8em; color: white; }
-.badge.success { background: #2ecc71; }
-.badge.warning { background: #f39c12; }
-.btn-small { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; background: #3498db; color: white; }
-.btn-small.danger { background: #e74c3c; }
-.btn-primary { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .admin-container {
+        padding: 20px;
+        max-width: 1000px;
+        margin: 0 auto;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* [수정] 스크롤 처리를 위한 컨테이너 스타일 */
+    .table-container {
+        max-height: 500px;
+        overflow-y: auto;
+        margin-top: 10px;
+        border: 1px solid #eee;
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    /* [수정] 테이블 헤더 고정 (Sticky Header) */
+    .admin-table thead {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 1;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+    }
+
+    .badge {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.8em;
+        color: white;
+    }
+
+    .badge.success {
+        background: #2ecc71;
+    }
+
+    .badge.warning {
+        background: #f39c12;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-small.danger {
+        background: #e74c3c;
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
 </style>
 {% endblock %}
