@@ -1,33 +1,48 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - 서대전여고 AI</title>
-    
+
     <!-- (★★추가★★) Google Fonts: 이 부분이 없어서 글꼴이 적용되지 않았습니다 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+        rel="stylesheet">
 
     <!-- (★★수정★★) CSS 로딩 시 버전 정보 추가 (?v={{ version }}) -->
     <!-- 이를 통해 브라우저가 캐시된 파일 대신 항상 최신 CSS를 불러옵니다 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ version }}">
 </head>
+
 <body class="auth-body">
     <div class="auth-container">
         <h1 class="main-title">서대전여고 수업용 AI</h1>
         <h2>로그인</h2>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-                </ul>
-            {% endif %}
+        {% if messages %}
+        <ul class="flashes">
+            {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         {% endwith %}
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="{{ url_for('auth.google_login') }}" class="google-btn">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo">
+                Google 계정으로 로그인 (학생/교사)
+            </a>
+        </div>
+
+        <div class="divider">
+            <span>또는 기존 ID로 로그인</span>
+        </div>
 
         <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
             <div class="form-group">
@@ -40,7 +55,52 @@
             </div>
             <button type="submit" class="auth-button">로그인</button>
         </form>
-        <p class="auth-switch">계정이 없으신가요? <a href="{{ url_for('auth.register') }}">회원가입</a></p>
+        <p class="auth-switch">계정이 없으신가요? <a href="{{ url_for('auth.register') }}">회원가입</a> (관리자 승인 필요)</p>
+
+        <style>
+            .google-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: white;
+                color: #444;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px 20px;
+                text-decoration: none;
+                font-weight: bold;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .google-btn:hover {
+                background: #f8f9fa;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            }
+
+            .google-btn img {
+                width: 20px;
+                height: 20px;
+                margin-right: 10px;
+            }
+
+            .divider {
+                text-align: center;
+                border-bottom: 1px solid #eee;
+                line-height: 0.1em;
+                margin: 20px 0;
+            }
+
+            .divider span {
+                background: #fff;
+                padding: 0 10px;
+                color: #999;
+                font-size: 0.8em;
+            }
+        </style>
     </div>
 </body>
+
 </html>

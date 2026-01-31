@@ -24,10 +24,14 @@ load_dotenv()
 # 내부 의존(서비스/라우트)은 환경 초기화 이후에 가져온다.
 from services.ai_service import DEFAULT_MODELS, DEFAULT_MAX_TOKENS
 from routes import register_blueprints
+from routes.auth import init_oauth
 
 # Flask 앱 인스턴스 생성(정적/템플릿 경로 지정)
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+
+# OAuth 초기화
+init_oauth(app)
 
 
 @app.after_request

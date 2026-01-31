@@ -16,6 +16,9 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)         # 암호화된 비밀번호
     is_admin = db.Column(db.Boolean, default=False)                   # 관리자 여부
     role = db.Column(db.String(20), default="user", nullable=False)   # 사용자 역할(user|teacher)
+    google_id = db.Column(db.String(100), unique=True, nullable=True) # 구글 고유 ID
+    email = db.Column(db.String(120), unique=True, nullable=True)     # 구글 이메일
+    is_approved = db.Column(db.Boolean, default=False)                # 관리자 승인 여부
 
     def set_password(self, password):
         """비밀번호를 안전하게 해시화하여 저장합니다."""
