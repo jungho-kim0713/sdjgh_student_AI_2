@@ -46,180 +46,13 @@ if os.getenv("GOOGLE_API_KEY"):
 # 지원 모델 목록(프론트 관리자 패널에 노출되는 기준)
 # 2025년 모델만 포함, 모든 모델에 출시일/가격/특징 포함
 AVAILABLE_MODELS = {
-    # ===== GPT-4o 검색 특화 (2025년 3월) =====
-    "gpt-4o-search-preview": {
-        "name": "GPT-4o Search Preview (2025년 3월)",
-        "provider": "openai",
-        "input_price": 5.00,
-        "output_price": 15.00,
-        "description": "웹 검색 통합과 실시간 정보 접근 기능"
-    },
-    "gpt-4o-search-preview-2025-03-11": {
-        "name": "GPT-4o Search (2025년 3월 11일)",
-        "provider": "openai",
-        "input_price": 5.00,
-        "output_price": 15.00,
-        "description": "2025년 3월 11일 검색 최적화 스냅샷"
-    },
-
-    # ===== GPT-4o Mini 2025년 버전 =====
-    "gpt-4o-mini-transcribe-2025-12-15": {
-        "name": "GPT-4o Mini Transcribe (2025년 12월 15일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "전사 정확도가 개선된 최신 버전"
-    },
-    "gpt-4o-mini-transcribe-2025-03-20": {
-        "name": "GPT-4o Mini Transcribe (2025년 3월 20일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "2025년 3월 20일 스냅샷"
-    },
-    "gpt-4o-mini-tts": {
-        "name": "GPT-4o Mini TTS (2025년)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "저비용 음성 합성(Text-to-Speech) 모델"
-    },
-    "gpt-4o-mini-tts-2025-12-15": {
-        "name": "GPT-4o Mini TTS (2025년 12월 15일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "자연스러운 음성 생성 최적화"
-    },
-    "gpt-4o-mini-tts-2025-03-20": {
-        "name": "GPT-4o Mini TTS (2025년 3월 20일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "2025년 3월 20일 음성 품질 개선 버전"
-    },
-    "gpt-4o-mini-search-preview": {
-        "name": "GPT-4o Mini Search Preview (2025년 3월)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "저비용 웹 검색 통합 모델"
-    },
-    "gpt-4o-mini-search-preview-2025-03-11": {
-        "name": "GPT-4o Mini Search (2025년 3월 11일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.60,
-        "description": "2025년 3월 11일 검색 최적화 스냅샷"
-    },
-
-    # ===== Audio/Realtime 전용 (2025년) =====
-    "gpt-audio": {
-        "name": "GPT Audio (2025년 8월)",
-        "provider": "openai",
-        "input_price": 0.30,
-        "output_price": 0.90,
-        "description": "범용 오디오 처리 및 생성 전문 모델"
-    },
-    "gpt-audio-2025-08-28": {
-        "name": "GPT Audio (2025년 8월 28일)",
-        "provider": "openai",
-        "input_price": 0.30,
-        "output_price": 0.90,
-        "description": "2025년 8월 28일 오디오 품질 개선 버전"
-    },
-    "gpt-audio-mini": {
-        "name": "GPT Audio Mini (2025년 10월)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "경량 오디오 처리 모델"
-    },
-    "gpt-audio-mini-2025-10-06": {
-        "name": "GPT Audio Mini (2025년 10월 6일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "2025년 10월 6일 스냅샷"
-    },
-    "gpt-audio-mini-2025-12-15": {
-        "name": "GPT Audio Mini (2025년 12월 15일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "2025년 12월 15일 최신 버전"
-    },
-    "gpt-realtime": {
-        "name": "GPT Realtime (2025년 8월)",
-        "provider": "openai",
-        "input_price": 0.30,
-        "output_price": 0.90,
-        "description": "실시간 양방향 대화를 위한 저지연 모델"
-    },
-    "gpt-realtime-2025-08-28": {
-        "name": "GPT Realtime (2025년 8월 28일)",
-        "provider": "openai",
-        "input_price": 0.30,
-        "output_price": 0.90,
-        "description": "2025년 8월 28일 스냅샷"
-    },
-    "gpt-realtime-mini": {
-        "name": "GPT Realtime Mini (2025년 10월)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "경량 실시간 대화 모델"
-    },
-    "gpt-realtime-mini-2025-10-06": {
-        "name": "GPT Realtime Mini (2025년 10월 6일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "2025년 10월 6일 스냅샷"
-    },
-    "gpt-realtime-mini-2025-12-15": {
-        "name": "GPT Realtime Mini (2025년 12월 15일)",
-        "provider": "openai",
-        "input_price": 0.15,
-        "output_price": 0.45,
-        "description": "2025년 12월 15일 최신 버전"
-    },
-    "gpt-4o-realtime-preview-2025-06-03": {
-        "name": "GPT-4o Realtime (2025년 6월 3일)",
-        "provider": "openai",
-        "input_price": 5.00,
-        "output_price": 15.00,
-        "description": "2025년 6월 3일 GPT-4o 기반 실시간 모델"
-    },
-    "gpt-4o-audio-preview-2025-06-03": {
-        "name": "GPT-4o Audio (2025년 6월 3일)",
-        "provider": "openai",
-        "input_price": 5.00,
-        "output_price": 15.00,
-        "description": "2025년 6월 3일 GPT-4o 기반 오디오 모델"
-    },
-
-    # ===== GPT-4.1 시리즈 (2025년 4월) =====
-    "gpt-4.1": {
-        "name": "GPT-4.1 (2025년 4월)",
-        "provider": "openai",
-        "input_price": 30.00,
-        "output_price": 60.00,
-        "description": "GPT-4의 진화 버전, 추론과 코딩 능력 대폭 개선"
-    },
-    "gpt-4.1-2025-04-14": {
-        "name": "GPT-4.1 (2025년 4월 14일)",
-        "provider": "openai",
-        "input_price": 30.00,
-        "output_price": 60.00,
-        "description": "2025년 4월 14일 초기 출시 스냅샷"
-    },
+    # ===== 가성비 최고 모델 (Mini 시리즈) =====
     "gpt-4.1-mini": {
         "name": "GPT-4.1 Mini (2025년 4월)",
         "provider": "openai",
         "input_price": 0.20,
         "output_price": 0.80,
-        "description": "일상 작업에 최적화된 효율적인 GPT-4.1"
+        "description": "일상 작업에 최적화된 효율적인 GPT-4.1 - 가성비 최고"
     },
     "gpt-4.1-mini-2025-04-14": {
         "name": "GPT-4.1 Mini (2025년 4월 14일)",
@@ -228,49 +61,12 @@ AVAILABLE_MODELS = {
         "output_price": 0.80,
         "description": "2025년 4월 14일 스냅샷"
     },
-    "gpt-4.1-nano": {
-        "name": "GPT-4.1 Nano (2025년 4월)",
-        "provider": "openai",
-        "input_price": 0.05,
-        "output_price": 0.20,
-        "description": "엣지 디바이스와 모바일 앱을 위한 초경량 모델"
-    },
-    "gpt-4.1-nano-2025-04-14": {
-        "name": "GPT-4.1 Nano (2025년 4월 14일)",
-        "provider": "openai",
-        "input_price": 0.05,
-        "output_price": 0.20,
-        "description": "2025년 4월 14일 스냅샷"
-    },
-
-    # ===== GPT-5 시리즈 (2025년 8월) =====
-    "gpt-5": {
-        "name": "GPT-5 (2025년 8월)",
-        "provider": "openai",
-        "input_price": 50.00,
-        "output_price": 100.00,
-        "description": "OpenAI의 차세대 플래그십, AGI급 추론과 창의성"
-    },
-    "gpt-5-2025-08-07": {
-        "name": "GPT-5 (2025년 8월 7일)",
-        "provider": "openai",
-        "input_price": 50.00,
-        "output_price": 100.00,
-        "description": "2025년 8월 7일 초기 출시 스냅샷"
-    },
-    "gpt-5-chat-latest": {
-        "name": "GPT-5 Chat Latest (2025년 8월)",
-        "provider": "openai",
-        "input_price": 50.00,
-        "output_price": 100.00,
-        "description": "대화 최적화된 최신 GPT-5 버전"
-    },
     "gpt-5-mini": {
         "name": "GPT-5 Mini (2025년 8월)",
         "provider": "openai",
         "input_price": 1.00,
         "output_price": 3.00,
-        "description": "GPT-5 기술 기반 효율적인 경량 모델"
+        "description": "GPT-5 기술 기반 효율적인 경량 모델 - 빠르고 저렴"
     },
     "gpt-5-mini-2025-08-07": {
         "name": "GPT-5 Mini (2025년 8월 7일)",
@@ -279,57 +75,24 @@ AVAILABLE_MODELS = {
         "output_price": 3.00,
         "description": "2025년 8월 7일 스냅샷"
     },
-    "gpt-5-nano": {
-        "name": "GPT-5 Nano (2025년 8월)",
+
+    # ===== 균형잡힌 범용 모델 =====
+    "gpt-4.1": {
+        "name": "GPT-4.1 (2025년 4월)",
         "provider": "openai",
-        "input_price": 0.10,
-        "output_price": 0.30,
-        "description": "엣지 배포용 초경량 GPT-5"
+        "input_price": 30.00,
+        "output_price": 60.00,
+        "description": "GPT-4의 진화 버전, 추론과 코딩 능력 대폭 개선"
     },
-    "gpt-5-nano-2025-08-07": {
-        "name": "GPT-5 Nano (2025년 8월 7일)",
-        "provider": "openai",
-        "input_price": 0.10,
-        "output_price": 0.30,
-        "description": "2025년 8월 7일 스냅샷"
-    },
-    "gpt-5-codex": {
-        "name": "GPT-5 Codex (2025년 8월)",
-        "provider": "openai",
-        "input_price": 15.00,
-        "output_price": 45.00,
-        "description": "GPT-5 기반 고급 코드 생성 및 분석 전문 모델"
-    },
-    "gpt-5-pro": {
-        "name": "GPT-5 Pro (2025년 10월)",
-        "provider": "openai",
-        "input_price": 60.00,
-        "output_price": 120.00,
-        "description": "GPT-5의 최상위 버전, 전문가급 작업용"
-    },
-    "gpt-5-pro-2025-10-06": {
-        "name": "GPT-5 Pro (2025년 10월 6일)",
-        "provider": "openai",
-        "input_price": 60.00,
-        "output_price": 120.00,
-        "description": "2025년 10월 6일 스냅샷"
-    },
-    "gpt-5-search-api": {
-        "name": "GPT-5 Search API (2025년 10월)",
+    "gpt-5": {
+        "name": "GPT-5 (2025년 8월)",
         "provider": "openai",
         "input_price": 50.00,
         "output_price": 100.00,
-        "description": "실시간 웹 검색 통합 GPT-5"
-    },
-    "gpt-5-search-api-2025-10-14": {
-        "name": "GPT-5 Search API (2025년 10월 14일)",
-        "provider": "openai",
-        "input_price": 50.00,
-        "output_price": 100.00,
-        "description": "2025년 10월 14일 검색 최적화 버전"
+        "description": "OpenAI의 차세대 플래그십, AGI급 추론과 창의성"
     },
 
-    # ===== GPT-5.1 시리즈 (2025년 11월) =====
+    # ===== 최신 고성능 모델 =====
     "gpt-5.1": {
         "name": "GPT-5.1 (2025년 11월)",
         "provider": "openai",
@@ -337,43 +100,6 @@ AVAILABLE_MODELS = {
         "output_price": 110.00,
         "description": "GPT-5의 개선 버전, 성능과 안정성 향상"
     },
-    "gpt-5.1-2025-11-13": {
-        "name": "GPT-5.1 (2025년 11월 13일)",
-        "provider": "openai",
-        "input_price": 55.00,
-        "output_price": 110.00,
-        "description": "2025년 11월 13일 스냅샷"
-    },
-    "gpt-5.1-chat-latest": {
-        "name": "GPT-5.1 Chat Latest (2025년 11월)",
-        "provider": "openai",
-        "input_price": 55.00,
-        "output_price": 110.00,
-        "description": "대화 최적화된 최신 GPT-5.1"
-    },
-    "gpt-5.1-codex": {
-        "name": "GPT-5.1 Codex (2025년 11월)",
-        "provider": "openai",
-        "input_price": 18.00,
-        "output_price": 54.00,
-        "description": "GPT-5.1 기반 코드 생성 전문 모델"
-    },
-    "gpt-5.1-codex-mini": {
-        "name": "GPT-5.1 Codex Mini (2025년 11월)",
-        "provider": "openai",
-        "input_price": 2.00,
-        "output_price": 6.00,
-        "description": "경량 코드 생성 모델"
-    },
-    "gpt-5.1-codex-max": {
-        "name": "GPT-5.1 Codex Max (2025년 11월)",
-        "provider": "openai",
-        "input_price": 25.00,
-        "output_price": 75.00,
-        "description": "최대 성능 코드 생성 모델"
-    },
-
-    # ===== GPT-5.2 시리즈 (2025년 12월) =====
     "gpt-5.2": {
         "name": "GPT-5.2 (2025년 12월)",
         "provider": "openai",
@@ -381,63 +107,21 @@ AVAILABLE_MODELS = {
         "output_price": 120.00,
         "description": "최신 GPT-5.2, 멀티모달 통합 강화"
     },
-    "gpt-5.2-2025-12-11": {
-        "name": "GPT-5.2 (2025년 12월 11일)",
-        "provider": "openai",
-        "input_price": 60.00,
-        "output_price": 120.00,
-        "description": "2025년 12월 11일 스냅샷"
-    },
-    "gpt-5.2-chat-latest": {
-        "name": "GPT-5.2 Chat Latest (2025년 12월)",
-        "provider": "openai",
-        "input_price": 60.00,
-        "output_price": 120.00,
-        "description": "대화 최적화 최신 버전"
-    },
-    "gpt-5.2-codex": {
-        "name": "GPT-5.2 Codex (2025년 12월)",
-        "provider": "openai",
-        "input_price": 20.00,
-        "output_price": 60.00,
-        "description": "최신 코드 생성 및 분석 전문 모델"
-    },
-    "gpt-5.2-pro": {
-        "name": "GPT-5.2 Pro (2025년 12월)",
-        "provider": "openai",
-        "input_price": 70.00,
-        "output_price": 140.00,
-        "description": "GPT-5.2의 프로페셔널 버전"
-    },
-    "gpt-5.2-pro-2025-12-11": {
-        "name": "GPT-5.2 Pro (2025년 12월 11일)",
-        "provider": "openai",
-        "input_price": 70.00,
-        "output_price": 140.00,
-        "description": "2025년 12월 11일 스냅샷"
-    },
 
-    # ===== 이미지 모델 (2025년) =====
+    # ===== 특수 목적 모델 =====
+    "gpt-4o-search-preview": {
+        "name": "GPT-4o Search Preview (2025년 3월)",
+        "provider": "openai",
+        "input_price": 5.00,
+        "output_price": 15.00,
+        "description": "웹 검색 통합과 실시간 정보 접근 기능"
+    },
     "gpt-image-1": {
         "name": "GPT Image 1 (2025년)",
         "provider": "openai",
         "input_price": 0.50,
         "output_price": 1.00,
         "description": "이미지 이해, 분석, 캡셔닝 전문 모델"
-    },
-    "gpt-image-1-mini": {
-        "name": "GPT Image 1 Mini (2025년)",
-        "provider": "openai",
-        "input_price": 0.10,
-        "output_price": 0.30,
-        "description": "경량 이미지 분석 모델"
-    },
-    "gpt-image-1.5": {
-        "name": "GPT Image 1.5 (2025년)",
-        "provider": "openai",
-        "input_price": 0.80,
-        "output_price": 1.60,
-        "description": "향상된 이미지 이해 및 생성 기능"
     },
 
     # ===== Anthropic Models - Claude 4.x Series =====
