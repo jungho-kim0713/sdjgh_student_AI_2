@@ -252,23 +252,8 @@ AVAILABLE_MODELS = {
         "output_price": 0.04,
         "description": "사진급 품질의 최첨단 이미지 생성 전문 모델"
     },
-
-    # ===== Google Models - Gemma (On-device/Edge) (2025년 7월) =====
-    "gemma-3-1b-it": {
-        "name": "Gemma 3 1B (2025년 7월)",
-        "provider": "google",
-        "input_price": 0.0,
-        "output_price": 0.0,
-        "description": "온디바이스 배포를 위한 1B 파라미터 경량 모델 (무료)"
-    },
-    "gemma-3-4b-it": {
-        "name": "Gemma 3 4B (2025년 7월)",
-        "provider": "google",
-        "input_price": 0.0,
-        "output_price": 0.0,
-        "description": "향상된 성능의 4B 파라미터 온디바이스 모델 (무료)"
-    },
 }
+
 
 # 공급사별 기본 모델 아이디(모델 정보 누락 시 fallback)
 DEFAULT_MODELS = {
