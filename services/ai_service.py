@@ -54,26 +54,12 @@ AVAILABLE_MODELS = {
         "output_price": 0.80,
         "description": "일상 작업에 최적화된 효율적인 GPT-4.1 - 가성비 최고"
     },
-    "gpt-4.1-mini-2025-04-14": {
-        "name": "GPT-4.1 Mini (2025년 4월 14일)",
-        "provider": "openai",
-        "input_price": 0.20,
-        "output_price": 0.80,
-        "description": "2025년 4월 14일 스냅샷"
-    },
     "gpt-5-mini": {
         "name": "GPT-5 Mini (2025년 8월)",
         "provider": "openai",
         "input_price": 1.00,
         "output_price": 3.00,
         "description": "GPT-5 기술 기반 효율적인 경량 모델 - 빠르고 저렴"
-    },
-    "gpt-5-mini-2025-08-07": {
-        "name": "GPT-5 Mini (2025년 8월 7일)",
-        "provider": "openai",
-        "input_price": 1.00,
-        "output_price": 3.00,
-        "description": "2025년 8월 7일 스냅샷"
     },
 
     # ===== 균형잡힌 범용 모델 =====
