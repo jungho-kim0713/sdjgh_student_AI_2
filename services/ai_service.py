@@ -102,12 +102,12 @@ AVAILABLE_MODELS = {
         "output_price": 15.00,
         "description": "웹 검색 통합과 실시간 정보 접근 기능"
     },
-    "gpt-image-1": {
-        "name": "GPT Image 1 (2025년)",
+    "gpt-image-1.5": {
+        "name": "GPT Image 1.5 (2025년)",
         "provider": "openai",
-        "input_price": 0.50,
-        "output_price": 1.00,
-        "description": "이미지 이해, 분석, 캡셔닝 전문 모델"
+        "input_price": 0.80,
+        "output_price": 1.60,
+        "description": "향상된 이미지 이해 및 생성 기능"
     },
 
     # ===== Anthropic Models - Claude 4.x Series =====
