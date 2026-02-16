@@ -171,7 +171,7 @@
 .btn-danger:hover { background-color: #FECACA; }
 
 /* 페르소나 관리 form-actions 버튼 높이 통일 */
-.form-actions button { padding: 0.6rem 1.2rem !important; font-size: 0.95rem !important; font-weight: 500 !important; }
+.form-actions button { padding: 0.6rem 1.2rem !important; font-size: 0.95rem !important; font-weight: 500 !important; margin-top: 0 !important; }
 
 /* ======================================
    Provider Model Settings UI
