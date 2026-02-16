@@ -279,9 +279,9 @@ def get_enabled_models():
         else:
             # 레코드가 없으면 기본값 사용
             default_models = {
-                "openai": ["gpt-4o-mini", "gpt-4o"],
+                "openai": ["gpt-4.1-mini", "gpt-5-mini"],
                 "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"],
-                "google": ["gemini-2.0-flash", "gemini-3-flash-preview"]
+                "google": ["gemini-3-flash-preview", "gemini-2.5-flash"]
             }
             enabled_models[provider] = default_models.get(provider, [])
 
@@ -314,7 +314,7 @@ def get_enabled_models_by_provider(provider):
         default_models = {
             "openai": ["gpt-4o-mini", "gpt-4o"],
             "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"],
-            "google": ["gemini-2.0-flash", "gemini-3-flash-preview"]
+            "google": ["gemini-3-flash-preview", "gemini-2.5-flash"]
         }
         enabled_models = default_models.get(provider, [])
 
