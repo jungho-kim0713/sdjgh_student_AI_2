@@ -603,8 +603,8 @@ window.App.registerModule((ctx) => {
                     <td>
                         <div class="btn-group">
                             ${approvalBtn}
-                            <button class="btn-secondary view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록 조회</button>
-                            <button class="btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''}>삭제</button>
+                            <button class="btn-secondary view-history-btn" data-user-id="${user.id}" data-username="${user.username}" style="font-size: 0.85rem;">기록 조회</button>
+                            <button class="btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''} style="font-size: 0.85rem;">삭제</button>
                         </div>
                     </td>
                 `;

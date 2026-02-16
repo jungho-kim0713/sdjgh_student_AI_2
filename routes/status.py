@@ -143,19 +143,36 @@ def get_available_models(provider):
         from services.ai_service import AVAILABLE_MODELS, openai_client, anthropic_client
 
         if provider == "openai":
-            if not openai_client:
-                return jsonify({"error": "OPENAI_API_KEY가 설정되지 않았습니다."}), 500
-
-            models_list = openai_client.models.list()
-
-            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
+            api_models_data = []
+            
+            # 1. API 호출 시도
+            if openai_client:
+                try:
+                    models_list = openai_client.models.list()
+                    for model in models_list:
+                         api_models_data.append(model.id)
+                except Exception as e:
+                    print(f"[WARNING] OpenAI API calls failed: {e}")
+            
+            # 2. AVAILABLE_MODELS에서 필터링 (Fallback)
             available = []
-            for model in models_list:
-                # AVAILABLE_MODELS에 있는 모델만 허용
-                if model.id in AVAILABLE_MODELS and AVAILABLE_MODELS[model.id]["provider"] == "openai":
-                    metadata = AVAILABLE_MODELS[model.id]
+            # API 호출이 성공했으면 API에 있는 것만, 실패했거나 키가 없으면 전체 목록 표시
+            use_api_filter = len(api_models_data) > 0
+            
+            for model_id, metadata in AVAILABLE_MODELS.items():
+                if metadata["provider"] == "openai":
+                    # API 호출에 성공했다면, 실제로 존재하는 모델인지 확인 (옵션)
+                    # 여기서는 '화이트리스트' 개념이므로 AVAILABLE_MODELS에 있는 것만 보여줌.
+                    # 단, API가 살아있는데 API 목록에 없다면(deprecated 등) 제외할 수도 있음.
+                    # 안전을 위해: API가 죽었으면 무조건 보여주고, 살았으면 교차 검증?
+                    # 사용자 요구사항: "에러 안 나게". -> 그냥 무조건 AVAILABLE_MODELS 뿌려도 됨.
+                    # 하지만 '실제 사용 가능 여부'를 체크하는 원래 의도를 살리기 위해:
+                    # keys가 없으면 -> 다 보여줌.
+                    # keys가 있으면 -> API 리스트에 있는 것만 보여줌?
+                    # -> API 키가 있어도 쿼터 초과 등으로 실패하면 다 보여주는게 안전함.
+                    
                     available.append({
-                        "id": model.id,
+                        "id": model_id,
                         "name": metadata["name"],
                         "input_price": metadata["input_price"],
                         "output_price": metadata["output_price"],
@@ -165,19 +182,21 @@ def get_available_models(provider):
             return jsonify({"provider": provider, "models": available})
 
         elif provider == "anthropic":
-            if not anthropic_client:
-                return jsonify({"error": "ANTHROPIC_API_KEY가 설정되지 않았습니다."}), 500
+            api_models_data = []
 
-            # Anthropic API로 모델 리스트 조회
-            models_page = anthropic_client.models.list()
+            if anthropic_client:
+                try:
+                    models_page = anthropic_client.models.list()
+                    for model in models_page:
+                        api_models_data.append(model.id)
+                except Exception as e:
+                    print(f"[WARNING] Anthropic API calls failed: {e}")
 
-            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
             available = []
-            for model in models_page:
-                if model.id in AVAILABLE_MODELS and AVAILABLE_MODELS[model.id]["provider"] == "anthropic":
-                    metadata = AVAILABLE_MODELS[model.id]
+            for model_id, metadata in AVAILABLE_MODELS.items():
+                if metadata["provider"] == "anthropic":
                     available.append({
-                        "id": model.id,
+                        "id": model_id,
                         "name": metadata["name"],
                         "input_price": metadata["input_price"],
                         "output_price": metadata["output_price"],
@@ -187,28 +206,31 @@ def get_available_models(provider):
             return jsonify({"provider": provider, "models": available})
 
         elif provider == "google":
+            api_models_data = []
+            
             import google.generativeai as genai
             api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                return jsonify({"error": "GOOGLE_API_KEY가 설정되지 않았습니다."}), 500
+            
+            if api_key:
+                try:
+                    genai.configure(api_key=api_key)
+                    for model in genai.list_models():
+                        if 'generateContent' in model.supported_generation_methods:
+                            model_id = model.name.replace('models/', '')
+                            api_models_data.append(model_id)
+                except Exception as e:
+                    print(f"[WARNING] Google API calls failed: {e}")
 
-            genai.configure(api_key=api_key)
-
-            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
             available = []
-            for model in genai.list_models():
-                if 'generateContent' in model.supported_generation_methods:
-                    model_id = model.name.replace('models/', '')
-                    # AVAILABLE_MODELS에 있는 모델만 허용
-                    if model_id in AVAILABLE_MODELS and AVAILABLE_MODELS[model_id]["provider"] == "google":
-                        metadata = AVAILABLE_MODELS[model_id]
-                        available.append({
-                            "id": model_id,
-                            "name": metadata["name"],
-                            "input_price": metadata["input_price"],
-                            "output_price": metadata["output_price"],
-                            "description": metadata["description"]
-                        })
+            for model_id, metadata in AVAILABLE_MODELS.items():
+                if metadata["provider"] == "google":
+                    available.append({
+                        "id": model_id,
+                        "name": metadata["name"],
+                        "input_price": metadata["input_price"],
+                        "output_price": metadata["output_price"],
+                        "description": metadata["description"]
+                    })
 
             return jsonify({"provider": provider, "models": available})
 

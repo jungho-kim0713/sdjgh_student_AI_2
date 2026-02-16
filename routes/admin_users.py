@@ -13,7 +13,7 @@ def user_management():
         flash("관리자 권한이 필요합니다.", "error")
         return redirect(url_for("chat.index"))
     
-    users = User.query.order_by(User.id.desc()).all()
+    users = User.query.order_by(User.id.asc()).all()
     return render_template("admin_users.html", users=users)
 
 @admin_users_bp.route("/admin/users/approve/<int:user_id>", methods=["POST"])

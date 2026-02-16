@@ -394,11 +394,10 @@
     border: none;
     padding: 0.6rem 1.2rem !important;
     border-radius: 0.5rem;
-    font-size: 0.95rem !important;
-    font-weight: 500 !important;
+    font-size: 0.95rem;
+    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
-    margin-top: 20px;
 }
 
 .btn-primary:hover {
