@@ -148,17 +148,18 @@ def get_available_models(provider):
 
             models_list = openai_client.models.list()
 
-            # gpt로 시작하는 모델만 필터링하고 메타데이터 병합
+            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
             available = []
             for model in models_list:
-                if model.id.startswith("gpt"):
-                    metadata = AVAILABLE_MODELS.get(model.id, {})
+                # AVAILABLE_MODELS에 있는 모델만 허용
+                if model.id in AVAILABLE_MODELS and AVAILABLE_MODELS[model.id]["provider"] == "openai":
+                    metadata = AVAILABLE_MODELS[model.id]
                     available.append({
                         "id": model.id,
-                        "name": metadata.get("name", model.id.upper()),
-                        "input_price": metadata.get("input_price", 0.0),
-                        "output_price": metadata.get("output_price", 0.0),
-                        "description": metadata.get("description", "")
+                        "name": metadata["name"],
+                        "input_price": metadata["input_price"],
+                        "output_price": metadata["output_price"],
+                        "description": metadata["description"]
                     })
 
             return jsonify({"provider": provider, "models": available})
@@ -170,16 +171,18 @@ def get_available_models(provider):
             # Anthropic API로 모델 리스트 조회
             models_page = anthropic_client.models.list()
 
+            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
             available = []
             for model in models_page:
-                metadata = AVAILABLE_MODELS.get(model.id, {})
-                available.append({
-                    "id": model.id,
-                    "name": metadata.get("name", model.id.replace("-", " ").title()),
-                    "input_price": metadata.get("input_price", 0.0),
-                    "output_price": metadata.get("output_price", 0.0),
-                    "description": metadata.get("description", "")
-                })
+                if model.id in AVAILABLE_MODELS and AVAILABLE_MODELS[model.id]["provider"] == "anthropic":
+                    metadata = AVAILABLE_MODELS[model.id]
+                    available.append({
+                        "id": model.id,
+                        "name": metadata["name"],
+                        "input_price": metadata["input_price"],
+                        "output_price": metadata["output_price"],
+                        "description": metadata["description"]
+                    })
 
             return jsonify({"provider": provider, "models": available})
 
@@ -191,18 +194,21 @@ def get_available_models(provider):
 
             genai.configure(api_key=api_key)
 
+            # AVAILABLE_MODELS에 등록된 모델만 표시 (화이트리스트 방식)
             available = []
             for model in genai.list_models():
                 if 'generateContent' in model.supported_generation_methods:
                     model_id = model.name.replace('models/', '')
-                    metadata = AVAILABLE_MODELS.get(model_id, {})
-                    available.append({
-                        "id": model_id,
-                        "name": metadata.get("name", model_id.replace("-", " ").title()),
-                        "input_price": metadata.get("input_price", 0.0),
-                        "output_price": metadata.get("output_price", 0.0),
-                        "description": metadata.get("description", "")
-                    })
+                    # AVAILABLE_MODELS에 있는 모델만 허용
+                    if model_id in AVAILABLE_MODELS and AVAILABLE_MODELS[model_id]["provider"] == "google":
+                        metadata = AVAILABLE_MODELS[model_id]
+                        available.append({
+                            "id": model_id,
+                            "name": metadata["name"],
+                            "input_price": metadata["input_price"],
+                            "output_price": metadata["output_price"],
+                            "description": metadata["description"]
+                        })
 
             return jsonify({"provider": provider, "models": available})
 
