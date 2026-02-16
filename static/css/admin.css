@@ -164,11 +164,14 @@
 .admin-table .admin-badge { background-color: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
 .admin-table td .btn-group { display: flex; gap: 0.5rem; }
 /* 보조 버튼 */
-.btn-secondary { background-color: #E5E7EB; color: #374151; border: none; padding: 0.6rem 1.2rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+.btn-secondary { background-color: #E5E7EB; color: #374151; border: none; padding: 0.6rem 1.2rem !important; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; font-size: 0.95rem; font-weight: 500; }
 .btn-secondary:hover { background-color: #D1D5DB; }
 /* 위험(삭제) 버튼 */
-.btn-danger { background-color: #FEE2E2; color: #B91C1C; border: none; padding: 0.6rem 1.2rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+.btn-danger { background-color: #FEE2E2; color: #B91C1C; border: none; padding: 0.6rem 1.2rem !important; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; font-size: 0.95rem; font-weight: 500; }
 .btn-danger:hover { background-color: #FECACA; }
+
+/* 페르소나 관리 form-actions 버튼 높이 통일 */
+.form-actions button { padding: 0.6rem 1.2rem !important; font-size: 0.95rem !important; font-weight: 500 !important; }
 
 /* ======================================
    Provider Model Settings UI
