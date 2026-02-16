@@ -4,7 +4,7 @@
 
 PM: 🏗️ AI 플랫폼 빌더
 
-최종 업데이트: 2026년 1월 24일 (Season 6.5: AI 화가 기능 정상화 & 이미지 생성 오류 수정)
+최종 업데이트: 2026년 2월 8일 (Season 7: RAG 시스템 통합 시작 - Week 1 Day 1-2 완료)
 
 ###################################################
 
@@ -27,17 +27,60 @@ PM: 🏗️ AI 플랫폼 빌더
 
 포트 포워딩: Cloudflare Origin Rules 사용 (443 -> 8081 자동 연결)
 
-컨테이너: Docker + Docker Compose (App + DB 통합 관리)
+컨테이너: Docker + Docker Compose (App + DB + Redis + Celery Worker 통합 관리)
 
 백엔드: Flask (Python 3.12)
 
-데이터베이스: PostgreSQL 15 (Docker 컨테이너: ai_platform_db)
+데이터베이스: PostgreSQL 15 + pgvector (벡터 검색 지원) (Docker 컨테이너: ai_platform_db)
 
-파일 저장소: 서버 로컬 볼륨 마운트 (./static/uploads)
+메시지 브로커: Redis 7 (Celery 백그라운드 작업용) (Docker 컨테이너: ai_platform_redis)
+
+백그라운드 워커: Celery (문서 벡터화 처리) (Docker 컨테이너: ai_platform_worker)
+
+파일 저장소: 서버 로컬 볼륨 마운트 (./static/uploads, ./static/uploads/knowledge)
 
 외부 접속 포트: 8081 (Docker 내부 8080 매핑)
 
-[ 1.2 최신 구현 사항 (Season 5.5 - 완료) ]
+[ 1.2 최신 구현 사항 (Season 7 - 진행 중) ]
+
+A. RAG(Retrieval-Augmented Generation) 시스템 통합 - Season 7 (진행 중)
+
+목표: 교사가 페르소나별로 교육 자료를 업로드하고, 해당 자료를 기반으로 답변하는 AI 튜터 시스템 구축.
+
+주요 기능:
+  - 동적 페르소나 관리: 관리자가 웹 UI에서 페르소나를 추가/수정/삭제 가능
+  - 교사 권한 위임: 특정 페르소나의 관리 권한을 특정 교사에게 부여
+  - 시스템 프롬프트 편집: 교사가 웹에서 페르소나의 프롬프트를 편집 가능
+  - 페르소나별 RAG: 각 페르소나마다 독립적인 지식 베이스 구축 및 활용
+
+기술 스택:
+  - 벡터 DB: pgvector (PostgreSQL 확장)
+  - 임베딩 모델: OpenAI text-embedding-3-small (1536차원)
+  - 백그라운드 작업: Celery + Redis
+  - 청킹 전략: paragraph/sentence/fixed (선택 가능)
+
+Week 1 Day 1-2 완료 사항 (2026.02.08):
+  ✅ Docker Compose 설정 완료 (pgvector, Redis, Celery Worker 추가)
+  ✅ requirements.txt 업데이트 (pgvector, celery, redis, tiktoken, numpy 추가)
+  ✅ 마이그레이션 SQL 작성 (migrations/001_add_pgvector.sql)
+     - pgvector 확장 설치
+     - 6개 신규 테이블 생성 (persona_definition, persona_system_prompt,
+       persona_teacher_permission, persona_knowledge_base, knowledge_document, document_chunk)
+     - 벡터 검색 인덱스 생성 (IVFFlat)
+  ✅ models.py 신규 ORM 모델 추가 (6개)
+     - PersonaDefinition: 페르소나 정의
+     - PersonaSystemPrompt: 공급사별 시스템 프롬프트
+     - PersonaTeacherPermission: 교사 권한 관리
+     - PersonaKnowledgeBase: 지식 베이스 메타데이터
+     - KnowledgeDocument: 업로드된 문서
+     - DocumentChunk: 벡터 저장소 (pgvector Vector 타입 사용)
+
+다음 단계 (Week 1 Day 3-4):
+  ⏳ 서비스 레이어 구축 (embedding_service.py, chunking_service.py, rag_service.py)
+  ⏳ Celery 작업 시스템 (tasks.py - 문서 벡터화 백그라운드 처리)
+  ⏳ OpenAI API 연동 테스트
+
+[ 1.3 이전 구현 사항 (Season 5.5 - 완료) ]
 A. 보이스 인코더 (STT) 고도화 - Season 5.5
 
 데스크탑/모바일 호환성 강화: setRangeText 및 이벤트 트리거 최적화로 모든 기기에서 입력 오류 해결.
@@ -88,7 +131,7 @@ F. AI 화가 (Image Generation) - Season 4
 
 UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 
-[ 1.3 현재 파일 및 폴더 구조 ]
+[ 1.4 현재 파일 및 폴더 구조 ]
 ├── routes/                    # 라우팅 모듈 (모듈화 완료)
 │   ├── __init__.py
 │   ├── admin.py              # 관리자 기능
@@ -99,7 +142,12 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 ├── services/                  # 서비스 계층
 │   ├── __init__.py
 │   ├── ai_service.py         # AI 모델 통합
-│   └── file_service.py       # 파일 처리
+│   ├── file_service.py       # 파일 처리
+│   ├── embedding_service.py  # [예정] 임베딩 생성
+│   ├── chunking_service.py   # [예정] 텍스트 청킹
+│   └── rag_service.py        # [예정] RAG 파이프라인
+├── migrations/               # [신규] 데이터베이스 마이그레이션 SQL
+│   └── 001_add_pgvector.sql # pgvector 확장 + 6개 신규 테이블
 ├── static/
 │   ├── css/
 │   │   └── admin.css
@@ -117,7 +165,8 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 │   │   │   └── persona_visibility.js
 │   │   └── app_context.js
 │   └── uploads/
-│       └── files/
+│       ├── files/            # 채팅 파일
+│       └── knowledge/        # [예정] RAG 지식 베이스 문서
 ├── templates/
 │   └── index.html
 ├── certs/                     # SSL 인증서 (서버 전용)
@@ -130,13 +179,14 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 ├── ai_core.py                # AI 핵심 로직
 ├── app.py                    # Flask 앱 메인
 ├── check_version.py
-├── docker-compose.yml
+├── docker-compose.yml        # [수정] Redis + Celery Worker 추가
 ├── Dockerfile
 ├── extensions.py             # Flask 확장
-├── models.py                 # 데이터베이스 모델
+├── models.py                 # [수정] 6개 RAG 모델 추가
 ├── project_status.txt
 ├── prompts.py
-├── requirements.txt
+├── requirements.txt          # [수정] pgvector, celery, redis 추가
+├── tasks.py                  # [예정] Celery 백그라운드 작업
 ├── test_claude.py
 ├── test_gemini.py
 └── test_gpt.py
@@ -144,6 +194,47 @@ UI: 채팅창 내 이미지 미리보기 및 클릭 시 원본 보기 지원.
 ===================================================
 2. 프로젝트 히스토리 (History)
 ===================================================
+[ 2.01 Season 7. RAG 시스템 통합 (진행 중) ]
+기간: 2026.02.08 ~
+목표: 교사가 직접 페르소나를 만들고 교육 자료를 업로드하여 해당 자료 기반으로 답변하는 AI 튜터 구현.
+
+주요 기능:
+  1. 동적 페르소나 관리 (관리자): 웹 UI에서 페르소나 추가/수정/삭제
+  2. 교사 권한 위임 (관리자): 특정 교사에게 특정 페르소나 관리 권한 부여
+  3. 시스템 프롬프트 편집 (교사): 웹에서 페르소나별 프롬프트 수정
+  4. 지식 베이스 관리 (교사): 문서 업로드, 벡터화, 삭제
+  5. RAG 파이프라인: 질문 시 관련 문서 검색 → 컨텍스트 주입 → AI 답변
+  6. 출처 표시: AI 답변 하단에 참고한 문서 표시
+
+기술 스택:
+  - pgvector (PostgreSQL 확장): 벡터 검색
+  - OpenAI text-embedding-3-small: 임베딩 생성 (1536차원)
+  - Celery + Redis: 백그라운드 작업 (문서 벡터화)
+  - 청킹 전략: paragraph/sentence/fixed
+
+구현 진행 상황 (4주 계획):
+  Week 1: 인프라 및 기반 구축
+    ✅ Day 1-2: Docker Compose, requirements.txt, 마이그레이션 SQL, models.py (완료)
+    ⏳ Day 3-4: 서비스 레이어 구축 (embedding, chunking, rag)
+    ⏳ Day 5-7: Celery 백그라운드 작업 시스템
+
+  Week 2: 관리자 기능 구현
+    ⏳ Day 8-9: 페르소나 동적 관리 API (routes/admin_persona.py)
+    ⏳ Day 10-11: 관리자 UI (templates/admin_persona.html)
+    ⏳ Day 12-14: prompts.py 마이그레이션 (DB 기반으로 전환)
+
+  Week 3: 교사 기능 구현
+    ⏳ Day 15-16: 교사 대시보드 (routes/teacher.py, templates/teacher_dashboard.html)
+    ⏳ Day 17-18: 시스템 프롬프트 편집 UI
+    ⏳ Day 19-21: 지식 베이스 관리 UI (문서 업로드, 처리 상태 표시)
+
+  Week 4: RAG 핵심 기능
+    ⏳ Day 22-23: 문서 업로드 및 벡터화 처리
+    ⏳ Day 24-25: RAG 검색 통합 (routes/chat.py 수정)
+    ⏳ Day 26-28: UI 개선 및 통합 테스트
+
+예상 비용: 월 $1 미만 (문서 500개 기준)
+
 [ 2.05 Season 6.5. AI 화가 (Imagen) 오류 수정 및 정상화 (완료) ]
 기간: 2026.01.24
 목표: 'AI 화가' 기능에서 이미지가 생성되지 않고 깨지는(0byte/620byte) 오류 해결.
@@ -264,6 +355,8 @@ deactivate
 키 권한 오류 시(WARNING: UNPROTECTED...):
 관리자 권한 PowerShell에서 권한 재설정 스크립트 실행 (icacls / reset).
 
+로컬 접속 주소: http://127.0.0.1:8081
+
 [ 3.1 서버 접속 및 기본 정보 ]
 
 접속 명령어 (PC 터미널):
@@ -282,7 +375,8 @@ cd ~/sdjgh_ai
 
 A. 로컬 Windows (내 컴퓨터)
 서버 켜기: docker-compose up -d
-서버 재비(코드 반영): docker-compose up -d --build --force-recreate
+파이썬 코드 수정 후 docker 다시 켜기: docker-compose restart web
+docker 파일 수정 후 다시 켜기: docker-compose up -d --build --force-recreate
 서버 끄기: docker-compose down
 로그 확인: docker-compose logs -f web
 
@@ -348,6 +442,25 @@ docker-compose.yml: 컨테이너 오케스트레이션 설정
 
 [ 4.2 다음 단계 예정 사항 ]
 
-추가 기능 고도화 및 사용자 피드백 반영 버그 수정.
+Season 7 RAG 시스템 구현 완료 (약 3-4주 소요 예정)
+  - Week 1: 인프라 및 서비스 레이어 (진행 중)
+  - Week 2: 관리자 기능
+  - Week 3: 교사 기능
+  - Week 4: RAG 통합 및 테스트
+
+로컬 개발 완료 후 OCI 서버 배포 예정
 
 데이터베이스 정기 백업 및 유지보수 루틴 확립.
+
+[ 4.3 로컬 개발 환경 ]
+
+로컬 개발용 Docker Compose 설정:
+  - 코드 Hot Reload 지원 (전체 코드 마운트)
+  - HTTPS 제거 (개발 편의성)
+  - 포트 노출 (DB 5432, Redis 6379, Web 8081)
+  - Celery Worker 로그 실시간 확인 가능
+
+로컬 테스트 후 서버 배포:
+  1. 로컬에서 개발 및 테스트
+  2. Git push
+  3. 서버에서 pull + restart

@@ -9,8 +9,16 @@ from flask import Blueprint, jsonify, request, render_template, url_for, current
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import ChatSession, Message, ChatFile, SystemConfig, PersonaConfig, User
-from prompts import AI_PERSONAS
+from models import (
+    ChatSession,
+    Message,
+    ChatFile,
+    SystemConfig,
+    PersonaConfig,
+    User,
+    PersonaDefinition,
+    PersonaSystemPrompt,
+)
 from services.ai_service import (
     generate_ai_response,
     DEFAULT_MODELS,
@@ -23,69 +31,121 @@ from services.ai_service import (
 chat_bp = Blueprint("chat", __name__)
 
 
+# ======================================================
+# 헬퍼 함수: DB 기반 페르소나 조회
+# ======================================================
+def get_persona_from_db(role_key):
+    """DB에서 페르소나 조회 (활성화된 것만)"""
+    return PersonaDefinition.query.filter_by(role_key=role_key, is_active=True).first()
+
+
+def get_system_prompt_from_db(persona_id, provider):
+    """DB에서 시스템 프롬프트 조회 (provider별, fallback to default)"""
+    # 먼저 해당 provider 프롬프트 찾기
+    prompt = PersonaSystemPrompt.query.filter_by(
+        persona_id=persona_id,
+        provider=provider
+    ).first()
+
+    if prompt:
+        return prompt.system_prompt
+
+    # 없으면 default 프롬프트 fallback
+    default_prompt = PersonaSystemPrompt.query.filter_by(
+        persona_id=persona_id,
+        provider="default"
+    ).first()
+
+    return default_prompt.system_prompt if default_prompt else ""
+
+
 @chat_bp.route("/")
 @login_required
 def index():
     """메인 채팅 화면 렌더링.
 
     - 권한: 로그인 사용자
-    - 전달: 관리자 여부, 사용자명, 사용자 역할(데이터 속성으로 프론트 전달)
+    - 전달: 관리자 여부, 사용자명, 사용자 역할, 교사 패널 접근 여부
     """
+    # 교사 패널 접근 권한 체크 (관리 교사 여부)
+    is_teacher_manager = False
+    if not current_user.is_admin and current_user.role == 'teacher':
+        # PersonaTeacherPermission이 하나 이상 있으면 관리 교사
+        from models import PersonaTeacherPermission
+        count = PersonaTeacherPermission.query.filter_by(
+            teacher_id=current_user.id
+        ).count()
+        is_teacher_manager = count > 0
+
     return render_template(
         "index.html",
         is_admin=current_user.is_admin,
         current_username=current_user.username,
         current_user_role=getattr(current_user, "role", "user"),
+        is_teacher_manager=is_teacher_manager
     )
 
 
 @chat_bp.route("/api/get_persona_visibility", methods=["GET"])
 @login_required
 def get_persona_visibility():
-    """페르소나 가시성 목록 제공.
+    """페르소나 가시성 목록 제공 (DB 기반).
 
     - 권한: 로그인 사용자
-    - 관리자: 전체 페르소나 반환
+    - 관리자: 전체 활성화된 페르소나 반환
     - 일반 사용자: allow_user/allow_teacher 설정에 따라 필터링
     """
     if current_user.is_admin:
-        personas = [
-            {"role_key": key, "role_name": persona["role_name"]}
-            for key, persona in AI_PERSONAS.items()
-        ]
-        return jsonify({"personas": personas})
+        # 관리자: 모든 활성화된 페르소나
+        personas = PersonaDefinition.query.filter_by(is_active=True).all()
+        return jsonify({
+            "personas": [
+                {"role_key": p.role_key, "role_name": p.role_name, "icon": p.icon, "use_rag": p.use_rag}
+                for p in personas
+            ]
+        })
 
     # 사용자 역할에 맞는 페르소나만 선별
     user_role = getattr(current_user, "role", "user") or "user"
+    personas = PersonaDefinition.query.filter_by(is_active=True).all()
+
     allowed = []
-    for key, persona in AI_PERSONAS.items():
-        conf = PersonaConfig.query.filter_by(role_key=key).first()
-        allow_user = conf.allow_user if conf else True
-        allow_teacher = conf.allow_teacher if conf else True
-        is_allowed = allow_user if user_role == "user" else allow_teacher
+    for p in personas:
+        if user_role == "user":
+            is_allowed = p.allow_user
+        else:  # teacher
+            is_allowed = p.allow_teacher
+
         if is_allowed:
-            allowed.append({"role_key": key, "role_name": persona["role_name"]})
+            allowed.append({
+                "role_key": p.role_key,
+                "role_name": p.role_name,
+                "icon": p.icon,
+                "use_rag": p.use_rag
+            })
+
     return jsonify({"personas": allowed})
 
 
 @chat_bp.route("/api/get_persona_provider_restrictions", methods=["GET"])
 @login_required
 def get_persona_provider_restrictions():
-    """페르소나별 공급사 제한 정보를 반환한다.
+    """페르소나별 공급사 제한 정보를 반환한다 (DB 기반).
 
     - 권한: 로그인 사용자
     - 입력: role_key (query param)
     - 응답: restrict_google/restrict_anthropic/restrict_openai
     """
     role_key = request.args.get("role_key")
-    if not role_key or role_key not in AI_PERSONAS:
+    persona = PersonaDefinition.query.filter_by(role_key=role_key, is_active=True).first()
+
+    if not persona:
         return jsonify({"error": "Invalid role"}), 400
 
-    conf = PersonaConfig.query.filter_by(role_key=role_key).first()
     data = {
-        "restrict_google": conf.restrict_google if conf else False,
-        "restrict_anthropic": conf.restrict_anthropic if conf else False,
-        "restrict_openai": conf.restrict_openai if conf else False,
+        "restrict_google": persona.restrict_google,
+        "restrict_anthropic": persona.restrict_anthropic,
+        "restrict_openai": persona.restrict_openai,
     }
     return jsonify(data)
 
@@ -113,14 +173,18 @@ def chat():
     # 이미지 생성 페르소나: 별도 플로우로 처리
     if role_key == "ai_illustrator":
         try:
+            # DB에서 페르소나 조회
+            persona = get_persona_from_db(role_key)
+            if not persona:
+                return jsonify({"error": "페르소나를 찾을 수 없습니다"}), 404
+
+            # 권한 확인
             if not current_user.is_admin:
-                conf = PersonaConfig.query.filter_by(role_key=role_key).first()
-                restrict_map = {
-                    "google": conf.restrict_google if conf else False,
-                    "anthropic": conf.restrict_anthropic if conf else False,
-                    "openai": conf.restrict_openai if conf else False,
-                }
-                if restrict_map.get(provider):
+                if provider == "google" and persona.restrict_google:
+                    return jsonify({"error": "권한 없음"}), 403
+                if provider == "anthropic" and persona.restrict_anthropic:
+                    return jsonify({"error": "권한 없음"}), 403
+                if provider == "openai" and persona.restrict_openai:
                     return jsonify({"error": "권한 없음"}), 403
 
             session_id = data.get("session_id")
@@ -147,27 +211,26 @@ def chat():
             db.session.commit()
 
             # 페르소나 설정에서 선택된 모델을 사용한다.
-            config = PersonaConfig.query.filter_by(role_key=role_key).first()
             selected_model_id = DEFAULT_MODEL
-            if config:
-                if provider == "openai":
-                    selected_model_id = config.model_openai
-                elif provider == "google":
-                    selected_model_id = config.model_google
-                elif provider == "anthropic":
-                    selected_model_id = config.model_anthropic
+            if provider == "openai":
+                selected_model_id = persona.model_openai
+            elif provider == "google":
+                selected_model_id = persona.model_google
+            elif provider == "anthropic":
+                selected_model_id = persona.model_anthropic
 
             # Imagen 4.0 선택 시 대화/프롬프트는 Gemini 3 Pro로 고정
             prompt_model_id = selected_model_id
             if provider == "google" and selected_model_id == "imagen-4.0-generate-001":
                 prompt_model_id = "gemini-3-pro-preview"
 
+            # 시스템 프롬프트 조회
+            system_prompt = get_system_prompt_from_db(persona.id, provider)
+
             # 프롬프트 최적화(텍스트 → 이미지 프롬프트)
             prompt_optimizer = generate_ai_response(
                 model_id=prompt_model_id,
-                system_prompt=AI_PERSONAS["ai_illustrator"]["system_prompts"].get(
-                    provider, "Convert to English prompt"
-                ),
+                system_prompt=system_prompt or "Convert to English prompt",
                 messages=[{"role": "user", "content": user_message}],
                 max_tokens=200,
                 upload_folder=current_app.config["UPLOAD_FOLDER"],
@@ -343,41 +406,44 @@ def chat():
 
     db.session.commit()
 
-    # 유효한 페르소나인지 확인
-    if role_key not in AI_PERSONAS:
+    # DB에서 페르소나 조회
+    persona = get_persona_from_db(role_key)
+    if not persona:
         return jsonify({"error": "Invalid persona"}), 400
 
     # 관리자 제외: 페르소나 접근 권한 체크
     if not current_user.is_admin:
         user_role = getattr(current_user, "role", "user") or "user"
-        conf = PersonaConfig.query.filter_by(role_key=role_key).first()
-        allow_user = conf.allow_user if conf else True
-        allow_teacher = conf.allow_teacher if conf else True
-        is_allowed = allow_user if user_role == "user" else allow_teacher
+
+        # 사용자 역할별 접근 권한 확인
+        if user_role == "user":
+            is_allowed = persona.allow_user
+        else:  # teacher
+            is_allowed = persona.allow_teacher
+
         if not is_allowed:
             return jsonify({"error": "권한 없음"}), 403
+
         # 페르소나별 공급사 제한 체크
-        restrict_map = {
-            "google": conf.restrict_google if conf else False,
-            "anthropic": conf.restrict_anthropic if conf else False,
-            "openai": conf.restrict_openai if conf else False,
-        }
-        if restrict_map.get(provider):
+        if provider == "google" and persona.restrict_google:
             return jsonify({"error": "권한 없음"}), 403
-    persona_data = AI_PERSONAS[role_key]
-    prompts = persona_data.get("system_prompts", {})
-    system_prompt = prompts.get(provider, prompts.get("default", ""))
+        if provider == "anthropic" and persona.restrict_anthropic:
+            return jsonify({"error": "권한 없음"}), 403
+        if provider == "openai" and persona.restrict_openai:
+            return jsonify({"error": "권한 없음"}), 403
+
+    # 시스템 프롬프트 조회
+    system_prompt = get_system_prompt_from_db(persona.id, provider)
 
     # 페르소나 설정에 따라 모델 선택
-    config = PersonaConfig.query.filter_by(role_key=role_key).first()
     selected_model_id = DEFAULT_MODEL
-    if config:
-        if provider == "openai":
-            selected_model_id = config.model_openai
-        elif provider == "google":
-            selected_model_id = config.model_google
-        elif provider == "anthropic":
-            selected_model_id = config.model_anthropic
+    if provider == "openai":
+        selected_model_id = persona.model_openai
+    elif provider == "google":
+        selected_model_id = persona.model_google
+    elif provider == "anthropic":
+        selected_model_id = persona.model_anthropic
+
     # 모델이 유효하지 않으면 기본값으로 폴백
     if selected_model_id not in AVAILABLE_MODELS:
         if provider == "openai":
@@ -386,7 +452,8 @@ def chat():
             selected_model_id = DEFAULT_MODELS["google"]
         else:
             selected_model_id = DEFAULT_MODELS["anthropic"]
-    selected_max_tokens = config.max_tokens if config else DEFAULT_MAX_TOKENS
+
+    selected_max_tokens = persona.max_tokens
 
     try:
         session_id = data.get("session_id")
@@ -634,4 +701,50 @@ def delete_session(session_id):
         # 오류 발생 시 롤백
         db.session.rollback()
         print(f"Error deleting session {session_id}: {e}")
+        return jsonify({"error": f"서버 오류: {str(e)}"}), 500
+
+
+@chat_bp.route("/api/personas/available", methods=["GET"])
+@login_required
+def get_available_personas():
+    """
+    현재 사용자가 선택 가능한 페르소나 목록 반환
+
+    - 관리자: 모든 활성 페르소나
+    - 교사: allow_teacher=True인 페르소나
+    - 학생: allow_user=True인 페르소나
+    """
+    try:
+        user = current_user
+
+        # 기본 쿼리: 활성화된 페르소나만
+        query = PersonaDefinition.query.filter_by(is_active=True).order_by(PersonaDefinition.id.asc())
+
+        # 권한에 따라 필터링
+        if user.role == 'admin':
+            # 관리자는 모든 페르소나 접근 가능
+            personas = query.all()
+        elif user.role == 'teacher':
+            # 교사는 allow_teacher=True인 페르소나만
+            personas = query.filter_by(allow_teacher=True).all()
+        else:
+            # 학생은 allow_user=True인 페르소나만
+            personas = query.filter_by(allow_user=True).all()
+
+        # 응답 형식
+        persona_list = [
+            {
+                "role_key": p.role_key,
+                "role_name": p.role_name,
+                "icon": p.icon or "🤖",
+                "description": p.description or "",
+                "use_rag": p.use_rag
+            }
+            for p in personas
+        ]
+
+        return jsonify({"success": True, "personas": persona_list})
+
+    except Exception as e:
+        print(f"Error getting available personas: {e}")
         return jsonify({"error": f"서버 오류: {str(e)}"}), 500

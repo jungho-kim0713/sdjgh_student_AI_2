@@ -53,6 +53,7 @@ window.App.createContext = function createContext() {
         sidebarResizer: document.getElementById('sidebar-resizer'),
         mobileOverlay: document.getElementById('mobile-overlay'),
         adminPanelButton: document.getElementById('admin-panel-button'),
+        teacherPanelButton: document.getElementById('teacher-panel-button'),
         adminModalOverlay: document.getElementById('admin-modal-overlay'),
         adminModal: document.getElementById('admin-modal'),
         adminModalCloseButton: document.getElementById('admin-modal-close-button'),

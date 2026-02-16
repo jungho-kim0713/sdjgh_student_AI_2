@@ -1,0 +1,697 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="persona-admin-container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <h2 style="margin: 0;">🎭 페르소나 관리</h2>
+        <button onclick="location.href='/'" class="btn-secondary" style="padding: 8px 16px;">
+            ← 홈으로 돌아가기
+        </button>
+    </div>
+
+    <div class="two-panel-layout">
+        <!-- 좌측: 페르소나 목록 -->
+        <div class="panel-left">
+            <div class="panel-header">
+                <h3>페르소나 목록</h3>
+                <button onclick="createNewPersona()" class="btn-primary">+ 새로 만들기</button>
+            </div>
+
+            <div class="persona-list" id="personaList">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+        </div>
+
+        <!-- 우측: 페르소나 상세 설정 -->
+        <div class="panel-right" id="detailPanel">
+            <div class="empty-state">
+                <p>👈 좌측에서 페르소나를 선택하거나 새로 만들어주세요.</p>
+            </div>
+
+            <!-- 페르소나 상세 폼 (처음에는 숨김) -->
+            <div id="personaDetailForm" style="display: none;">
+                <div class="form-section">
+                    <h3>기본 정보</h3>
+                    <div class="form-group">
+                        <label>식별자 (role_key)</label>
+                        <input type="text" id="roleKey" placeholder="예: math_tutor"
+                            {% if is_teacher %}readonly style="background-color: #f0f0f0; cursor: not-allowed;"{% endif %}>
+                        <small>영문 소문자, 숫자, 언더스코어만 가능{% if is_teacher %} (교사는 수정 불가){% endif %}</small>
+                    </div>
+                    <div class="form-group">
+                        <label>표시 이름</label>
+                        <input type="text" id="roleName" placeholder="예: 수학 튜터">
+                    </div>
+                    <div class="form-group">
+                        <label>아이콘</label>
+                        <select id="icon">
+                            <option value="🤖">🤖 로봇</option>
+                            <option value="📚">📚 책</option>
+                            <option value="🎓">🎓 학사모</option>
+                            <option value="🧮">🧮 주판</option>
+                            <option value="🎨">🎨 팔레트</option>
+                            <option value="🎵">🎵 음표</option>
+                            <option value="🔬">🔬 현미경</option>
+                            <option value="💡">💡 전구</option>
+                            <option value="🌍">🌍 지구</option>
+                            <option value="⚗️">⚗️ 플라스크</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>설명</label>
+                        <textarea id="description" rows="3" placeholder="이 페르소나에 대한 설명"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>AI 모델 설정</h3>
+                    <div class="form-group">
+                        <label>OpenAI 모델</label>
+                        <select id="modelOpenai">
+                            <!-- JavaScript로 동적 생성 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Anthropic 모델</label>
+                        <select id="modelAnthropic">
+                            <!-- JavaScript로 동적 생성 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Google 모델</label>
+                        <select id="modelGoogle">
+                            <!-- JavaScript로 동적 생성 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>최대 토큰</label>
+                        <input type="number" id="maxTokens" value="4096" min="512" max="16384">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>시스템 프롬프트</h3>
+                    <div class="form-group">
+                        <label>Provider 선택</label>
+                        <select id="promptProvider" onchange="loadPromptForProvider()">
+                            <option value="default">기본 (Default)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="google">Google (Gemini)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>시스템 프롬프트</label>
+                        <textarea id="systemPrompt" rows="20"
+                                  placeholder="이 페르소나가 어떻게 행동할지 설명해주세요..."
+                                  style="font-family: 'Consolas', 'Monaco', monospace; line-height: 1.6;"></textarea>
+                        <small>AI가 대화할 때 따를 지침을 작성하세요</small>
+                    </div>
+
+                    <button onclick="saveSystemPrompt()" class="btn-secondary" style="margin-top: 10px;">
+                        💾 프롬프트 저장
+                    </button>
+                </div>
+
+                <div class="form-section">
+                    <h3>RAG 설정</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="useRag">
+                            RAG 활성화 (지식 베이스 사용)
+                        </label>
+                    </div>
+
+                    <div id="ragSettings" style="display: none;">
+                        <!-- 기본 청크 설정 -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; color: #495057;">📄 청킹 설정</h4>
+
+                            <div class="form-group">
+                                <label>청킹 전략</label>
+                                <select id="chunkStrategy">
+                                    <option value="paragraph">📝 문단 기반 (자연스러운 구분)</option>
+                                    <option value="sentence">✂️ 문장 기반 (세밀한 분할)</option>
+                                    <option value="fixed">📏 고정 길이 (균일한 크기)</option>
+                                </select>
+                                <small>문서를 어떻게 분할할지 결정</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>청크 크기 (문자 수)</label>
+                                <input type="number" id="chunkSize" value="500" min="100" max="2000" step="50">
+                                <small>한 청크의 최대 크기 (권장: 300-500)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>청크 중복 (문자 수)</label>
+                                <input type="number" id="chunkOverlap" value="100" min="0" max="500" step="10">
+                                <small>이전 청크와 중복할 크기 (컨텍스트 연속성 유지)</small>
+                            </div>
+                        </div>
+
+                        <!-- 고급 설정 토글 버튼 -->
+                        <button onclick="toggleAdvancedRagSettings()" id="advancedRagToggle" type="button" style="
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            margin-bottom: 15px;
+                            width: 100%;
+                            font-size: 14px;
+                            transition: background 0.3s;
+                        ">
+                            🔧 고급 설정 표시 ▼
+                        </button>
+
+                        <!-- 고급 검색 설정 (토글) -->
+                        <div id="advancedRagSettings" style="display: none;">
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+                                <h4 style="margin-top: 0; margin-bottom: 15px; color: #856404;">🔍 고급 검색 설정</h4>
+
+                                <div class="form-group">
+                                    <label>검색 전략</label>
+                                    <select id="retrievalStrategy" onchange="toggleRagStrategySettings()">
+                                        <option value="soft_topk">🎯 Soft Top-K (기본 - 예측 가능, 비용 통제)</option>
+                                        <option value="gap_based">🧠 Gap-based (고급 - 적응적, 자동 최적화)</option>
+                                    </select>
+                                </div>
+
+                                <div id="softTopkSettings">
+                                    <div class="form-group">
+                                        <label>최소 검색 개수 (Min-K)</label>
+                                        <input type="number" id="ragTopK" value="3" min="1" max="20">
+                                        <small>항상 최소 이 개수만큼은 검색</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>최대 검색 개수 (Max-K)</label>
+                                        <input type="number" id="ragMaxK" value="7" min="1" max="20">
+                                        <small>최대 이 개수까지만 검색 (비용 통제)</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>유사도 임계값 (0.0 ~ 1.0)</label>
+                                    <input type="number" id="ragSimilarityThreshold" value="0.5" min="0" max="1" step="0.1">
+                                    <small>이 값 이상의 유사도를 가진 문서만 검색</small>
+                                </div>
+
+                                <div id="gapBasedSettings" style="display: none;">
+                                    <div class="form-group">
+                                        <label>Gap 임계값 (0.0 ~ 1.0)</label>
+                                        <input type="number" id="ragGapThreshold" value="0.1" min="0" max="1" step="0.05">
+                                        <small>유사도 차이가 이 값 이상 벌어지면 중단</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>권한 설정</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="allowUser" checked>
+                            일반 학생 사용 허용
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="allowTeacher" checked>
+                            교사 사용 허용
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="restrictGoogle">
+                            Google 모델 제한
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="restrictAnthropic">
+                            Anthropic 모델 제한
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="restrictOpenai">
+                            OpenAI 모델 제한
+                        </label>
+                    </div>
+                </div>
+
+                {% if not is_teacher %}
+                <div class="form-section">
+                    <h3>관리 교사</h3>
+                    <div class="teacher-list" id="teacherList">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                    <button onclick="addTeacher()" class="btn-secondary" style="margin-top: 10px;">+ 교사 추가</button>
+                </div>
+                {% endif %}
+
+                <!-- 지식 베이스 관리 섹션 -->
+                <div class="form-section" id="knowledgeBaseSection" style="display: none;">
+                    <h3>📚 지식 베이스 관리</h3>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">
+                        RAG를 활성화하면 이 섹션이 표시됩니다. 문서를 업로드하여 AI가 참고할 자료를 제공하세요.
+                    </p>
+
+                    <!-- 파일 업로드 -->
+                    <div class="upload-area">
+                        <input type="file" id="knowledgeFileInput" accept=".pdf,.txt,.docx,.doc" style="display: none;" onchange="handleKnowledgeFileSelect(event)">
+                        <button onclick="document.getElementById('knowledgeFileInput').click()" class="btn-secondary">
+                            📁 파일 선택 (PDF, TXT, DOCX)
+                        </button>
+                        <span id="selectedFileName" style="margin-left: 10px; color: #666;"></span>
+                        <button onclick="uploadKnowledgeFile()" id="uploadBtn" class="btn-primary" style="margin-left: 10px; display: none;">
+                            ⬆️ 업로드
+                        </button>
+                    </div>
+
+                    <!-- 업로드 진행 상태 -->
+                    <div id="uploadProgress" style="display: none; margin-top: 15px;">
+                        <div style="background: #f0f0f0; border-radius: 10px; overflow: hidden; height: 30px;">
+                            <div id="uploadProgressBar" style="background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; font-weight: bold;">
+                                0%
+                            </div>
+                        </div>
+                        <p id="uploadStatus" style="margin-top: 5px; color: #666; font-size: 0.9rem;">업로드 준비 중...</p>
+                    </div>
+
+                    <!-- 문서 목록 -->
+                    <div style="margin-top: 20px;">
+                        <h4 style="margin-bottom: 10px;">업로드된 문서</h4>
+                        <div class="document-list" id="documentList">
+                            <!-- JavaScript로 동적 생성 -->
+                            <p style="color: #999; text-align: center; padding: 20px;">문서가 없습니다</p>
+                        </div>
+                    </div>
+
+                    <!-- 통계 -->
+                    <div id="ragStats" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px;">📊 통계</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: #666;">총 문서</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;" id="statTotalDocs">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: #666;">완료</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #2ecc71;" id="statCompletedDocs">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: #666;">처리 중</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;" id="statProcessingDocs">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: #666;">실패</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;" id="statFailedDocs">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: #666;">총 청크</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #9b59b6;" id="statTotalChunks">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button onclick="savePersona()" class="btn-primary">💾 저장</button>
+                    <button onclick="deletePersona()" class="btn-danger">🗑️ 삭제</button>
+                    <button onclick="cancelEdit()" class="btn-secondary">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/modules/persona_admin.js?v={{ version }}"></script>
+
+<style>
+    /* 페르소나 관리 페이지에서 상위 컨테이너 제한 제거 */
+    #main-content {
+        max-width: 100% !important;
+    }
+
+    .chat-container {
+        max-width: 100% !important;
+    }
+
+    .persona-admin-container {
+        padding: 20px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 100% !important; /* 전체 화면 사용 */
+        width: 100% !important;
+    }
+
+    .two-panel-layout {
+        display: flex;
+        gap: 20px;
+        flex: 1;
+        overflow: hidden;
+        max-width: 100% !important; /* 전체 화면 사용 */
+        width: 100% !important;
+    }
+
+    .panel-left {
+        width: 280px; /* 300px → 280px 줄임 */
+        min-width: 280px; /* 최소 너비 고정 */
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.2em;
+    }
+
+    .persona-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .persona-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .persona-item:hover {
+        background: #f8f9fa;
+        border-color: #3498db;
+    }
+
+    .persona-item.active {
+        background: #e3f2fd;
+        border-color: #2196f3;
+    }
+
+    .persona-item .icon {
+        font-size: 1.5em;
+        margin-right: 8px;
+    }
+
+    .persona-item .name {
+        font-weight: bold;
+    }
+
+    .persona-item .key {
+        font-size: 0.8em;
+        color: #666;
+    }
+
+    .persona-item .badge {
+        display: inline-block;
+        padding: 2px 6px;
+        font-size: 0.7em;
+        border-radius: 10px;
+        background: #2ecc71;
+        color: white;
+        margin-left: 5px;
+    }
+
+    .panel-right {
+        flex: 1;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #999;
+        font-size: 1.1em;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+    }
+
+    .form-section h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #555;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    .form-group small {
+        display: block;
+        margin-top: 3px;
+        color: #999;
+        font-size: 0.85em;
+    }
+
+    .checkbox-label {
+        display: flex !important;
+        align-items: center;
+        cursor: pointer;
+        font-weight: normal !important;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: auto !important;
+        margin-right: 8px;
+    }
+
+    .teacher-list {
+        border: 1px solid #eee;
+        border-radius: 5px;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .teacher-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .teacher-item:last-child {
+        border-bottom: none;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #eee;
+    }
+
+    .btn-primary, .btn-secondary, .btn-danger {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+    }
+
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #7f8c8d;
+    }
+
+    .btn-danger {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c0392b;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        background: #e74c3c;
+        color: white;
+    }
+
+    /* 지식 베이스 관리 스타일 */
+    .upload-area {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .document-list {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .document-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+
+    .document-item:last-child {
+        border-bottom: none;
+    }
+
+    .document-item:hover {
+        background: #f8f9fa;
+    }
+
+    .document-info {
+        flex: 1;
+    }
+
+    .document-name {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .document-meta {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .document-status {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-left: 8px;
+    }
+
+    .status-completed {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-processing {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-pending {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    /* 반응형: 작은 화면에서는 세로 배치 */
+    @media (max-width: 1200px) {
+        .two-panel-layout {
+            flex-direction: column;
+        }
+
+        .panel-left {
+            width: 100%;
+            min-width: auto;
+            max-height: 300px;
+        }
+
+        .panel-right {
+            flex: 1;
+        }
+    }
+
+    /* 태블릿 */
+    @media (max-width: 768px) {
+        .persona-admin-container {
+            padding: 10px;
+        }
+
+        .two-panel-layout {
+            gap: 10px;
+        }
+
+        .panel-left, .panel-right {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}

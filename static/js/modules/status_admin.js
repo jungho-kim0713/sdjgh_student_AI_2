@@ -139,6 +139,20 @@ window.App.registerModule((ctx) => {
         });
     }
 
+    // 교사 패널 버튼 클릭 시 페르소나 관리 화면으로 이동
+    if (dom.teacherPanelButton) {
+        console.log('✅ 교사 패널 버튼 이벤트 리스너 등록됨');
+        dom.teacherPanelButton.addEventListener('click', (e) => {
+            console.log('🎯 교사 패널 버튼 클릭됨');
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('➡️ /admin/persona로 이동 중...');
+            window.location.href = '/admin/persona';
+        });
+    } else {
+        console.log('❌ 교사 패널 버튼을 찾을 수 없음');
+    }
+
     /**
      * 관리자 모달을 닫는다.
      */
@@ -160,8 +174,9 @@ window.App.registerModule((ctx) => {
     if (dom.navModelConfig) {
         dom.navModelConfig.addEventListener('click', () => {
             showModelConfigView();
-            loadModelConfig();
+            // loadModelConfig(); // 제거됨 - 중복 기능
             loadProviderStatus();
+            loadProviderModels();
         });
     }
     if (dom.adminBackToListBtn) dom.adminBackToListBtn.addEventListener('click', showUserListView);
@@ -236,161 +251,315 @@ window.App.registerModule((ctx) => {
     }
 
     /**
-     * 페르소나별 모델 설정 테이블을 로드하고 변경 이벤트를 바인딩한다.
+     * 공급사 모델 설정 로드 및 이벤트 바인딩
      */
-    async function loadModelConfig() {
-        if (!dom.adminModelConfigBody) return;
-        try {
-            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="4">설정을 불러오는 중...</td></tr>';
-            const response = await fetch('/api/admin/get_persona_config');
-            if (!response.ok) throw new Error('Failed to fetch config');
+    async function loadProviderModels() {
+        const providers = ['openai', 'anthropic', 'google'];
 
-            const data = await response.json();
-            const personas = data.personas;
-            const models = data.models;
+        // 1. 각 공급사의 상태 로드 (이미 loadProviderStatus()에서 처리됨)
 
-            const modelsByProvider = { openai: [], anthropic: [], google: [] };
-            for (const [mid, info] of Object.entries(models)) {
-                if (modelsByProvider[info.provider]) {
-                    modelsByProvider[info.provider].push({ id: mid, ...info });
-                }
-            }
+        // 2. 각 공급사별로 모델 리스트 로드
+        for (const provider of providers) {
+            await loadModelsForProvider(provider);
+        }
 
-            dom.adminModelConfigBody.innerHTML = '';
+        // 3. 라디오 버튼 이벤트 리스너
+        providers.forEach(provider => {
+            const radios = document.querySelectorAll(`input[name="provider-${provider}-status"]`);
+            radios.forEach(radio => {
+                radio.addEventListener('change', async (e) => {
+                    const status = e.target.value;
+                    const modelsSection = document.getElementById(`${provider}-models-section`);
 
-            const GOOGLE_TEXT_MODELS = ['gemini-3-flash-preview', 'gemini-3-pro-preview'];
-            const GOOGLE_IMAGE_MODELS = [
-                'gemini-2.5-flash-image',
-                'gemini-3-pro-image-preview',
-                'imagen-4.0-ultra-generate-001'
-            ];
-            const IMAGE_TOOLTIPS = {
-                'gemini-2.5-flash-image': '이미지당 약 $0.01 ~ $0.02 · 성능 대비 경제성이 매우 뛰어남',
-                'gemini-3-pro-image-preview': '이미지당 약 $0.03 ~ $0.05 · 4K 고해상도 및 추론 기능 포함',
-                'imagen-4.0-ultra-generate-001': '이미지당 약 $0.06 · 극사실주의(Photorealism) 최고 품질을 제공하는 가장 고가의 옵션'
-            };
-
-            personas.forEach(p => {
-                const tr = document.createElement('tr');
-                const createSelectRow = (provider, label, currentModelId, isRestricted) => {
-                    let options = '';
-                    const restrictedSelected = isRestricted ? 'selected' : '';
-                    options += `<option value="__restricted__" ${restrictedSelected}>모델 제한하기</option>`;
-                    const allowedModelIds = (() => {
-                        if (provider !== 'google') return null;
-                        if (p.role_key === 'ai_illustrator') return GOOGLE_IMAGE_MODELS;
-                        return GOOGLE_TEXT_MODELS;
-                    })();
-                    const filteredModels = allowedModelIds
-                        ? modelsByProvider[provider].filter(m => allowedModelIds.includes(m.id))
-                        : modelsByProvider[provider];
-
-                    filteredModels.forEach(m => {
-                        const selected = (m.id === currentModelId) ? 'selected' : '';
-                        let optionTitle = `입력 $${m.input_price} / 출력 $${m.output_price}`;
-                        if (provider === 'google' && p.role_key === 'ai_illustrator' && IMAGE_TOOLTIPS[m.id]) {
-                            optionTitle = IMAGE_TOOLTIPS[m.id];
-                        }
-                        options += `<option value="${m.id}" ${selected} title="${optionTitle}">${m.name}</option>`;
-                    });
-                    return `
-                        <div class="model-select-row" title="마우스를 올리면 가격이 보입니다">
-                            <span class="model-label">${label}</span>
-                            <select class="model-select" data-role-key="${p.role_key}" data-target-provider="model_${provider}">
-                                ${options}
-                            </select>
-                        </div>
-                    `;
-                };
-
-                tr.innerHTML = `
-                    <td><strong>${p.role_name}</strong><br><span style="font-size:0.8rem; color:#666;">(${p.role_key})</span></td>
-                    <td>
-                        <div class="model-config-stack">
-                            ${createSelectRow('google', 'Google (Gemini)', p.model_google, p.restrict_google)}
-                            ${createSelectRow('anthropic', 'Anthropic (Claude)', p.model_anthropic, p.restrict_anthropic)}
-                            ${createSelectRow('openai', 'OpenAI (GPT)', p.model_openai, p.restrict_openai)}
-                        </div>
-                    </td>
-                    <td>
-                        <input type="number" class="token-input" data-role-key="${p.role_key}" value="${p.max_tokens}" style="width: 100%;">
-                    </td>
-                    <td>
-                        <div class="role-allow-group">
-                            <label class="role-allow">
-                                <input type="checkbox" class="allow-toggle" data-role-key="${p.role_key}" data-allow-type="allow_user" ${p.allow_user ? 'checked' : ''}>
-                                user
-                            </label>
-                            <label class="role-allow">
-                                <input type="checkbox" class="allow-toggle" data-role-key="${p.role_key}" data-allow-type="allow_teacher" ${p.allow_teacher ? 'checked' : ''}>
-                                teacher
-                            </label>
-                        </div>
-                    </td>
-                `;
-                dom.adminModelConfigBody.appendChild(tr);
-            });
-
-            // 모델 선택 변경 저장.
-            document.querySelectorAll('.model-select').forEach(select => {
-                select.addEventListener('change', async (e) => {
-                    const roleKey = e.target.dataset.roleKey;
-                    const targetField = e.target.dataset.targetProvider;
-                    const newValue = e.target.value;
-                    if (newValue === '__restricted__') {
-                        const providerKey = targetField.replace('model_', '');
-                        const restrictField = `restrict_${providerKey}`;
-                        await updateConfig(roleKey, { [restrictField]: true });
+                    if (status === 'active') {
+                        modelsSection.style.display = 'block';
                     } else {
-                        const providerKey = targetField.replace('model_', '');
-                        const restrictField = `restrict_${providerKey}`;
-                        await updateConfig(roleKey, { [targetField]: newValue, [restrictField]: false });
+                        modelsSection.style.display = 'none';
                     }
+
+                    // 공급사 상태 저장
+                    await setProviderStatus(provider, status);
                 });
             });
+        });
 
-            // 토큰 변경 저장.
-            document.querySelectorAll('.token-input').forEach(input => {
-                input.addEventListener('change', async (e) => {
-                    const roleKey = e.target.dataset.roleKey;
-                    await updateConfig(roleKey, { max_tokens: e.target.value });
-                });
+        // 4. 저장 버튼 이벤트 리스너
+        const saveBtn = document.getElementById('save-provider-models-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                await saveAllProviderModels();
             });
-
-            // 사용자 제한 변경 저장.
-            document.querySelectorAll('.allow-toggle').forEach(toggle => {
-                toggle.addEventListener('change', async (e) => {
-                    const roleKey = e.target.dataset.roleKey;
-                    const allowType = e.target.dataset.allowType;
-                    await updateConfig(roleKey, { [allowType]: e.target.checked });
-                });
-            });
-
-            /**
-             * 페르소나 설정 변경을 서버에 저장한다.
-             * @param {string} roleKey - 역할 키
-             * @param {object} updates - 변경 값
-             */
-            async function updateConfig(roleKey, updates) {
-                try {
-                    const payload = { role_key: roleKey, ...updates };
-                    const res = await fetch('/api/admin/update_persona_config', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!res.ok) throw new Error('Update failed');
-                    console.log(`Updated config for ${roleKey}`);
-                } catch (err) {
-                    console.error(err);
-                    alert("설정 저장 실패!");
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load model config:", error);
-            dom.adminModelConfigBody.innerHTML = '<tr><td colspan="4">설정 로드 실패.</td></tr>';
         }
     }
+
+    /**
+     * 특정 공급사의 모델 리스트 로드
+     */
+    async function loadModelsForProvider(provider) {
+        const loadingDiv = document.getElementById(`${provider}-models-loading`);
+        const listDiv = document.getElementById(`${provider}-models-list`);
+        const lastUpdateSpan = document.getElementById(`${provider}-last-update`);
+
+        if (!loadingDiv || !listDiv) return;
+
+        try {
+            // 1. 사용 가능한 모든 모델 조회 (메타데이터 포함)
+            const availableResponse = await fetch(`/api/admin/available_models/${provider}`);
+            const availableData = await availableResponse.json();
+
+            if (!availableData.models) {
+                throw new Error('모델 리스트를 가져올 수 없습니다.');
+            }
+
+            // 2. 현재 활성화된 모델 조회
+            const enabledResponse = await fetch(`/api/admin/enabled_models/${provider}`);
+            const enabledData = await enabledResponse.json();
+            const enabledModels = enabledData.enabled_models || [];
+
+            // 3. 모델 순서 조회
+            const orderResponse = await fetch(`/api/admin/model_order/${provider}`);
+            const orderData = await orderResponse.json();
+            const modelOrder = orderData.model_order || [];
+
+            // 4. 순서에 따라 모델 정렬
+            const sortedModels = [...availableData.models].sort((a, b) => {
+                const indexA = modelOrder.indexOf(a.id);
+                const indexB = modelOrder.indexOf(b.id);
+                if (indexA === -1 && indexB === -1) return 0;
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+
+            // 5. UI 생성 (메타데이터 포함)
+            let html = '';
+
+            sortedModels.forEach(model => {
+                const isChecked = enabledModels.includes(model.id) ? 'checked' : '';
+                const inputPrice = model.input_price ? `$${model.input_price}/M` : '';
+                const outputPrice = model.output_price ? `$${model.output_price}/M` : '';
+                const description = model.description || '';
+
+                html += `
+                    <div class="model-item" draggable="true" data-model-id="${model.id}">
+                        <span class="drag-handle">⋮⋮</span>
+                        <input type="checkbox"
+                               name="${provider}-model"
+                               value="${model.id}"
+                               ${isChecked}>
+                        <div class="model-info">
+                            <div class="model-name">${model.name}</div>
+                            ${inputPrice || outputPrice ? `
+                            <div class="model-metadata">
+                                ${inputPrice ? `<span class="model-price">📥 ${inputPrice}</span>` : ''}
+                                ${outputPrice ? `<span class="model-price">📤 ${outputPrice}</span>` : ''}
+                            </div>
+                            ` : ''}
+                            ${description ? `<div class="model-description">${description}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listDiv.innerHTML = html;
+            loadingDiv.style.display = 'none';
+            listDiv.style.display = 'block';
+
+            // 6. 드래그 앤 드롭 이벤트 리스너 등록
+            initDragAndDrop(listDiv, provider);
+
+            // 7. 마지막 업데이트 시간 표시
+            if (lastUpdateSpan) {
+                loadLastUpdateTime(provider, lastUpdateSpan);
+            }
+
+        } catch (error) {
+            console.error(`${provider} 모델 로드 실패:`, error);
+            loadingDiv.innerHTML = `<p style="color: red;">모델 로드 실패: ${error.message}</p>`;
+        }
+    }
+
+    /**
+     * 모든 공급사의 선택된 모델 저장 (순서 포함)
+     */
+    async function saveAllProviderModels() {
+        const providers = ['openai', 'anthropic', 'google'];
+        let successCount = 0;
+
+        for (const provider of providers) {
+            try {
+                // 1. 체크된 모델들 수집
+                const checkboxes = document.querySelectorAll(`input[name="${provider}-model"]:checked`);
+                const enabledModels = Array.from(checkboxes).map(cb => cb.value);
+
+                // 2. 모델 순서 수집 (드래그로 재정렬된 순서)
+                const listDiv = document.getElementById(`${provider}-models-list`);
+                const modelItems = listDiv.querySelectorAll('.model-item');
+                const modelOrder = Array.from(modelItems).map(item => item.dataset.modelId);
+
+                // 3. 활성화된 모델 저장
+                const enabledResponse = await fetch('/api/admin/enabled_models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: provider,
+                        enabled_models: enabledModels
+                    })
+                });
+
+                const enabledResult = await enabledResponse.json();
+
+                // 4. 모델 순서 저장
+                const orderResponse = await fetch('/api/admin/model_order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: provider,
+                        model_order: modelOrder
+                    })
+                });
+
+                const orderResult = await orderResponse.json();
+
+                if (enabledResult.success && orderResult.success) {
+                    successCount++;
+                } else {
+                    console.error(`${provider} 저장 실패:`, enabledResult.error || orderResult.error);
+                }
+            } catch (error) {
+                console.error(`${provider} 저장 중 오류:`, error);
+            }
+        }
+
+        if (successCount === providers.length) {
+            alert('✅ 모든 공급사의 모델 설정이 저장되었습니다.');
+        } else {
+            alert(`⚠️ ${successCount}/${providers.length}개 공급사 저장 완료. 일부 실패가 있습니다.`);
+        }
+    }
+
+    /**
+     * 드래그 앤 드롭 기능 초기화
+     */
+    function initDragAndDrop(listDiv, provider) {
+        const items = listDiv.querySelectorAll('.model-item');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', item.innerHTML);
+            });
+
+            item.addEventListener('dragend', (e) => {
+                item.classList.remove('dragging');
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const draggingItem = listDiv.querySelector('.dragging');
+                if (draggingItem && draggingItem !== item) {
+                    const rect = item.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    if (e.clientY < midpoint) {
+                        listDiv.insertBefore(draggingItem, item);
+                    } else {
+                        listDiv.insertBefore(draggingItem, item.nextSibling);
+                    }
+                }
+            });
+
+            item.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                item.classList.add('drag-over');
+            });
+
+            item.addEventListener('dragleave', (e) => {
+                item.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                item.classList.remove('drag-over');
+            });
+        });
+    }
+
+    /**
+     * 마지막 업데이트 시간 표시
+     */
+    async function loadLastUpdateTime(provider, spanElement) {
+        try {
+            const key = `last_model_update_${provider}`;
+            const response = await fetch(`/api/admin/system_config/${key}`);
+            if (response.ok) {
+                const data = await response.json();
+                const lastUpdate = new Date(data.value);
+                const timeAgo = getTimeAgo(lastUpdate);
+                spanElement.textContent = `마지막 업데이트: ${timeAgo}`;
+            }
+        } catch (error) {
+            console.error('마지막 업데이트 시간 조회 실패:', error);
+        }
+    }
+
+    /**
+     * 시간차 계산 (예: "2시간 전")
+     */
+    function getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        const intervals = {
+            '년': 31536000,
+            '개월': 2592000,
+            '일': 86400,
+            '시간': 3600,
+            '분': 60
+        };
+
+        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+            const interval = Math.floor(seconds / secondsInUnit);
+            if (interval >= 1) {
+                return `${interval}${unit} 전`;
+            }
+        }
+        return '방금 전';
+    }
+
+    // refreshModels를 전역 함수로 등록 (HTML onclick에서 사용)
+    window.refreshModels = async function(provider) {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '⏳';
+
+        try {
+            const response = await fetch(`/api/admin/refresh_models/${provider}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 새로운 모델이 발견되었으면 알림
+                if (result.new_models && result.new_models.length > 0) {
+                    alert(`✨ 새로운 모델 발견:\n${result.new_models.join(', ')}\n\n체크박스를 활성화하여 사용할 수 있습니다.`);
+                } else {
+                    alert('✅ 모델 리스트가 최신 상태입니다.');
+                }
+
+                // UI 다시 로드
+                await loadModelsForProvider(provider);
+            } else {
+                alert(`❌ 새로고침 실패: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('새로고침 오류:', error);
+            alert('❌ 새로고침 중 오류가 발생했습니다.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🔄';
+        }
+    };
+
 
     /**
      * 관리자 사용자 목록 테이블을 로드한다.
@@ -398,7 +567,7 @@ window.App.registerModule((ctx) => {
     async function loadAdminUserList() {
         if (!dom.adminUserListBody) return;
         try {
-            dom.adminUserListBody.innerHTML = '<tr><td colspan="4">사용자 목록을 불러오는 중...</td></tr>';
+            dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록을 불러오는 중...</td></tr>';
             const response = await fetch('/api/admin/get_users');
             if (!response.ok) throw new Error('Failed to fetch users');
 
@@ -413,12 +582,27 @@ window.App.registerModule((ctx) => {
                             <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
                             <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>teacher</option>
                         </select>`;
+
+                const emailCell = user.email || '-';
+                const approvalBadge = user.is_approved
+                    ? '<span style="color: #10B981; font-weight: bold;">✓ 승인됨</span>'
+                    : '<span style="color: #EF4444; font-weight: bold;">✗ 미승인</span>';
+
+                const approvalBtn = user.is_admin
+                    ? ''
+                    : user.is_approved
+                        ? `<button class="btn-danger toggle-approval-btn" data-user-id="${user.id}" data-approved="false" style="font-size: 0.85rem;">승인 취소</button>`
+                        : `<button class="btn-primary toggle-approval-btn" data-user-id="${user.id}" data-approved="true" style="font-size: 0.85rem;">승인</button>`;
+
                 tr.innerHTML = `
                     <td>${user.id}</td>
                     <td>${user.username}</td>
+                    <td style="font-size: 0.85rem;">${emailCell}</td>
+                    <td>${approvalBadge}</td>
                     <td>${roleCell}</td>
                     <td>
                         <div class="btn-group">
+                            ${approvalBtn}
                             <button class="btn-secondary view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록 조회</button>
                             <button class="btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''}>삭제</button>
                         </div>
@@ -426,9 +610,37 @@ window.App.registerModule((ctx) => {
                 `;
                 dom.adminUserListBody.appendChild(tr);
             });
+
+            // 승인 버튼 이벤트 리스너 추가
+            document.querySelectorAll('.toggle-approval-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const userId = e.target.dataset.userId;
+                    const isApproved = e.target.dataset.approved === 'true';
+
+                    if (confirm(`이 사용자를 ${isApproved ? '승인' : '승인 취소'}하시겠습니까?`)) {
+                        try {
+                            const response = await fetch('/api/admin/approve_user', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId, is_approved: isApproved })
+                            });
+
+                            if (response.ok) {
+                                alert(isApproved ? '사용자가 승인되었습니다.' : '승인이 취소되었습니다.');
+                                loadAdminUserList(); // 목록 새로고침
+                            } else {
+                                alert('작업 실패');
+                            }
+                        } catch (error) {
+                            console.error('Approval error:', error);
+                            alert('작업 중 오류 발생');
+                        }
+                    }
+                });
+            });
         } catch (error) {
             console.error("Failed to load users:", error);
-            dom.adminUserListBody.innerHTML = '<tr><td colspan="4">사용자 목록 로드 실패</td></tr>';
+            dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록 로드 실패</td></tr>';
         }
     }
 
@@ -549,4 +761,28 @@ window.App.registerModule((ctx) => {
             closeModal();
         });
     }
+
+    /**
+     * 공급사별 모델 목록 접기/펴기 토글
+     * @param {string} provider - 'openai' | 'anthropic' | 'google'
+     */
+    window.toggleProviderModels = function(provider) {
+        const section = document.querySelector(`.provider-section[data-provider="${provider}"]`);
+        const toggleBtn = section.querySelector('.btn-toggle-models');
+        const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+        const toggleText = toggleBtn.querySelector('.toggle-text');
+
+        // 토글 상태 변경
+        section.classList.toggle('collapsed');
+        toggleBtn.classList.toggle('collapsed');
+
+        // 버튼 텍스트 및 아이콘 업데이트
+        if (section.classList.contains('collapsed')) {
+            toggleText.textContent = '펴기';
+            toggleIcon.textContent = '🔼';
+        } else {
+            toggleText.textContent = '접기';
+            toggleIcon.textContent = '🔽';
+        }
+    };
 });

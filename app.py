@@ -85,6 +85,10 @@ db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 
+# Celery 초기화 (RAG 백그라운드 작업용)
+from tasks import init_celery
+celery = init_celery(app)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -166,4 +170,4 @@ register_blueprints(app)
 
 if __name__ == "__main__":
     # 개발용 로컬 실행 엔트리
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=8081)

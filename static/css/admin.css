@@ -167,3 +167,239 @@
 .btn-secondary { background-color: #E5E7EB; color: #374151; border: none; padding: 0.3rem 0.6rem; border-radius: 0.375rem; cursor: pointer; }
 /* 위험(삭제) 버튼 */
 .btn-danger { background-color: #FEE2E2; color: #B91C1C; border: none; padding: 0.3rem 0.6rem; border-radius: 0.375rem; cursor: pointer; }
+
+/* ======================================
+   Provider Model Settings UI
+   공급사 모델 설정 UI 스타일
+   ====================================== */
+
+/* 공급사 섹션 컨테이너 */
+.provider-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    background: #F9FAFB;
+}
+
+.provider-section h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: #374151;
+}
+
+/* 토글 버튼 */
+.btn-toggle-models {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1E40AF;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.btn-toggle-models:hover {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+}
+
+.btn-toggle-models .toggle-icon {
+    font-size: 0.9rem;
+    transition: transform 0.3s;
+}
+
+.btn-toggle-models.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* 새로고침 버튼 */
+.btn-refresh {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    margin-left: auto;
+}
+
+.btn-refresh:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 모델 섹션 접힌 상태 */
+.provider-section.collapsed .models-section {
+    display: none !important;
+}
+
+.provider-section.collapsed .provider-controls {
+    display: none !important;
+}
+
+/* 마지막 업데이트 시간 표시 */
+.last-update {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-left: 10px;
+}
+
+/* 공급사 상태 라디오 버튼 그룹 */
+.provider-controls {
+    margin: 15px 0;
+}
+
+.provider-controls label {
+    margin-right: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.provider-controls input[type="radio"] {
+    cursor: pointer;
+}
+
+/* 모델 리스트 섹션 */
+.models-section {
+    margin-top: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+}
+
+/* 모델 리스트 컨테이너 */
+.models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.models-list.sortable .model-item {
+    cursor: move;
+}
+
+/* 모델 아이템 카드 */
+.model-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.model-item:hover {
+    background: #F9FAFB;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 드래그 상태 */
+.model-item.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.model-item.drag-over {
+    border-color: #3B82F6;
+    background: #EFF6FF;
+}
+
+/* 모델 체크박스 */
+.model-item input[type="checkbox"] {
+    margin-right: 12px;
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+/* 드래그 핸들 */
+.drag-handle {
+    cursor: grab;
+    color: #9CA3AF;
+    font-size: 1.2rem;
+    margin-right: 8px;
+    user-select: none;
+    line-height: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* 모델 정보 영역 */
+.model-info {
+    flex: 1;
+}
+
+.model-name {
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+/* 모델 메타데이터 (가격 정보) */
+.model-metadata {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #6B7280;
+    margin-top: 4px;
+}
+
+.model-price {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 모델 설명 */
+.model-description {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #9CA3AF;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* 저장 버튼 */
+.btn-primary {
+    background-color: #3B82F6;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 20px;
+}
+
+.btn-primary:hover {
+    background-color: #2563EB;
+}
+
+.btn-primary:active {
+    background-color: #1D4ED8;
+}

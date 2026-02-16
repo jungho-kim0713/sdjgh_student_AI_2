@@ -111,16 +111,48 @@ def admin_get_users():
     """관리자 전용: 사용자 목록 조회.
 
     - 권한: 관리자만 가능
-    - 응답: id/username/is_admin/role 목록
+    - 응답: id/username/is_admin/role/is_approved/email/google_id 목록
     """
     if not current_user.is_admin:
         return jsonify({"error": "Denied"}), 403
     return jsonify(
         [
-            {"id": u.id, "username": u.username, "is_admin": u.is_admin, "role": u.role}
+            {
+                "id": u.id,
+                "username": u.username,
+                "is_admin": u.is_admin,
+                "role": u.role,
+                "is_approved": u.is_approved,
+                "email": u.email,
+                "google_id": u.google_id,
+            }
             for u in User.query.all()
         ]
     )
+
+
+@admin_bp.route("/api/admin/approve_user", methods=["POST"])
+@login_required
+def admin_approve_user():
+    """관리자 전용: 사용자 승인/승인 취소.
+
+    - 권한: 관리자만 가능
+    - 입력: user_id, is_approved(true|false)
+    - 응답: 변경 결과
+    """
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+    data = request.json or {}
+    user_id = data.get("user_id")
+    is_approved = data.get("is_approved")
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.is_approved = bool(is_approved)
+    db.session.commit()
+    return jsonify({"success": True, "user_id": user_id, "is_approved": user.is_approved})
 
 
 @admin_bp.route("/api/admin/update_user_role", methods=["POST"])

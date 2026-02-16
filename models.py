@@ -2,6 +2,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from extensions import db
+from pgvector.sqlalchemy import Vector
 
 # ---------------------------------------------------------
 # [1] 사용자(User) 모델
@@ -80,10 +81,11 @@ class ChatFile(db.Model):
 class SystemConfig(db.Model):
     """
     전역 시스템 설정 (예: 서비스 점검 모드, 공급사 제한 상태 등)
+    NOTE: value 컬럼은 JSON 배열을 저장하기 위해 Text 타입 사용
     """
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
-    value = db.Column(db.String(50), nullable=False)
+    value = db.Column(db.Text, nullable=False)
 
 # ---------------------------------------------------------
 # [6] 페르소나 설정(PersonaConfig) 모델
@@ -105,3 +107,161 @@ class PersonaConfig(db.Model):
     restrict_google = db.Column(db.Boolean, default=False)
     restrict_anthropic = db.Column(db.Boolean, default=False)
     restrict_openai = db.Column(db.Boolean, default=False)
+
+# ---------------------------------------------------------
+# [7] 페르소나 정의(PersonaDefinition) 모델 - RAG 시스템
+# ---------------------------------------------------------
+class PersonaDefinition(db.Model):
+    """
+    동적 페르소나 관리를 위한 테이블입니다.
+    기존 prompts.py의 하드코딩을 DB로 이동하여 관리자가 웹에서 페르소나를 추가/수정할 수 있습니다.
+    """
+    __tablename__ = 'persona_definition'
+
+    id = db.Column(db.Integer, primary_key=True)
+    role_key = db.Column(db.String(50), unique=True, nullable=False)  # 식별자 (예: "math_tutor")
+    role_name = db.Column(db.String(100), nullable=False)             # 표시명 (예: "수학 튜터")
+    description = db.Column(db.Text)                                  # 설명
+    icon = db.Column(db.String(50), default='🤖')                     # 아이콘
+    is_system = db.Column(db.Boolean, default=False)                  # 시스템 기본 페르소나
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # AI 모델 설정
+    model_openai = db.Column(db.String(100), default='gpt-4o-mini')
+    model_anthropic = db.Column(db.String(100), default='claude-haiku-4-5-20251001')
+    model_google = db.Column(db.String(100), default='gemini-2.0-flash')
+    max_tokens = db.Column(db.Integer, default=4096)
+
+    # 권한 설정
+    allow_user = db.Column(db.Boolean, default=True)
+    allow_teacher = db.Column(db.Boolean, default=True)
+    restrict_google = db.Column(db.Boolean, default=False)
+    restrict_anthropic = db.Column(db.Boolean, default=False)
+    restrict_openai = db.Column(db.Boolean, default=False)
+
+    # RAG 설정
+    use_rag = db.Column(db.Boolean, default=False)                    # RAG 사용 여부
+    retrieval_strategy = db.Column(db.String(20), default='soft_topk') # 'soft_topk' | 'gap_based'
+    rag_top_k = db.Column(db.Integer, default=3)                      # Top-K (고정) 또는 Min-K (Soft)
+    rag_max_k = db.Column(db.Integer, default=7)                      # Soft Top-K 최대값
+    rag_similarity_threshold = db.Column(db.Float, default=0.5)       # 유사도 임계값
+    rag_gap_threshold = db.Column(db.Float, default=0.1)              # Gap-based 전략용 임계값
+
+    # 관계
+    system_prompts = db.relationship('PersonaSystemPrompt', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
+    knowledge_bases = db.relationship('PersonaKnowledgeBase', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
+    teacher_permissions = db.relationship('PersonaTeacherPermission', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
+
+# ---------------------------------------------------------
+# [8] 페르소나 시스템 프롬프트(PersonaSystemPrompt) 모델
+# ---------------------------------------------------------
+class PersonaSystemPrompt(db.Model):
+    """
+    페르소나별 AI 공급사별 시스템 프롬프트를 저장합니다.
+    교사가 웹에서 프롬프트를 수정할 수 있습니다.
+    """
+    __tablename__ = 'persona_system_prompt'
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    provider = db.Column(db.String(20), nullable=False)              # 'default', 'openai', 'anthropic', 'google'
+    system_prompt = db.Column(db.Text, nullable=False)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('persona_id', 'provider', name='_persona_provider_uc'),)
+
+# ---------------------------------------------------------
+# [9] 교사 권한(PersonaTeacherPermission) 모델
+# ---------------------------------------------------------
+class PersonaTeacherPermission(db.Model):
+    """
+    특정 페르소나의 관리 권한을 특정 교사에게 부여합니다.
+    """
+    __tablename__ = 'persona_teacher_permission'
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    can_edit_prompt = db.Column(db.Boolean, default=True)
+    can_manage_knowledge = db.Column(db.Boolean, default=True)
+    can_view_analytics = db.Column(db.Boolean, default=True)
+    granted_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    granted_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('persona_id', 'teacher_id', name='_persona_teacher_uc'),)
+
+# ---------------------------------------------------------
+# [10] 지식 베이스(PersonaKnowledgeBase) 모델
+# ---------------------------------------------------------
+class PersonaKnowledgeBase(db.Model):
+    """
+    페르소나별 지식 베이스 메타데이터를 저장합니다.
+    하나의 페르소나는 여러 지식 베이스를 가질 수 있습니다.
+    """
+    __tablename__ = 'persona_knowledge_base'
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)                 # 예: "확률과 통계 교재"
+    description = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    chunk_strategy = db.Column(db.String(50), default='paragraph')   # 청킹 전략
+    chunk_size = db.Column(db.Integer, default=500)
+    chunk_overlap = db.Column(db.Integer, default=100)
+
+    # 관계
+    documents = db.relationship('KnowledgeDocument', backref='knowledge_base', cascade='all, delete-orphan', lazy='dynamic')
+
+# ---------------------------------------------------------
+# [11] 지식 문서(KnowledgeDocument) 모델
+# ---------------------------------------------------------
+class KnowledgeDocument(db.Model):
+    """
+    지식 베이스에 업로드된 문서 정보를 저장합니다.
+    """
+    __tablename__ = 'knowledge_document'
+
+    id = db.Column(db.Integer, primary_key=True)
+    knowledge_base_id = db.Column(db.Integer, db.ForeignKey('persona_knowledge_base.id', ondelete='CASCADE'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(512))
+    file_type = db.Column(db.String(100))
+    file_size = db.Column(db.BigInteger)
+    content_hash = db.Column(db.String(64))                          # 중복 방지용
+    extracted_text = db.Column(db.Text)
+    chunk_count = db.Column(db.Integer, default=0)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    uploaded_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    processed_at = db.Column(db.DateTime)
+    processing_status = db.Column(db.String(20), default='pending')  # 'pending', 'processing', 'completed', 'failed'
+    error_message = db.Column(db.Text)
+
+    # 관계
+    chunks = db.relationship('DocumentChunk', backref='document', cascade='all, delete-orphan', lazy='dynamic')
+
+# ---------------------------------------------------------
+# [12] 문서 청크(DocumentChunk) 모델 - 벡터 저장소
+# ---------------------------------------------------------
+class DocumentChunk(db.Model):
+    """
+    문서를 청킹한 결과와 임베딩 벡터를 저장합니다.
+    pgvector를 사용하여 벡터 검색을 수행합니다.
+    """
+    __tablename__ = 'document_chunk'
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(db.Integer, db.ForeignKey('knowledge_document.id', ondelete='CASCADE'), nullable=False)
+    chunk_index = db.Column(db.Integer, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    content_length = db.Column(db.Integer)
+    # pgvector의 vector 타입 사용 (1536차원 - OpenAI text-embedding-3-small)
+    embedding = db.Column(Vector(1536))  # pgvector 전용 타입
+    chunk_metadata = db.Column(db.JSON)  # 페이지 번호 등 추가 정보
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)

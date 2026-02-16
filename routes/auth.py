@@ -18,11 +18,7 @@ def init_oauth(app):
         name='google',
         client_id=os.getenv("GOOGLE_CLIENT_ID"),
         client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-        access_token_url='https://accounts.google.com/o/oauth2/token',
-        access_token_params=None,
-        authorize_url='https://accounts.google.com/o/oauth2/auth',
-        authorize_params=None,
-        api_base_url='https://www.googleapis.com/oauth2/v1/',
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
         client_kwargs={'scope': 'openid email profile'},
     )
 
@@ -89,7 +85,7 @@ def google_callback():
     """구글 로그인 콜백 처리"""
     try:
         token = oauth.google.authorize_access_token()
-        resp = oauth.google.get('userinfo')
+        resp = oauth.google.get('https://www.googleapis.com/oauth2/v1/userinfo')
         user_info = resp.json()
     except Exception as e:
         flash(f"구글 로그인 실패: {str(e)}", "error")
