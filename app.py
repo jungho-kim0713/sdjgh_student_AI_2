@@ -160,8 +160,10 @@ with app.app_context():
                     )
                 )
         db.session.commit()
-    except Exception:
-        pass
+        db.session.commit()
+    except Exception as e:
+        print(f"DB Initialization Error: {e}")
+
 
 
 # 모든 블루프린트 등록(라우트는 routes/ 하위 모듈에만 존재)

@@ -407,8 +407,12 @@ GitHub 저장소: https://github.com/jungho-kim0713/sdjgh_student_AI_2.git
    docker-compose restart
    # 또는 완전 재빌드 시: docker-compose up -d --build --force-recreate
 
-원라이너 (로컬에서 푸시 후 서버 업데이트까지 한 번에):
-   git push origin main && ssh oracle-student-ai "cd ~/sdjgh_ai && git pull origin main && docker-compose restart"
+4. 원라이너 (로컬에서 푸시 후 서버 업데이트까지 한 번에):
+   - PowerShell (Windows 기본):
+     git push origin main; ssh oracle-student-ai "cd ~/sdjgh_ai; git pull origin main; docker-compose restart"
+
+   - Git Bash / CMD / Mac / Linux:
+     git push origin main && ssh oracle-student-ai "cd ~/sdjgh_ai && git pull origin main && docker-compose restart"
 
 주의사항:
 - .env, certs/, static/uploads/ 폴더는 .gitignore에 등록되어 Git으로 관리되지 않음 (보안)
