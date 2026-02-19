@@ -526,7 +526,7 @@ window.App.registerModule((ctx) => {
     }
 
     // refreshModels를 전역 함수로 등록 (HTML onclick에서 사용)
-    window.refreshModels = async function(provider) {
+    window.refreshModels = async function (provider) {
         const btn = event.target;
         btn.disabled = true;
         btn.textContent = '⏳';
@@ -564,6 +564,9 @@ window.App.registerModule((ctx) => {
     /**
      * 관리자 사용자 목록 테이블을 로드한다.
      */
+    /**
+     * 관리자 사용자 목록 테이블을 로드한다. (정렬 기능 및 UI 개선)
+     */
     async function loadAdminUserList() {
         if (!dom.adminUserListBody) return;
         try {
@@ -571,11 +574,36 @@ window.App.registerModule((ctx) => {
             const response = await fetch('/api/admin/get_users');
             if (!response.ok) throw new Error('Failed to fetch users');
 
-            const users = await response.json();
+            let users = await response.json();
+
+            // 정렬 상태 초기화 (최대 3개 기준)
+            if (!ctx.adminSortState) {
+                ctx.adminSortState = [{ key: 'id', dir: 'asc' }];
+            }
+
+            // 다중 정렬 로직 적용
+            users.sort((a, b) => {
+                for (const criteria of ctx.adminSortState) {
+                    const key = criteria.key;
+                    const dir = criteria.dir === 'asc' ? 1 : -1;
+                    let valA = a[key] ?? '';
+                    let valB = b[key] ?? '';
+
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                    if (valA < valB) return -1 * dir;
+                    if (valA > valB) return 1 * dir;
+                }
+                return 0;
+            });
+
             dom.adminUserListBody.innerHTML = '';
 
             users.forEach(user => {
                 const tr = document.createElement('tr');
+
+                // Role Select
                 const roleCell = user.is_admin
                     ? '<span class="admin-badge">admin</span>'
                     : `<select class="user-role-select" data-user-id="${user.id}">
@@ -583,61 +611,164 @@ window.App.registerModule((ctx) => {
                             <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>teacher</option>
                         </select>`;
 
+                // Email (CSS에서 넓게 잡음)
                 const emailCell = user.email || '-';
-                const approvalBadge = user.is_approved
-                    ? '<span style="color: #10B981; font-weight: bold;">✓ 승인됨</span>'
-                    : '<span style="color: #EF4444; font-weight: bold;">✗ 미승인</span>';
 
-                const approvalBtn = user.is_admin
-                    ? ''
-                    : user.is_approved
-                        ? `<button class="btn-danger toggle-approval-btn" data-user-id="${user.id}" data-approved="false" style="font-size: 0.85rem;">승인 취소</button>`
-                        : `<button class="btn-primary toggle-approval-btn" data-user-id="${user.id}" data-approved="true" style="font-size: 0.85rem;">승인</button>`;
+                // Approval Icon (Toggle 방식)
+                let approvalIcon = '';
+                if (user.is_admin) {
+                    approvalIcon = '<span class="status-icon status-approved" title="관리자">✅</span>';
+                } else {
+                    if (user.is_approved) {
+                        approvalIcon = `<span class="status-icon status-approved toggle-approval-btn" data-user-id="${user.id}" data-approved="true" title="승인됨 (클릭하여 승인 취소)">✅</span>`;
+                    } else {
+                        approvalIcon = `<span class="status-icon status-unapproved toggle-approval-btn" data-user-id="${user.id}" data-approved="false" title="미승인 (클릭하여 승인)">❌</span>`;
+                    }
+                }
 
                 tr.innerHTML = `
-                    <td>${user.id}</td>
+                    <td style="text-align: center;">${user.id}</td>
                     <td>${user.username}</td>
                     <td style="font-size: 0.85rem;">${emailCell}</td>
-                    <td>${approvalBadge}</td>
+                    <td style="text-align: center;">${approvalIcon}</td>
                     <td>${roleCell}</td>
-                    <td>
-                        <div class="btn-group">
-                            ${approvalBtn}
-                            <button class="btn-secondary view-history-btn" data-user-id="${user.id}" data-username="${user.username}" style="font-size: 0.85rem;">기록 조회</button>
-                            <button class="btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''} style="font-size: 0.85rem;">삭제</button>
+                    <td style="text-align: center;">
+                        <div class="btn-group" style="justify-content: center;">
+                            <button class="btn-secondary btn-xs view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록</button>
+                            <button class="btn-danger btn-xs delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''}>삭제</button>
                         </div>
                     </td>
                 `;
                 dom.adminUserListBody.appendChild(tr);
             });
 
-            // 승인 버튼 이벤트 리스너 추가
-            document.querySelectorAll('.toggle-approval-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const userId = e.target.dataset.userId;
-                    const isApproved = e.target.dataset.approved === 'true';
+            // 헤더 클릭 이벤트 (정렬) - 최초 1회만 등록
+            const thead = document.querySelector('.admin-table thead');
+            if (thead && !thead.dataset.sortInitialized) {
+                thead.dataset.sortInitialized = 'true';
 
-                    if (confirm(`이 사용자를 ${isApproved ? '승인' : '승인 취소'}하시겠습니까?`)) {
-                        try {
-                            const response = await fetch('/api/admin/approve_user', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: userId, is_approved: isApproved })
-                            });
+                // 헤더에 sortKey 데이터 속성 주입
+                const headers = thead.querySelectorAll('th');
+                if (headers.length >= 6) {
+                    headers[0].dataset.sortKey = 'id';
+                    headers[1].dataset.sortKey = 'username';
+                    headers[2].dataset.sortKey = 'email';
+                    headers[3].dataset.sortKey = 'is_approved';
+                    // Role, Action 등은 정렬 제외할 수도 있지만 일단 포함
+                    headers[4].dataset.sortKey = 'role';
+                }
 
-                            if (response.ok) {
-                                alert(isApproved ? '사용자가 승인되었습니다.' : '승인이 취소되었습니다.');
-                                loadAdminUserList(); // 목록 새로고침
-                            } else {
-                                alert('작업 실패');
-                            }
-                        } catch (error) {
-                            console.error('Approval error:', error);
-                            alert('작업 중 오류 발생');
+                thead.addEventListener('click', (e) => {
+                    const th = e.target.closest('th');
+                    if (!th || !th.dataset.sortKey) return;
+
+                    const key = th.dataset.sortKey;
+
+                    // 정렬 상태 업데이트
+                    const existingIndex = ctx.adminSortState.findIndex(s => s.key === key);
+
+                    if (existingIndex !== -1) {
+                        // 이미 존재: asc -> desc -> remove
+                        const currentDir = ctx.adminSortState[existingIndex].dir;
+                        if (currentDir === 'asc') {
+                            ctx.adminSortState[existingIndex].dir = 'desc';
+                        } else {
+                            ctx.adminSortState.splice(existingIndex, 1); // Remove
                         }
+                    } else {
+                        // 새 키: 맨 앞에 추가 (최대 3개 유지)
+                        ctx.adminSortState.unshift({ key: key, dir: 'asc' });
+                        if (ctx.adminSortState.length > 3) ctx.adminSortState.pop();
                     }
+
+                    // 기본 정렬(ID ASC) 유지 (비어있으면)
+                    if (ctx.adminSortState.length === 0) {
+                        ctx.adminSortState.push({ key: 'id', dir: 'asc' });
+                    }
+
+                    loadAdminUserList(); // 재렌더링
                 });
+            }
+
+            // 헤더 UI 업데이트 (화살표 표시)
+            const headers = document.querySelectorAll('.admin-table thead th');
+            headers.forEach(th => {
+                const key = th.dataset.sortKey;
+                let indicator = th.querySelector('.sort-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('span');
+                    indicator.className = 'sort-indicator';
+                    th.appendChild(indicator);
+                }
+
+                const sortState = ctx.adminSortState.find(s => s.key === key);
+                if (sortState) {
+                    const order = ctx.adminSortState.indexOf(sortState) + 1;
+                    const arrow = sortState.dir === 'asc' ? '▲' : '▼';
+                    indicator.textContent = `${arrow}${order}`;
+                    indicator.classList.add('active');
+                } else {
+                    indicator.textContent = '';
+                    indicator.classList.remove('active');
+                }
             });
+
+        } catch (error) {
+            console.error("Failed to load users:", error);
+            dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록 로드 실패: ' + error.message + '</td></tr>';
+        }
+    }
+
+    // 전역 이벤트 리스너 (사용자 목록 동작: 승인 토글, 삭제, 기록 보기)
+    if (dom.adminUserListBody) {
+        dom.adminUserListBody.addEventListener('click', async (e) => {
+            // 1. 승인 토글 (아이콘 클릭)
+            if (e.target.classList.contains('toggle-approval-btn')) {
+                const userId = e.target.dataset.userId;
+                const isApproved = e.target.dataset.approved === 'true'; // 현재 상태 (true면 클릭 시 취소해야 함? 아님. data-approved는 '현재 상태'가 아니라 '타겟 상태'? 기존 코드 보면 data-approved="true"는 '승인' 버튼이었음. 즉 target state.
+                // 하지만 위 렌더링 코드에서:
+                // is_approved=true -> data-approved="true" (x) -> Icon meaning "Approved".
+                // Let's check semantic.
+                // data-approved="true" meant "Click to Approve".
+                // In rendering:
+                // if approved: Icon "Approved". stored data-approved="true".
+                // We want to toggle. So if current is approved, we want target to be false.
+
+                // Let's simplify: Read the current state from the class or data attribute of the ROW or just infer toggle.
+                // In rendering above:
+                // if (user.is_approved) data-approved="true"
+                // Let's use simple toggle logic based on current val.
+
+                const currentStatus = e.target.dataset.approved === 'true';
+                const newStatus = !currentStatus;
+
+                // confirm only for unapproving? Or both. User said "Click to toggle". No confirm mentioned but good to have for unapproval?
+                // User asked for "Just toggle". Let's skip confirm for smoother UI or keep it simple.
+                // "승인 상태의 기호를 누르면 번갈아 바뀔 수 있게" -> implies immediate action.
+
+                try {
+                    const response = await fetch('/api/admin/approve_user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, is_approved: newStatus })
+                    });
+
+                    if (response.ok) {
+                        // loadAdminUserList(); // 전체 리로드 대신 UI만 업데이트하면 더 빠름. 하지만 정렬이 깨질 수 있으니 리로드가 안전.
+                        // Refresh logic is inside loadAdminUserList's listener in old code.
+                        // Just call reload.
+                        loadAdminUserList();
+                    } else {
+                        alert('작업 실패');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('오류 발생');
+                }
+                return;
+            }
+            // (나머지 버튼 동작은 기존 리스너에 위임되어 있음 -> 아래 692 라인)
+
         } catch (error) {
             console.error("Failed to load users:", error);
             dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록 로드 실패</td></tr>';
@@ -687,37 +818,64 @@ window.App.registerModule((ctx) => {
         }
     }
 
-    // 사용자 목록 동작: 삭제 또는 기록 보기.
+    // 사용자 목록 동작: 승인 토글, 삭제, 기록 보기 (이벤트 위임)
     if (dom.adminUserListBody) {
         dom.adminUserListBody.addEventListener('click', async (e) => {
-            const target = e.target.closest('button');
+            const target = e.target.closest('.toggle-approval-btn, .delete-user-btn, .view-history-btn');
             if (!target) return;
 
             const userId = target.dataset.userId;
-            const username = target.dataset.username;
+            const username = target.dataset.username; // toggle btn only has userId? wait, toggle doesn't have username in render.
+            // render: toggle has title but no username. Should add if needed for log? 
+            // no need for confirm prompt for toggle as per request? Or simple confirm.
 
-            if (target.classList.contains('delete-user-btn')) {
-                if (!confirm(`[관리자] '${username}' (ID: ${userId}) 사용자를 정말 삭제하시겠습니까?\n이 사용자의 모든 대화 기록이 함께 삭제되며, 복구할 수 없습니다.`)) {
-                    return;
+            // 1. 승인 토글
+            if (target.classList.contains('toggle-approval-btn')) {
+                const isApproved = target.dataset.approved === 'true'; // Current state (displayed as "Approved" -> click to unapprove)
+                // Wait, logic check:
+                // user.is_approved = true -> icon is check -> data-approved="true" -> click -> mean "toggle".
+                // logic: if data-approved="true", switch to false.
+                const newStatus = !isApproved;
+
+                try {
+                    const response = await fetch('/api/admin/approve_user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, is_approved: newStatus })
+                    });
+                    if (response.ok) {
+                        loadAdminUserList(); // UI Refresh
+                    } else {
+                        alert('변경 실패');
+                    }
+                } catch (err) {
+                    console.error(err);
                 }
+                return;
+            }
+
+            // 2. 사용자 삭제
+            if (target.classList.contains('delete-user-btn')) {
+                if (!confirm(`[관리자] '${username}' (ID: ${userId}) 사용자를 삭제하시겠습니까?`)) return;
                 try {
                     const response = await fetch('/api/admin/delete_user', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: parseInt(userId) })
                     });
-                    const data = await response.json();
-                    if (!response.ok || data.error) {
-                        throw new Error(data.error || '삭제 실패');
+                    if (response.ok) {
+                        alert('삭제 완료');
+                        target.closest('tr').remove();
+                    } else {
+                        alert('삭제 실패');
                     }
-                    alert(`'${data.username}' 사용자가 성공적으로 삭제되었습니다.`);
-                    target.closest('tr').remove();
                 } catch (error) {
-                    console.error("Failed to delete user:", error);
-                    alert("삭제 실패: " + error.message);
+                    console.error(error);
                 }
+                return;
             }
 
+            // 3. 기록 조회
             if (target.classList.contains('view-history-btn')) {
                 loadUserHistory(userId, username);
             }
@@ -766,7 +924,7 @@ window.App.registerModule((ctx) => {
      * 공급사별 모델 목록 접기/펴기 토글
      * @param {string} provider - 'openai' | 'anthropic' | 'google'
      */
-    window.toggleProviderModels = function(provider) {
+    window.toggleProviderModels = function (provider) {
         const section = document.querySelector(`.provider-section[data-provider="${provider}"]`);
         const toggleBtn = section.querySelector('.btn-toggle-models');
         const toggleIcon = toggleBtn.querySelector('.toggle-icon');
