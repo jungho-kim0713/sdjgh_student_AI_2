@@ -24,6 +24,7 @@ certs/
 
 # 5. 백업 파일 및 로그
 *.sql
+!migrations/*.sql
 *.log
 *.bak
 
