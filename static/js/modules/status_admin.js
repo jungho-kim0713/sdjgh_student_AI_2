@@ -562,9 +562,6 @@ window.App.registerModule((ctx) => {
 
 
     /**
-     * 관리자 사용자 목록 테이블을 로드한다.
-     */
-    /**
      * 관리자 사용자 목록 테이블을 로드한다. (정렬 기능 및 UI 개선)
      */
     async function loadAdminUserList() {
@@ -719,105 +716,6 @@ window.App.registerModule((ctx) => {
         }
     }
 
-    // 전역 이벤트 리스너 (사용자 목록 동작: 승인 토글, 삭제, 기록 보기)
-    if (dom.adminUserListBody) {
-        dom.adminUserListBody.addEventListener('click', async (e) => {
-            // 1. 승인 토글 (아이콘 클릭)
-            if (e.target.classList.contains('toggle-approval-btn')) {
-                const userId = e.target.dataset.userId;
-                const isApproved = e.target.dataset.approved === 'true'; // 현재 상태 (true면 클릭 시 취소해야 함? 아님. data-approved는 '현재 상태'가 아니라 '타겟 상태'? 기존 코드 보면 data-approved="true"는 '승인' 버튼이었음. 즉 target state.
-                // 하지만 위 렌더링 코드에서:
-                // is_approved=true -> data-approved="true" (x) -> Icon meaning "Approved".
-                // Let's check semantic.
-                // data-approved="true" meant "Click to Approve".
-                // In rendering:
-                // if approved: Icon "Approved". stored data-approved="true".
-                // We want to toggle. So if current is approved, we want target to be false.
-
-                // Let's simplify: Read the current state from the class or data attribute of the ROW or just infer toggle.
-                // In rendering above:
-                // if (user.is_approved) data-approved="true"
-                // Let's use simple toggle logic based on current val.
-
-                const currentStatus = e.target.dataset.approved === 'true';
-                const newStatus = !currentStatus;
-
-                // confirm only for unapproving? Or both. User said "Click to toggle". No confirm mentioned but good to have for unapproval?
-                // User asked for "Just toggle". Let's skip confirm for smoother UI or keep it simple.
-                // "승인 상태의 기호를 누르면 번갈아 바뀔 수 있게" -> implies immediate action.
-
-                try {
-                    const response = await fetch('/api/admin/approve_user', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, is_approved: newStatus })
-                    });
-
-                    if (response.ok) {
-                        // loadAdminUserList(); // 전체 리로드 대신 UI만 업데이트하면 더 빠름. 하지만 정렬이 깨질 수 있으니 리로드가 안전.
-                        // Refresh logic is inside loadAdminUserList's listener in old code.
-                        // Just call reload.
-                        loadAdminUserList();
-                    } else {
-                        alert('작업 실패');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert('오류 발생');
-                }
-                return;
-            }
-            // (나머지 버튼 동작은 기존 리스너에 위임되어 있음 -> 아래 692 라인)
-
-        } catch (error) {
-            console.error("Failed to load users:", error);
-            dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록 로드 실패</td></tr>';
-        }
-    }
-
-    /**
-     * 특정 사용자의 대화 기록을 로드한다.
-     * @param {string|number} userId - 사용자 ID
-     * @param {string} username - 사용자 이름
-     */
-    async function loadUserHistory(userId, username) {
-        if (!dom.adminUserHistoryBody) return;
-        try {
-            if (dom.adminHistoryUsername) dom.adminHistoryUsername.textContent = username;
-            dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">대화 기록을 불러오는 중...</td></tr>';
-            showUserHistoryView();
-
-            const response = await fetch(`/api/admin/get_user_history/${userId}`);
-            if (!response.ok) throw new Error('Failed to fetch user history');
-
-            const data = await response.json();
-            dom.adminUserHistoryBody.innerHTML = '';
-
-            if (data.history.length === 0) {
-                dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">이 사용자의 대화 기록이 없습니다.</td></tr>';
-                return;
-            }
-
-            data.history.forEach(session => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${session.id}</td>
-                    <td>${session.title}</td>
-                    <td>${session.role_name}</td>
-                    <td>${session.timestamp}</td>
-                    <td>
-                        <button class="btn-secondary view-session-btn" data-session-id="${session.id}">대화 보기</button>
-                    </td>
-                `;
-                dom.adminUserHistoryBody.appendChild(tr);
-            });
-
-        } catch (error) {
-            console.error("Failed to load user history:", error);
-            dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">기록 로드 실패</td></tr>';
-        }
-    }
-
     // 사용자 목록 동작: 승인 토글, 삭제, 기록 보기 (이벤트 위임)
     if (dom.adminUserListBody) {
         dom.adminUserListBody.addEventListener('click', async (e) => {
@@ -825,16 +723,11 @@ window.App.registerModule((ctx) => {
             if (!target) return;
 
             const userId = target.dataset.userId;
-            const username = target.dataset.username; // toggle btn only has userId? wait, toggle doesn't have username in render.
-            // render: toggle has title but no username. Should add if needed for log? 
-            // no need for confirm prompt for toggle as per request? Or simple confirm.
+            const username = target.dataset.username;
 
             // 1. 승인 토글
             if (target.classList.contains('toggle-approval-btn')) {
-                const isApproved = target.dataset.approved === 'true'; // Current state (displayed as "Approved" -> click to unapprove)
-                // Wait, logic check:
-                // user.is_approved = true -> icon is check -> data-approved="true" -> click -> mean "toggle".
-                // logic: if data-approved="true", switch to false.
+                const isApproved = target.dataset.approved === 'true';
                 const newStatus = !isApproved;
 
                 try {
@@ -880,6 +773,49 @@ window.App.registerModule((ctx) => {
                 loadUserHistory(userId, username);
             }
         });
+    }
+
+    /**
+     * 특정 사용자의 대화 기록을 로드한다.
+     * @param {string|number} userId - 사용자 ID
+     * @param {string} username - 사용자 이름
+     */
+    async function loadUserHistory(userId, username) {
+        if (!dom.adminUserHistoryBody) return;
+        try {
+            if (dom.adminHistoryUsername) dom.adminHistoryUsername.textContent = username;
+            dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">대화 기록을 불러오는 중...</td></tr>';
+            showUserHistoryView();
+
+            const response = await fetch(`/api/admin/get_user_history/${userId}`);
+            if (!response.ok) throw new Error('Failed to fetch user history');
+
+            const data = await response.json();
+            dom.adminUserHistoryBody.innerHTML = '';
+
+            if (data.history.length === 0) {
+                dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">이 사용자의 대화 기록이 없습니다.</td></tr>';
+                return;
+            }
+
+            data.history.forEach(session => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${session.id}</td>
+                    <td>${session.title}</td>
+                    <td>${session.role_name}</td>
+                    <td>${session.timestamp}</td>
+                    <td>
+                        <button class="btn-secondary view-session-btn" data-session-id="${session.id}">대화 보기</button>
+                    </td>
+                `;
+                dom.adminUserHistoryBody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error("Failed to load user history:", error);
+            dom.adminUserHistoryBody.innerHTML = '<tr><td colspan="5">기록 로드 실패</td></tr>';
+        }
     }
 
     // 사용자 역할 변경.
