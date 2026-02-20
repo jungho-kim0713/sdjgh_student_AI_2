@@ -40,7 +40,7 @@ def get_manageable_persona_ids(user):
     - 교사: 관리 권한이 부여된 페르소나만
     - 학생: 빈 리스트
     """
-    if user.is_admin:
+    if user.is_admin or user.role == 'admin' or user.username in ['admin', '관리자']:
         return None  # None = 전체 접근
 
     if user.role == 'teacher':
@@ -193,11 +193,14 @@ def get_persona_list():
         }
     """
     # 권한 체크
+    print(f"[DEBUG] get_persona_list 요청: user={current_user.username}, is_admin={current_user.is_admin}, role={current_user.role}")
     if not is_persona_manager(current_user):
+        print(f"[DEBUG] 권한 부족")
         return jsonify({"error": "페르소나 관리 권한이 필요합니다."}), 403
 
     # 관리 가능한 페르소나 ID 조회
     manageable_ids = get_manageable_persona_ids(current_user)
+    print(f"[DEBUG] manageable_ids: {manageable_ids}")
 
     # 쿼리 구성 (관리자는 전체, 교사는 필터링)
     query = PersonaDefinition.query.order_by(PersonaDefinition.id.asc())
@@ -205,6 +208,7 @@ def get_persona_list():
         query = query.filter(PersonaDefinition.id.in_(manageable_ids))
 
     personas = query.all()
+    print(f"[DEBUG] 조회된 페르소나 개수: {len(personas)}")
 
     persona_list = []
     for p in personas:
