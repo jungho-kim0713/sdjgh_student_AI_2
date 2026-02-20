@@ -225,11 +225,16 @@
 }
 
 /* 관리자 테이블 기본 스타일 */
+/* 관리자 테이블 컨테이너 (스크롤 가능) */
 .table-container {
     width: 100%;
-    overflow-x: auto;
+    /* 모달 안에서 스크롤 되도록 높이 제한 */
+    max-height: 60vh;
+    overflow-y: auto;
     border: 1px solid #E5E7EB;
     border-radius: 0.5rem;
+    background-color: white;
+    /* 헤더 투명 현상 방지 */
 }
 
 .admin-table {
@@ -281,27 +286,37 @@
     width: 30%;
 }
 
-/* Email (넓게) */
+/* Email (줄임) */
 .admin-table th:nth-child(4),
 .admin-table td:nth-child(4) {
-    width: 10%;
-    text-align: center;
+    width: 25%;
+    /* 30% -> 25% */
 }
 
 /* 승인 상태 */
 .admin-table th:nth-child(5),
 .admin-table td:nth-child(5) {
-    width: 10%;
+    width: 8%;
+    /* 10% -> 8% */
+    text-align: center;
 }
 
 /* Role */
 .admin-table th:nth-child(6),
 .admin-table td:nth-child(6) {
-    width: 20%;
+    width: 12%;
+    /* 20% -> 12% */
     text-align: center;
 }
 
-/* 작업 (좁게) */
+/* 작업 (넓힘) */
+.admin-table th:nth-child(7),
+.admin-table td:nth-child(7) {
+    width: 15%;
+    text-align: center;
+    white-space: nowrap;
+    /* 줄바꿈 방지 */
+}
 
 /* 정렬 인디케이터 */
 .sort-indicator {
