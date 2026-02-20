@@ -376,12 +376,16 @@
     background-color: #E5E7EB;
     color: #374151;
     border: none;
-    padding: 0.6rem 1.2rem !important;
+    padding: 0.4rem 0.8rem !important;
+    /* 패딩 축소 */
     border-radius: 0.5rem;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    /* 폰트 크기 축소 */
     font-weight: 500;
+    white-space: nowrap;
+    /* 줄바꿈 방지 강제 */
 }
 
 .btn-secondary:hover {
@@ -393,12 +397,16 @@
     background-color: #FEE2E2;
     color: #B91C1C;
     border: none;
-    padding: 0.6rem 1.2rem !important;
+    padding: 0.4rem 0.8rem !important;
+    /* 패딩 축소 */
     border-radius: 0.5rem;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    /* 폰트 크기 축소 */
     font-weight: 500;
+    white-space: nowrap;
+    /* 줄바꿈 방지 강제 */
 }
 
 .btn-danger:hover {
