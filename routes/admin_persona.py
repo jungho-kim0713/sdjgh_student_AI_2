@@ -159,7 +159,9 @@ def persona_management():
 
     print(f"[DEBUG] 권한 확인 완료 - 페르소나 관리 화면 렌더링")
     # 교사용 페르소나 관리 화면 (관리자와 동일한 UI 사용)
-    return render_template("admin_persona.html", is_teacher=current_user.role == 'teacher')
+    # 관리자는 role이 'teacher'여도 교사 제한을 받지 않아야 함
+    is_teacher_restricted = (current_user.role == 'teacher' and not current_user.is_admin)
+    return render_template("admin_persona.html", is_teacher=is_teacher_restricted)
 
 
 @admin_persona_bp.route("/api/admin/persona/list", methods=["GET"])
