@@ -1,0 +1,660 @@
+/* --- Admin Panel & Modal ---
+   관리자 패널과 모달 공통 스타일.
+   UI 규칙:
+   - 테이블은 상단 헤더 강조
+   - 버튼은 상태(위험/보조) 색상 구분 */
+.admin-panel-button {
+    /* 사이드바 관리자 버튼 */
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.5rem;
+    border: none;
+    text-align: left;
+    text-decoration: none;
+    color: #4B5563;
+    background-color: #F9FAFB;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* hover: 강조 색상으로 전환 */
+.admin-panel-button:hover {
+    background-color: #E0E7FF;
+    color: #3730A3;
+}
+
+/* 모달 오버레이 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+}
+
+/* 관리자 모달 본문 */
+.admin-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 1001;
+    width: 90% !important;
+    max-width: 1200px !important;
+    /* 확실하게 키움 */
+    max-height: 85vh;
+    /* 높이도 조금 더 키움 */
+    display: none;
+    flex-direction: column;
+}
+
+/* 모달 헤더 */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close-button {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    font-weight: 300;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 0 0.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+/* Admin Navigation Tab
+   상단 탭 버튼 영역 */
+.admin-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+    padding-bottom: 0.5rem;
+}
+
+.admin-nav-btn {
+    /* 탭 버튼 기본 */
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    color: #6B7280;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.admin-nav-btn:hover {
+    /* hover: 밝은 회색 배경 */
+    background-color: #F3F4F6;
+    color: #374151;
+}
+
+.admin-nav-btn.active {
+    /* active: 선택 강조 */
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    font-weight: 600;
+}
+
+/* Model Config Table & Dropdown
+   페르소나별 모델 설정 테이블 */
+.config-table td {
+    vertical-align: top;
+}
+
+.model-select-wrapper {
+    /* 드롭다운 래퍼 */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.model-config-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.model-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.model-label {
+    width: 140px;
+    font-size: 0.85rem;
+    color: #6B7280;
+}
+
+.role-allow-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.role-allow {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.provider-status-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.provider-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.provider-status-select,
+.user-role-select {
+    padding: 0.4rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    color: #374151;
+    background-color: #FFFFFF;
+}
+
+.model-select {
+    /* 모델 선택 드롭다운 */
+    padding: 0.4rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    color: #374151;
+    background-color: #FFFFFF;
+}
+
+.token-input {
+    /* 토큰 입력 필드 */
+    padding: 0.4rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    color: #111827;
+    background-color: #FFFFFF;
+}
+
+.price-info-box {
+    /* 가격 정보 배지 */
+    background-color: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: #15803D;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 관리자 테이블 기본 스타일 */
+/* 관리자 테이블 컨테이너 (스크롤 가능) */
+.table-container {
+    width: 100%;
+    /* 모달 안에서 스크롤 되도록 높이 제한 */
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.5rem;
+    background-color: white;
+    /* 헤더 투명 현상 방지 */
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* 테이블 셀/헤더 */
+.admin-table th,
+.admin-table td {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid #E5E7EB;
+    vertical-align: middle;
+}
+
+.admin-table th {
+    background-color: #F9FAFB;
+    font-weight: 600;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin-table th:hover {
+    background-color: #F3F4F6;
+}
+
+/* 컬럼 너비 조정 */
+.admin-table th:nth-child(1),
+.admin-table td:nth-child(1) {
+    width: 5%;
+    text-align: center;
+}
+
+/* ID */
+.admin-table th:nth-child(2),
+.admin-table td:nth-child(2) {
+    width: 10%;
+    /* 15% -> 10% */
+}
+
+/* Username */
+.admin-table th:nth-child(3),
+.admin-table td:nth-child(3) {
+    width: 25%;
+    /* 28% -> 25% */
+}
+
+/* Email (줄임) */
+.admin-table th:nth-child(4),
+.admin-table td:nth-child(4) {
+    width: 18%;
+    /* 24% -> 18% */
+}
+
+/* 승인 상태 */
+.admin-table th:nth-child(5),
+.admin-table td:nth-child(5) {
+    width: 8%;
+    text-align: center;
+}
+
+/* Role */
+.admin-table th:nth-child(6),
+.admin-table td:nth-child(6) {
+    width: 12%;
+    text-align: center;
+}
+
+/* 작업 (여백 및 너비 대폭 확보) */
+.admin-table th:nth-child(7),
+.admin-table td:nth-child(7) {
+    width: 22%;
+    /* 18% -> 22% (확실히 넓힘) */
+    text-align: center;
+    white-space: nowrap;
+    padding-right: 1.5rem;
+}
+
+/* 정렬 인디케이터 */
+.sort-indicator {
+    margin-left: 5px;
+    font-size: 0.8em;
+    color: #9CA3AF;
+}
+
+.sort-indicator.active {
+    color: #3B82F6;
+    font-weight: bold;
+}
+
+/* 승인 상태 아이콘 */
+.status-icon {
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.status-icon:hover {
+    transform: scale(1.2);
+}
+
+.status-approved {
+    color: #10B981;
+}
+
+.status-unapproved {
+    color: #EF4444;
+}
+
+/* 작은 버튼 스타일 (작업 열) */
+.btn-xs {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.8rem !important;
+    border-radius: 0.375rem !important;
+}
+
+/* 관리자 배지 */
+.admin-table .admin-badge {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.admin-table td .btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 보조 버튼 */
+.btn-secondary {
+    background-color: #E5E7EB;
+    color: #374151;
+    border: none;
+    padding: 0.4rem 0.8rem !important;
+    /* 패딩 축소 */
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.85rem;
+    /* 폰트 크기 축소 */
+    font-weight: 500;
+    white-space: nowrap;
+    /* 줄바꿈 방지 강제 */
+}
+
+.btn-secondary:hover {
+    background-color: #D1D5DB;
+}
+
+/* 위험(삭제) 버튼 */
+.btn-danger {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+    border: none;
+    padding: 0.4rem 0.8rem !important;
+    /* 패딩 축소 */
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.85rem;
+    /* 폰트 크기 축소 */
+    font-weight: 500;
+    white-space: nowrap;
+    /* 줄바꿈 방지 강제 */
+}
+
+.btn-danger:hover {
+    background-color: #FECACA;
+}
+
+/* 페르소나 관리 form-actions 버튼 높이 통일 */
+.form-actions button {
+    padding: 0.6rem 1.2rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    margin-top: 0 !important;
+}
+
+/* ======================================
+   Provider Model Settings UI
+   공급사 모델 설정 UI 스타일
+   ====================================== */
+
+/* 공급사 섹션 컨테이너 */
+.provider-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    background: #F9FAFB;
+}
+
+.provider-section h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: #374151;
+}
+
+/* 토글 버튼 */
+.btn-toggle-models {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1E40AF;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.btn-toggle-models:hover {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+}
+
+.btn-toggle-models .toggle-icon {
+    font-size: 0.9rem;
+    transition: transform 0.3s;
+}
+
+.btn-toggle-models.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* 새로고침 버튼 */
+.btn-refresh {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    margin-left: auto;
+}
+
+.btn-refresh:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 모델 섹션 접힌 상태 */
+.provider-section.collapsed .models-section {
+    display: none !important;
+}
+
+.provider-section.collapsed .provider-controls {
+    display: none !important;
+}
+
+/* 마지막 업데이트 시간 표시 */
+.last-update {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-left: 10px;
+}
+
+/* 공급사 상태 라디오 버튼 그룹 */
+.provider-controls {
+    margin: 15px 0;
+}
+
+.provider-controls label {
+    margin-right: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.provider-controls input[type="radio"] {
+    cursor: pointer;
+}
+
+/* 모델 리스트 섹션 */
+.models-section {
+    margin-top: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+}
+
+/* 모델 리스트 컨테이너 */
+.models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.models-list.sortable .model-item {
+    cursor: move;
+}
+
+/* 모델 아이템 카드 */
+.model-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.model-item:hover {
+    background: #F9FAFB;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 드래그 상태 */
+.model-item.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.model-item.drag-over {
+    border-color: #3B82F6;
+    background: #EFF6FF;
+}
+
+/* 모델 체크박스 */
+.model-item input[type="checkbox"] {
+    margin-right: 12px;
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+/* 드래그 핸들 */
+.drag-handle {
+    cursor: grab;
+    color: #9CA3AF;
+    font-size: 1.2rem;
+    margin-right: 8px;
+    user-select: none;
+    line-height: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* 모델 정보 영역 */
+.model-info {
+    flex: 1;
+}
+
+.model-name {
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+/* 모델 메타데이터 (가격 정보) */
+.model-metadata {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #6B7280;
+    margin-top: 4px;
+}
+
+.model-price {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 모델 설명 */
+.model-description {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #9CA3AF;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* 저장 버튼 */
+.btn-primary {
+    background-color: #3B82F6;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #2563EB;
+}
+
+.btn-primary:active {
+    background-color: #1D4ED8;
+}
