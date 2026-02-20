@@ -28,7 +28,36 @@ with app.app_context():
             
             personas = query.all()
             print(f"Personas found: {len(personas)}")
+            
+            persona_list = []
             for p in personas:
-                print(f" - ID {p.id}: {p.role_name} ({p.role_key})")
+                try:
+                    p_dict = {
+                        "id": p.id,
+                        "role_key": p.role_key,
+                        "role_name": p.role_name,
+                        "description": p.description,
+                        "icon": p.icon,
+                        "is_system": p.is_system,
+                        "is_active": p.is_active,
+                        "use_rag": p.use_rag,
+                        "retrieval_strategy": p.retrieval_strategy,
+                        "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else "",
+                        # "teacher_count": 0, # Skip queries for now
+                        # "knowledge_base_count": 0
+                    }
+                    persona_list.append(p_dict)
+                    print(f" - Serialized ID {p.id}")
+                except Exception as e:
+                    print(f" ! Failed to serialize ID {p.id}: {e}")
+            
+            import json
+            try:
+                json_output = json.dumps(persona_list, ensure_ascii=False, indent=2)
+                print("JSON Serialization Successful")
+                # print(json_output)
+            except Exception as e:
+                print(f"JSON Serialization Failed: {e}")
+
         else:
             print(f"\n[User not found: {username}]")
