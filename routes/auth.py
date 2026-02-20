@@ -77,6 +77,11 @@ def login():
 def google_login():
     """구글 로그인 페이지로 리다이렉트"""
     redirect_uri = url_for("auth.google_callback", _external=True)
+    
+    # [Fix] Proxy/Cloudflare 환경에서 http로 인식되는 문제 강제 보정
+    if os.environ.get("FLASK_ENV") == "production" or "student-ai.sdjgh-ai.kr" in redirect_uri:
+        redirect_uri = redirect_uri.replace("http://", "https://")
+        
     return oauth.google.authorize_redirect(redirect_uri)
 
 
