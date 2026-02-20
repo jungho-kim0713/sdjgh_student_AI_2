@@ -1,7 +1,8 @@
 from app import app
-from models import User, PersonaDefinition
+from models import User, PersonaDefinition, PersonaTeacherPermission, PersonaKnowledgeBase
 from extensions import db
 from routes.admin_persona import get_manageable_persona_ids, is_persona_manager
+import json
 
 with app.app_context():
     # Try multiple admin usernames
@@ -43,19 +44,23 @@ with app.app_context():
                         "use_rag": p.use_rag,
                         "retrieval_strategy": p.retrieval_strategy,
                         "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else "",
-                        # "teacher_count": 0, # Skip queries for now
-                        # "knowledge_base_count": 0
                     }
+                    
+                    # Test related queries might fail if tables don't exist
+                    teacher_count = PersonaTeacherPermission.query.filter_by(persona_id=p.id).count()
+                    kb_count = PersonaKnowledgeBase.query.filter_by(persona_id=p.id, is_active=True).count()
+                    
+                    p_dict["teacher_count"] = teacher_count
+                    p_dict["knowledge_base_count"] = kb_count
+                    
                     persona_list.append(p_dict)
-                    print(f" - Serialized ID {p.id}")
+                    print(f" - Serialized ID {p.id} (Teachers: {teacher_count}, KBs: {kb_count})")
                 except Exception as e:
                     print(f" ! Failed to serialize ID {p.id}: {e}")
             
-            import json
             try:
                 json_output = json.dumps(persona_list, ensure_ascii=False, indent=2)
                 print("JSON Serialization Successful")
-                # print(json_output)
             except Exception as e:
                 print(f"JSON Serialization Failed: {e}")
 
