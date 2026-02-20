@@ -283,21 +283,21 @@
 /* Username */
 .admin-table th:nth-child(3),
 .admin-table td:nth-child(3) {
-    width: 30%;
+    width: 28%;
+    /* 30% -> 28% */
 }
 
 /* Email (줄임) */
 .admin-table th:nth-child(4),
 .admin-table td:nth-child(4) {
-    width: 25%;
-    /* 30% -> 25% */
+    width: 24%;
+    /* 25% -> 24% */
 }
 
 /* 승인 상태 */
 .admin-table th:nth-child(5),
 .admin-table td:nth-child(5) {
     width: 8%;
-    /* 10% -> 8% */
     text-align: center;
 }
 
@@ -305,17 +305,18 @@
 .admin-table th:nth-child(6),
 .admin-table td:nth-child(6) {
     width: 12%;
-    /* 20% -> 12% */
     text-align: center;
 }
 
-/* 작업 (넓힘) */
+/* 작업 (여백 확보) */
 .admin-table th:nth-child(7),
 .admin-table td:nth-child(7) {
-    width: 15%;
+    width: 18%;
+    /* 15% -> 18% (스크롤바 대비 여유 확보) */
     text-align: center;
     white-space: nowrap;
-    /* 줄바꿈 방지 */
+    padding-right: 1.5rem;
+    /* 우측에 시각적 여백 추가 */
 }
 
 /* 정렬 인디케이터 */
