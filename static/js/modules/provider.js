@@ -22,15 +22,11 @@ window.App.registerModule((ctx) => {
 
     /**
      * 현재 공급사가 제한이면 대체 공급사로 전환한다.
-     * @param {boolean} isImageGen - 이미지 생성 모드 여부
      */
-    ctx.provider.checkAndFallbackProvider = function checkAndFallbackProvider(isImageGen) {
+    ctx.provider.checkAndFallbackProvider = function checkAndFallbackProvider() {
         const personaRestricted = state.personaProviderRestrictions || {};
         let isCurrentRestricted = (state.providerStatuses[state.currentProvider] === 'restricted');
 
-        if (isImageGen && state.currentProvider !== 'google') {
-            isCurrentRestricted = true;
-        }
         if (personaRestricted[state.currentProvider]) {
             isCurrentRestricted = true;
         }
@@ -38,14 +34,10 @@ window.App.registerModule((ctx) => {
         if (isCurrentRestricted) {
             let nextProvider = null;
 
-            if (isImageGen) {
-                nextProvider = 'google';
-            } else {
-                for (const p of PROVIDER_PRIORITY) {
-                    if (state.providerStatuses[p] !== 'restricted' && !personaRestricted[p]) {
-                        nextProvider = p;
-                        break;
-                    }
+            for (const p of PROVIDER_PRIORITY) {
+                if (state.providerStatuses[p] !== 'restricted' && !personaRestricted[p]) {
+                    nextProvider = p;
+                    break;
                 }
             }
 
@@ -67,19 +59,12 @@ window.App.registerModule((ctx) => {
             }
         } catch (e) { console.error("Provider status fetch error:", e); }
 
-        const currentPersona = dom.modelSelector ? dom.modelSelector.value : 'general';
-        const isImageGen = (currentPersona === 'ai_illustrator');
         const personaRestricted = state.personaProviderRestrictions || {};
 
         dom.providerOptions.forEach(option => {
             const provider = option.dataset.provider;
             let isRestricted = (state.providerStatuses[provider] === 'restricted');
 
-            if (isImageGen) {
-                if (provider !== 'google') {
-                    isRestricted = true;
-                }
-            }
             if (personaRestricted[provider]) {
                 isRestricted = true;
             }
@@ -95,7 +80,7 @@ window.App.registerModule((ctx) => {
             }
         });
 
-        ctx.provider.checkAndFallbackProvider(isImageGen);
+        ctx.provider.checkAndFallbackProvider();
     };
 
     ctx.provider.fetchPersonaRestrictions = async function fetchPersonaRestrictions(roleKey) {
