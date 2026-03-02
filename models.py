@@ -100,6 +100,7 @@ class PersonaConfig(db.Model):
     model_openai = db.Column(db.String(100), default="gpt-4o-mini")
     model_anthropic = db.Column(db.String(100), default="claude-haiku-4-5-20251001")
     model_google = db.Column(db.String(100), default="gemini-2.0-flash")
+    model_xai = db.Column(db.String(100), default="grok-4-1-fast-reasoning")
     max_tokens = db.Column(db.Integer, default=4096) 
     model_id = db.Column(db.String(100), nullable=True) # (구버전 호환용)
     allow_user = db.Column(db.Boolean, default=True)
@@ -107,6 +108,7 @@ class PersonaConfig(db.Model):
     restrict_google = db.Column(db.Boolean, default=False)
     restrict_anthropic = db.Column(db.Boolean, default=False)
     restrict_openai = db.Column(db.Boolean, default=False)
+    restrict_xai = db.Column(db.Boolean, default=False)
 
 # ---------------------------------------------------------
 # [7] 페르소나 정의(PersonaDefinition) 모델 - RAG 시스템
@@ -133,6 +135,7 @@ class PersonaDefinition(db.Model):
     model_openai = db.Column(db.String(100), default='gpt-4o-mini')
     model_anthropic = db.Column(db.String(100), default='claude-haiku-4-5-20251001')
     model_google = db.Column(db.String(100), default='gemini-2.0-flash')
+    model_xai = db.Column(db.String(100), default='grok-4-1-fast-reasoning')
     max_tokens = db.Column(db.Integer, default=4096)
 
     # 권한 설정
@@ -141,6 +144,7 @@ class PersonaDefinition(db.Model):
     restrict_google = db.Column(db.Boolean, default=False)
     restrict_anthropic = db.Column(db.Boolean, default=False)
     restrict_openai = db.Column(db.Boolean, default=False)
+    restrict_xai = db.Column(db.Boolean, default=False)
 
     # RAG 설정
     use_rag = db.Column(db.Boolean, default=False)                    # RAG 사용 여부

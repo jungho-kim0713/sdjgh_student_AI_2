@@ -1043,7 +1043,8 @@ textarea::placeholder {
 .header-left-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 10px;
+    flex: 1;
 }
 
 .header-left {
@@ -1074,7 +1075,7 @@ textarea::placeholder {
 }
 
 .main-title {
-    font-family: 'Gaegu', cursive;
+    font-family: 'Gaegu', 'Noto Sans KR', sans-serif;
     font-size: 1.875rem;
     font-weight: 700;
     background-image: linear-gradient(to right, #EC4899, #8B5CF6);
@@ -1083,6 +1084,8 @@ textarea::placeholder {
     background-clip: text;
     letter-spacing: 0.05em;
     margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
 .header-right {
@@ -1090,6 +1093,7 @@ textarea::placeholder {
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    flex: 1;
 }
 
 .provider-dropdown {

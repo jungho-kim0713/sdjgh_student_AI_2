@@ -305,6 +305,7 @@ def get_persona_detail(persona_id):
         "model_openai": persona.model_openai,
         "model_anthropic": persona.model_anthropic,
         "model_google": persona.model_google,
+        "model_xai": persona.model_xai,
         "max_tokens": persona.max_tokens,
         # 권한 설정
         "allow_user": persona.allow_user,
@@ -312,6 +313,7 @@ def get_persona_detail(persona_id):
         "restrict_google": persona.restrict_google,
         "restrict_anthropic": persona.restrict_anthropic,
         "restrict_openai": persona.restrict_openai,
+        "restrict_xai": persona.restrict_xai,
         # RAG 설정
         "use_rag": persona.use_rag,
         "retrieval_strategy": persona.retrieval_strategy,
@@ -378,6 +380,7 @@ def create_persona():
             model_openai=data.get("model_openai", "gpt-4o-mini"),
             model_anthropic=data.get("model_anthropic", "claude-haiku-4-5-20251001"),
             model_google=data.get("model_google", "gemini-3-flash-preview"),
+            model_xai=data.get("model_xai", "grok-4-1-fast-reasoning"),
             max_tokens=data.get("max_tokens", 4096),
             # 권한 설정
             allow_user=data.get("allow_user", True),
@@ -385,6 +388,7 @@ def create_persona():
             restrict_google=data.get("restrict_google", False),
             restrict_anthropic=data.get("restrict_anthropic", False),
             restrict_openai=data.get("restrict_openai", False),
+            restrict_xai=data.get("restrict_xai", False),
             # RAG 설정
             use_rag=data.get("use_rag", False),
             retrieval_strategy=data.get("retrieval_strategy", "soft_topk"),
@@ -475,6 +479,8 @@ def update_persona(persona_id):
             persona.model_anthropic = data["model_anthropic"]
         if "model_google" in data:
             persona.model_google = data["model_google"]
+        if "model_xai" in data:
+            persona.model_xai = data["model_xai"]
         if "max_tokens" in data:
             persona.max_tokens = data["max_tokens"]
 
@@ -489,6 +495,8 @@ def update_persona(persona_id):
             persona.restrict_anthropic = data["restrict_anthropic"]
         if "restrict_openai" in data:
             persona.restrict_openai = data["restrict_openai"]
+        if "restrict_xai" in data:
+            persona.restrict_xai = data["restrict_xai"]
 
         # RAG 설정
         if "use_rag" in data:

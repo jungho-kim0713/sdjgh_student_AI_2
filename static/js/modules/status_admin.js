@@ -90,7 +90,32 @@ window.App.registerModule((ctx) => {
         if (dom.adminUserHistoryView) dom.adminUserHistoryView.style.display = 'block';
         if (dom.navUserList) dom.navUserList.classList.remove('active');
         if (dom.navModelConfig) dom.navModelConfig.classList.remove('active');
+        updateBulkButtons();
     };
+
+    /**
+     * 체크박스 선택 수에 따라 일괄 버튼 UI 갱신.
+     */
+    function updateBulkButtons() {
+        const checkedCount = document.querySelectorAll('.user-select-checkbox:checked').length;
+        const container = document.getElementById('bulk-actions-container');
+        if (!container) return;
+
+        if (dom.navUserList && dom.navUserList.classList.contains('active')) {
+            container.style.display = 'flex';
+            const btnApprove = document.getElementById('btn-bulk-approve');
+            const btnDelete = document.getElementById('btn-bulk-delete');
+            if (checkedCount >= 2) {
+                if (btnApprove) btnApprove.style.display = 'inline-block';
+                if (btnDelete) btnDelete.style.display = 'inline-block';
+            } else {
+                if (btnApprove) btnApprove.style.display = 'none';
+                if (btnDelete) btnDelete.style.display = 'none';
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
 
     // "고아 파일 정리" 버튼을 1회만 주입.
     if (dom.adminNav && !document.getElementById('btn-cleanup-files')) {
@@ -126,6 +151,48 @@ window.App.registerModule((ctx) => {
                 cleanupBtn.innerHTML = '🧹 데이터 정리';
             }
         });
+
+        if (!document.getElementById('bulk-actions-container')) {
+            const bulkContainer = document.createElement('div');
+            bulkContainer.id = 'bulk-actions-container';
+            bulkContainer.style.display = 'none';
+            bulkContainer.style.alignItems = 'center';
+            bulkContainer.style.gap = '8px';
+            bulkContainer.style.marginLeft = 'auto'; // 우측에 밀착
+            bulkContainer.innerHTML = `
+                <button id="btn-bulk-approve" class="btn-success btn-sm" style="display: none; padding: 4px 8px; font-size: 0.8rem;">일괄 승인</button>
+                <button id="btn-bulk-delete" class="btn-danger btn-sm" style="display: none; padding: 4px 8px; font-size: 0.8rem;">일괄 삭제</button>
+            `;
+            dom.adminNav.appendChild(bulkContainer);
+
+            document.getElementById('btn-bulk-approve').onclick = async () => {
+                const checked = document.querySelectorAll('.user-select-checkbox:checked');
+                if (checked.length === 0) return;
+                const ids = Array.from(checked).map(cb => parseInt(cb.dataset.userId));
+                if (!confirm(`선택한 ${ids.length}명의 사용자를 일괄 승인 처리하시겠습니까?`)) return;
+                try {
+                    const res = await fetch('/api/admin/bulk_approve_users', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_ids: ids })
+                    });
+                    if (res.ok) { alert('✅ 일괄 승인 완료'); loadAdminUserList(); }
+                } catch (e) { console.error(e); }
+            };
+
+            document.getElementById('btn-bulk-delete').onclick = async () => {
+                const checked = document.querySelectorAll('.user-select-checkbox:checked');
+                if (checked.length === 0) return;
+                const ids = Array.from(checked).map(cb => parseInt(cb.dataset.userId));
+                if (!confirm(`⚠️ 선택한 ${ids.length}명의 사용자를 부속 기록과 함께 영구 삭제하시겠습니까?`)) return;
+                try {
+                    const res = await fetch('/api/admin/bulk_delete_users', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_ids: ids })
+                    });
+                    if (res.ok) { alert('✅ 일괄 삭제 완료'); loadAdminUserList(); }
+                } catch (e) { console.error(e); }
+            };
+        }
     }
 
     // 관리자 모달 열기 및 기본 뷰 로딩.
@@ -194,7 +261,7 @@ window.App.registerModule((ctx) => {
             const statuses = await response.json();
             dom.adminProviderStatusBody.innerHTML = '';
 
-            const providers = ['google', 'anthropic', 'openai'];
+            const providers = ['google', 'anthropic', 'openai', 'xai'];
             const tr = document.createElement('tr');
             providers.forEach(p => {
                 const status = statuses[p];
@@ -254,7 +321,7 @@ window.App.registerModule((ctx) => {
      * 공급사 모델 설정 로드 및 이벤트 바인딩
      */
     async function loadProviderModels() {
-        const providers = ['openai', 'anthropic', 'google'];
+        const providers = ['openai', 'anthropic', 'google', 'xai'];
 
         // 1. 각 공급사의 상태 로드 (이미 loadProviderStatus()에서 처리됨)
 
@@ -383,7 +450,7 @@ window.App.registerModule((ctx) => {
      * 모든 공급사의 선택된 모델 저장 (순서 포함)
      */
     async function saveAllProviderModels() {
-        const providers = ['openai', 'anthropic', 'google'];
+        const providers = ['openai', 'anthropic', 'google', 'xai'];
         let successCount = 0;
 
         for (const provider of providers) {
@@ -624,6 +691,7 @@ window.App.registerModule((ctx) => {
                 }
 
                 tr.innerHTML = `
+                    <td style="text-align: center;"><input type="checkbox" class="user-select-checkbox" data-user-id="${user.id}"></td>
                     <td style="text-align: center;">${user.id}</td>
                     <td>${user.username}</td>
                     <td style="font-size: 0.85rem;">${emailCell}</td>
@@ -638,6 +706,22 @@ window.App.registerModule((ctx) => {
                 `;
                 dom.adminUserListBody.appendChild(tr);
             });
+
+            const selectAllCheck = document.getElementById('selectAllUsers');
+            if (selectAllCheck) {
+                selectAllCheck.checked = false;
+                selectAllCheck.onchange = (e) => {
+                    const checkboxes = document.querySelectorAll('.user-select-checkbox');
+                    checkboxes.forEach(cb => cb.checked = e.target.checked);
+                    updateBulkButtons();
+                };
+            }
+
+            const userCheckboxes = document.querySelectorAll('.user-select-checkbox');
+            userCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateBulkButtons);
+            });
+            updateBulkButtons();
 
             // 헤더 클릭 이벤트 (정렬) - 최초 1회만 등록
             const thead = document.querySelector('.admin-table thead');
@@ -858,7 +942,7 @@ window.App.registerModule((ctx) => {
 
     /**
      * 공급사별 모델 목록 접기/펴기 토글
-     * @param {string} provider - 'openai' | 'anthropic' | 'google'
+     * @param {string} provider - 'openai' | 'anthropic' | 'google' | 'xai'
      */
     window.toggleProviderModels = function (provider) {
         const section = document.querySelector(`.provider-section[data-provider="${provider}"]`);

@@ -146,6 +146,7 @@ def get_persona_provider_restrictions():
         "restrict_google": persona.restrict_google,
         "restrict_anthropic": persona.restrict_anthropic,
         "restrict_openai": persona.restrict_openai,
+        "restrict_xai": persona.restrict_xai,
     }
     return jsonify(data)
 
@@ -186,6 +187,8 @@ def chat():
                     return jsonify({"error": "권한 없음"}), 403
                 if provider == "openai" and persona.restrict_openai:
                     return jsonify({"error": "권한 없음"}), 403
+                if provider == "xai" and persona.restrict_xai:
+                    return jsonify({"error": "권한 없음"}), 403
 
             session_id = data.get("session_id")
             if not session_id:
@@ -218,11 +221,18 @@ def chat():
                 selected_model_id = persona.model_google
             elif provider == "anthropic":
                 selected_model_id = persona.model_anthropic
+            elif provider == "xai":
+                selected_model_id = persona.model_xai
 
             # Imagen 4.0 선택 시 대화/프롬프트는 Gemini 3 Pro로 고정
             prompt_model_id = selected_model_id
             if provider == "google" and selected_model_id == "imagen-4.0-generate-001":
                 prompt_model_id = "gemini-3-pro-preview"
+            elif provider == "openai" and selected_model_id in ("gpt-image-1.5", "dall-e-3"):
+                prompt_model_id = "gpt-4.1-mini"
+            elif provider == "xai" and selected_model_id in ("grok-imagine-image", "grok-imagine-video"):
+                # xAI 이미지 프롬프트 생성용으로는 일반 grok 모델 사용
+                prompt_model_id = "grok-4-1-fast-reasoning"
 
             # 시스템 프롬프트 조회
             system_prompt = get_system_prompt_from_db(persona.id, provider)
@@ -319,20 +329,61 @@ def chat():
                         return jsonify({"error": f"Google 이미지 생성 실패: {str(e)}"}), 500
 
             elif provider == "openai":
+                import traceback
                 # DALL-E 3 호출
                 if not openai_client:
                     raise ValueError("OpenAI API Key Missing")
-                response = openai_client.images.generate(
-                    model="dall-e-3",
-                    prompt=final_prompt,
-                    size="1024x1024",
-                    quality="standard",
-                    n=1,
-                )
-                image_url = response.data[0].url
-                img_data = requests.get(image_url).content
+                
+                print(f"=== [Debug] DALL-E 3 Prompt ===\n{final_prompt}\n==============================")
+                
+                try:
+                    response = openai_client.images.generate(
+                        model="dall-e-3",
+                        prompt=final_prompt,
+                        size="1024x1024",
+                        quality="standard",
+                        n=1,
+                    )
+                    image_url = response.data[0].url
+                    img_data = requests.get(image_url).content
+                except Exception as inner_e:
+                    print(f"=== [Debug] DALL-E 3 API Error ===")
+                    traceback.print_exc()
+                    raise inner_e
                 generated_image_filename = (
                     f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_dalle.png"
+                )
+                save_path = os.path.join(
+                    current_app.config["UPLOAD_FOLDER"],
+                    generated_image_filename,
+                )
+                with open(save_path, "wb") as f:
+                    f.write(img_data)
+                    
+            elif provider == "xai":
+                import traceback
+                from services.ai_service import xai_client
+                if not xai_client:
+                    raise ValueError("xAI API Key Missing")
+
+                print(f"=== [Debug] Grok Imagine Prompt ===\n{final_prompt}\n==============================")
+                try:
+                    # xAI의 이미지/비디오 생성 엔드포인트에 맞춰 호출 필요. 현재는 openai 호환 포맷으로 가정.
+                    # 추후 공식 문서 확인 후 URL이나 파라미터 조정 필요 가능.
+                    response = xai_client.images.generate(
+                        model=selected_model_id, # "grok-imagine-image" 등
+                        prompt=final_prompt,
+                        n=1,
+                    )
+                    image_url = response.data[0].url
+                    img_data = requests.get(image_url).content
+                except Exception as inner_e:
+                    print(f"=== [Debug] Grok Image API Error ===")
+                    traceback.print_exc()
+                    raise inner_e
+                
+                generated_image_filename = (
+                    f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_grok.png"
                 )
                 save_path = os.path.join(
                     current_app.config["UPLOAD_FOLDER"],
@@ -431,6 +482,8 @@ def chat():
             return jsonify({"error": "권한 없음"}), 403
         if provider == "openai" and persona.restrict_openai:
             return jsonify({"error": "권한 없음"}), 403
+        if provider == "xai" and persona.restrict_xai:
+            return jsonify({"error": "권한 없음"}), 403
 
     # 시스템 프롬프트 조회
     system_prompt = get_system_prompt_from_db(persona.id, provider)
@@ -443,6 +496,8 @@ def chat():
         selected_model_id = persona.model_google
     elif provider == "anthropic":
         selected_model_id = persona.model_anthropic
+    elif provider == "xai":
+        selected_model_id = persona.model_xai
 
     # 모델이 유효하지 않으면 기본값으로 폴백
     if selected_model_id not in AVAILABLE_MODELS:
@@ -450,6 +505,8 @@ def chat():
             selected_model_id = DEFAULT_MODELS["openai"]
         elif provider == "google":
             selected_model_id = DEFAULT_MODELS["google"]
+        elif provider == "xai":
+            selected_model_id = DEFAULT_MODELS.get("xai", "grok-4-1-fast-reasoning")
         else:
             selected_model_id = DEFAULT_MODELS["anthropic"]
 

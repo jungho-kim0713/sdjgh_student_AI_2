@@ -128,6 +128,10 @@ with app.app_context():
         ensure_column("persona_config", "restrict_google", "restrict_google BOOLEAN DEFAULT 0")
         ensure_column("persona_config", "restrict_anthropic", "restrict_anthropic BOOLEAN DEFAULT 0")
         ensure_column("persona_config", "restrict_openai", "restrict_openai BOOLEAN DEFAULT 0")
+        ensure_column("persona_config", "restrict_xai", "restrict_xai BOOLEAN DEFAULT 0")
+        ensure_column("persona_config", "model_xai", "model_xai VARCHAR(100) DEFAULT 'grok-4-1-fast-reasoning'")
+        ensure_column("persona_definition", "restrict_xai", "restrict_xai BOOLEAN DEFAULT 0")
+        ensure_column("persona_definition", "model_xai", "model_xai VARCHAR(100) DEFAULT 'grok-4-1-fast-reasoning'")
 
         # 새 컬럼 기본값 보정(기존 레코드).
         with db.engine.begin() as conn:
@@ -137,12 +141,16 @@ with app.app_context():
             conn.execute(text("UPDATE persona_config SET restrict_google=0 WHERE restrict_google IS NULL"))
             conn.execute(text("UPDATE persona_config SET restrict_anthropic=0 WHERE restrict_anthropic IS NULL"))
             conn.execute(text("UPDATE persona_config SET restrict_openai=0 WHERE restrict_openai IS NULL"))
+            conn.execute(text("UPDATE persona_config SET restrict_xai=0 WHERE restrict_xai IS NULL"))
+            conn.execute(text("UPDATE persona_config SET model_xai='grok-4-1-fast-reasoning' WHERE model_xai IS NULL"))
+            conn.execute(text("UPDATE persona_definition SET restrict_xai=0 WHERE restrict_xai IS NULL"))
+            conn.execute(text("UPDATE persona_definition SET model_xai='grok-4-1-fast-reasoning' WHERE model_xai IS NULL"))
         # 서비스 상태 기본값 시딩
         if not SystemConfig.query.filter_by(key="service_status").first():
             db.session.add(SystemConfig(key="service_status", value="active"))
 
         # 공급사별 제한 상태 기본값 시딩
-        for provider in ["openai", "anthropic", "google"]:
+        for provider in ["openai", "anthropic", "google", "xai"]:
             key = f"provider_status_{provider}"
             if not SystemConfig.query.filter_by(key=key).first():
                 db.session.add(SystemConfig(key=key, value="active"))
@@ -156,6 +164,7 @@ with app.app_context():
                         model_openai=DEFAULT_MODELS["openai"],
                         model_anthropic=DEFAULT_MODELS["anthropic"],
                         model_google=DEFAULT_MODELS["google"],
+                        model_xai=DEFAULT_MODELS.get("xai", "grok-4-1-fast-reasoning"),
                         max_tokens=DEFAULT_MAX_TOKENS,
                     )
                 )

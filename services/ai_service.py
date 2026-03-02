@@ -43,6 +43,20 @@ if os.getenv("GOOGLE_API_KEY"):
     except Exception as e:
         print(f"⚠️ Google Client Init Error: {e}")
 
+# xAI 클라이언트는 키가 있을 때만 초기화한다.
+xai_client = None
+if os.getenv("XAI_API_KEY"):
+    try:
+        # httpx 클라이언트를 명시적으로 생성하여 OpenAI 호환 클라이언트로 xAI 사용
+        http_client = httpx.Client()
+        xai_client = openai.OpenAI(
+            api_key=os.getenv("XAI_API_KEY"),
+            base_url="https://api.x.ai/v1",
+            http_client=http_client
+        )
+    except Exception as e:
+        print(f"⚠️ xAI Client Init Error: {e}")
+
 # 지원 모델 목록(프론트 관리자 패널에 노출되는 기준)
 # 2025년 모델만 포함, 모든 모델에 출시일/가격/특징 포함
 AVAILABLE_MODELS = {
@@ -108,6 +122,13 @@ AVAILABLE_MODELS = {
         "input_price": 0.80,
         "output_price": 1.60,
         "description": "향상된 이미지 이해 및 생성 기능"
+    },
+    "dall-e-3": {
+        "name": "DALL-E 3",
+        "provider": "openai",
+        "input_price": 0.04,
+        "output_price": 0.04,
+        "description": "최고 품질의 텍스트 기반 이미지 생성 모델"
     },
 
     # ===== Anthropic Models - Claude 4.x Series =====
@@ -252,6 +273,43 @@ AVAILABLE_MODELS = {
         "output_price": 0.04,
         "description": "사진급 품질의 최첨단 이미지 생성 전문 모델"
     },
+
+    # ===== xAI (Grok) Models =====
+    "grok-4-1-fast-reasoning": {
+        "name": "Grok 4.1 Fast Reasoning",
+        "provider": "xai",
+        "input_price": 0.0,
+        "output_price": 0.0,
+        "description": "xAI의 빠르고 강력한 추론 모델"
+    },
+    "grok-4-1-fast-non-reasoning": {
+        "name": "Grok 4.1 Non-Reasoning",
+        "provider": "xai",
+        "input_price": 0.0,
+        "output_price": 0.0,
+        "description": "xAI의 일반 텍스트 생성 모델"
+    },
+    "grok-code-fast-1eo": {
+        "name": "Grok Code Fast 1EO",
+        "provider": "xai",
+        "input_price": 0.0,
+        "output_price": 0.0,
+        "description": "xAI의 코딩 전용 빠른 모델"
+    },
+    "grok-imagine-image": {
+        "name": "Grok Imagine Image",
+        "provider": "xai",
+        "input_price": 0.0,
+        "output_price": 0.0,
+        "description": "xAI의 이미지 생성 특화 모델"
+    },
+    "grok-imagine-video": {
+        "name": "Grok Imagine Video",
+        "provider": "xai",
+        "input_price": 0.0,
+        "output_price": 0.0,
+        "description": "xAI의 비디오 생성 모델"
+    },
 }
 
 
@@ -260,6 +318,7 @@ DEFAULT_MODELS = {
     "openai": "gpt-4.1-mini",
     "anthropic": "claude-haiku-4-5-20251001",
     "google": "gemini-3-flash-preview",
+    "xai": "grok-4-1-fast-reasoning",
 }
 DEFAULT_MODEL = DEFAULT_MODELS["anthropic"]
 DEFAULT_MAX_TOKENS = 4096
@@ -284,6 +343,8 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
             model_id = DEFAULT_MODELS["anthropic"]
         elif "gemini" in model_id:
             model_id = DEFAULT_MODELS["google"]
+        elif "grok" in model_id:
+            model_id = DEFAULT_MODELS["xai"]
         else:
             model_id = DEFAULT_MODELS["anthropic"]
         model_info = AVAILABLE_MODELS[model_id]
@@ -368,6 +429,48 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
 
         response = openai_client.chat.completions.create(
             model=model_id, messages=openai_messages, max_tokens=max_tokens
+        )
+        return response.choices[0].message.content
+
+    if provider == "xai":
+        # xAI는 OpenAI 호환 클라이언트를 사용하므로 유사하게 처리한다.
+        if not xai_client:
+            raise ValueError("xAI API Key가 없거나 초기화되지 않았습니다.")
+        
+        xai_messages = [{"role": "system", "content": system_prompt}]
+        for msg in messages:
+            content_list = []
+            msg_content = msg.get("content")
+            if isinstance(msg_content, list):
+                content_list.extend(msg_content)
+            elif isinstance(msg_content, str) and msg_content:
+                content_list.append({"type": "text", "text": msg_content})
+
+            img_paths = msg.get("image_paths", [])
+            if not img_paths and msg.get("image_path"):
+                img_paths = [msg.get("image_path")]
+
+            for img_path in img_paths:
+                # xAI 비전 모델은 data URL 방식을 지원할 수 있다. (grok-2-vision 등)
+                try:
+                    relative_path = img_path.replace("uploads/", "", 1)
+                    full_path = os.path.join(upload_folder, relative_path)
+                    with open(full_path, "rb") as f:
+                        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+                        mime = mimetypes.guess_type(full_path)[0] or "image/jpeg"
+                        content_list.append({
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{img_b64}"},
+                        })
+                except Exception:
+                    pass
+
+            if content_list:
+                xai_messages.append({"role": msg["role"], "content": content_list})
+
+        # xAI의 경우 모델에 따라 max_tokens가 맞지 않거나 에러를 발생시킬 수 있다.
+        response = xai_client.chat.completions.create(
+            model=model_id, messages=xai_messages, max_tokens=max_tokens
         )
         return response.choices[0].message.content
 

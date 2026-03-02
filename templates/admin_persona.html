@@ -34,8 +34,8 @@
                     <h3>기본 정보</h3>
                     <div class="form-group">
                         <label>식별자 (role_key)</label>
-                        <input type="text" id="roleKey" placeholder="예: math_tutor"
-                            {% if is_teacher %}readonly style="background-color: #f0f0f0; cursor: not-allowed;"{% endif %}>
+                        <input type="text" id="roleKey" placeholder="예: math_tutor" {% if is_teacher %}readonly
+                            style="background-color: #f0f0f0; cursor: not-allowed;" {% endif %}>
                         <small>영문 소문자, 숫자, 언더스코어만 가능{% if is_teacher %} (교사는 수정 불가){% endif %}</small>
                     </div>
                     <div class="form-group">
@@ -84,6 +84,12 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>xAI (Grok) 모델</label>
+                        <select id="modelXai">
+                            <!-- JavaScript로 동적 생성 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>최대 토큰</label>
                         <input type="number" id="maxTokens" value="4096" min="512" max="16384">
                     </div>
@@ -98,14 +104,14 @@
                             <option value="openai">OpenAI</option>
                             <option value="anthropic">Anthropic (Claude)</option>
                             <option value="google">Google (Gemini)</option>
+                            <option value="xai">xAI (Grok)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>시스템 프롬프트</label>
-                        <textarea id="systemPrompt" rows="20"
-                                  placeholder="이 페르소나가 어떻게 행동할지 설명해주세요..."
-                                  style="font-family: 'Consolas', 'Monaco', monospace; line-height: 1.6;"></textarea>
+                        <textarea id="systemPrompt" rows="20" placeholder="이 페르소나가 어떻게 행동할지 설명해주세요..."
+                            style="font-family: 'Consolas', 'Monaco', monospace; line-height: 1.6;"></textarea>
                         <small>AI가 대화할 때 따를 지침을 작성하세요</small>
                     </div>
 
@@ -169,7 +175,8 @@
 
                         <!-- 고급 검색 설정 (토글) -->
                         <div id="advancedRagSettings" style="display: none;">
-                            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+                            <div
+                                style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
                                 <h4 style="margin-top: 0; margin-bottom: 15px; color: #856404;">🔍 고급 검색 설정</h4>
 
                                 <div class="form-group">
@@ -195,14 +202,16 @@
 
                                 <div class="form-group">
                                     <label>유사도 임계값 (0.0 ~ 1.0)</label>
-                                    <input type="number" id="ragSimilarityThreshold" value="0.5" min="0" max="1" step="0.1">
+                                    <input type="number" id="ragSimilarityThreshold" value="0.5" min="0" max="1"
+                                        step="0.1">
                                     <small>이 값 이상의 유사도를 가진 문서만 검색</small>
                                 </div>
 
                                 <div id="gapBasedSettings" style="display: none;">
                                     <div class="form-group">
                                         <label>Gap 임계값 (0.0 ~ 1.0)</label>
-                                        <input type="number" id="ragGapThreshold" value="0.1" min="0" max="1" step="0.05">
+                                        <input type="number" id="ragGapThreshold" value="0.1" min="0" max="1"
+                                            step="0.05">
                                         <small>유사도 차이가 이 값 이상 벌어지면 중단</small>
                                     </div>
                                 </div>
@@ -243,6 +252,12 @@
                             OpenAI 모델 제한
                         </label>
                     </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="restrictXai">
+                            xAI (Grok) 모델 제한
+                        </label>
+                    </div>
                 </div>
 
                 {% if not is_teacher %}
@@ -264,12 +279,14 @@
 
                     <!-- 파일 업로드 -->
                     <div class="upload-area">
-                        <input type="file" id="knowledgeFileInput" accept=".pdf,.txt,.docx,.doc" style="display: none;" onchange="handleKnowledgeFileSelect(event)">
+                        <input type="file" id="knowledgeFileInput" accept=".pdf,.txt,.docx,.doc" style="display: none;"
+                            onchange="handleKnowledgeFileSelect(event)">
                         <button onclick="document.getElementById('knowledgeFileInput').click()" class="btn-secondary">
                             📁 파일 선택 (PDF, TXT, DOCX)
                         </button>
                         <span id="selectedFileName" style="margin-left: 10px; color: #666;"></span>
-                        <button onclick="uploadKnowledgeFile()" id="uploadBtn" class="btn-primary" style="margin-left: 10px; display: none;">
+                        <button onclick="uploadKnowledgeFile()" id="uploadBtn" class="btn-primary"
+                            style="margin-left: 10px; display: none;">
                             ⬆️ 업로드
                         </button>
                     </div>
@@ -277,7 +294,8 @@
                     <!-- 업로드 진행 상태 -->
                     <div id="uploadProgress" style="display: none; margin-top: 15px;">
                         <div style="background: #f0f0f0; border-radius: 10px; overflow: hidden; height: 30px;">
-                            <div id="uploadProgressBar" style="background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; font-weight: bold;">
+                            <div id="uploadProgressBar"
+                                style="background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; font-weight: bold;">
                                 0%
                             </div>
                         </div>
@@ -294,28 +312,35 @@
                     </div>
 
                     <!-- 통계 -->
-                    <div id="ragStats" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;">
+                    <div id="ragStats"
+                        style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;">
                         <h4 style="margin-top: 0; margin-bottom: 10px;">📊 통계</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
                             <div>
                                 <div style="font-size: 0.85rem; color: #666;">총 문서</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;" id="statTotalDocs">0</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;" id="statTotalDocs">0
+                                </div>
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666;">완료</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #2ecc71;" id="statCompletedDocs">0</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #2ecc71;"
+                                    id="statCompletedDocs">0</div>
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666;">처리 중</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;" id="statProcessingDocs">0</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;"
+                                    id="statProcessingDocs">0</div>
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666;">실패</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;" id="statFailedDocs">0</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;" id="statFailedDocs">0
+                                </div>
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666;">총 청크</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #9b59b6;" id="statTotalChunks">0</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #9b59b6;" id="statTotalChunks">
+                                    0</div>
                             </div>
                         </div>
                     </div>
@@ -348,7 +373,8 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
-        max-width: 100% !important; /* 전체 화면 사용 */
+        max-width: 100% !important;
+        /* 전체 화면 사용 */
         width: 100% !important;
     }
 
@@ -357,13 +383,16 @@
         gap: 20px;
         flex: 1;
         overflow: hidden;
-        max-width: 100% !important; /* 전체 화면 사용 */
+        max-width: 100% !important;
+        /* 전체 화면 사용 */
         width: 100% !important;
     }
 
     .panel-left {
-        width: 280px; /* 300px → 280px 줄임 */
-        min-width: 280px; /* 최소 너비 고정 */
+        width: 280px;
+        /* 300px → 280px 줄임 */
+        min-width: 280px;
+        /* 최소 너비 고정 */
         background: white;
         border-radius: 10px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -535,7 +564,9 @@
         border-top: 2px solid #eee;
     }
 
-    .btn-primary, .btn-secondary, .btn-danger {
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
         padding: 10px 20px;
         border: none;
         border-radius: 5px;
@@ -689,7 +720,8 @@
             gap: 10px;
         }
 
-        .panel-left, .panel-right {
+        .panel-left,
+        .panel-right {
             padding: 15px;
         }
     }

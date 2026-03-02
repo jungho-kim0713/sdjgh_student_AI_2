@@ -50,7 +50,7 @@ def get_provider_status():
     - 권한: 비로그인 포함 누구나
     - 동작: 상태 레코드가 없으면 기본값(active)으로 생성
     """
-    providers = ["openai", "anthropic", "google"]
+    providers = ["openai", "anthropic", "google", "xai"]
     status = {}
     for p in providers:
         conf = SystemConfig.query.filter_by(key=f"provider_status_{p}").first()
@@ -234,6 +234,56 @@ def get_available_models(provider):
 
             return jsonify({"provider": provider, "models": available})
 
+        elif provider == "xai":
+            api_models_data = []
+            
+            from services.ai_service import xai_client
+            if xai_client:
+                try:
+                    models_list = xai_client.models.list()
+                    for model in models_list.data:
+                         api_models_data.append(model.id)
+                except Exception as e:
+                    print(f"[WARNING] xAI API calls failed: {e}")
+
+            available = []
+            for model_id, metadata in AVAILABLE_MODELS.items():
+                if metadata["provider"] == "xai":
+                    available.append({
+                        "id": model_id,
+                        "name": metadata["name"],
+                        "input_price": metadata["input_price"],
+                        "output_price": metadata["output_price"],
+                        "description": metadata["description"]
+                    })
+
+            return jsonify({"provider": provider, "models": available})
+
+        elif provider == "xai":
+            api_models_data = []
+            
+            from services.ai_service import xai_client
+            if xai_client:
+                try:
+                    models_list = xai_client.models.list()
+                    for model in models_list.data:
+                         api_models_data.append(model.id)
+                except Exception as e:
+                    print(f"[WARNING] xAI API calls failed: {e}")
+
+            available = []
+            for model_id, metadata in AVAILABLE_MODELS.items():
+                if metadata["provider"] == "xai":
+                    available.append({
+                        "id": model_id,
+                        "name": metadata["name"],
+                        "input_price": metadata["input_price"],
+                        "output_price": metadata["output_price"],
+                        "description": metadata["description"]
+                    })
+
+            return jsonify({"provider": provider, "models": available})
+
         else:
             return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
@@ -259,7 +309,7 @@ def save_enabled_models():
     provider = data.get("provider")
     enabled_models = data.get("enabled_models", [])
 
-    if provider not in ["openai", "anthropic", "google"]:
+    if provider not in ["openai", "anthropic", "google", "xai"]:
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     # SystemConfig에서 해당 키 찾기 또는 생성
@@ -292,7 +342,7 @@ def get_enabled_models():
             "google": ["gemini-2.0-flash", "gemini-3-flash-preview"]
         }
     """
-    providers = ["openai", "anthropic", "google"]
+    providers = ["openai", "anthropic", "google", "xai"]
     enabled_models = {}
 
     for provider in providers:
@@ -309,7 +359,8 @@ def get_enabled_models():
             default_models = {
                 "openai": ["gpt-4.1-mini", "gpt-5-mini"],
                 "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"],
-                "google": ["gemini-3-flash-preview", "gemini-2.5-flash"]
+                "google": ["gemini-3-flash-preview", "gemini-2.5-flash"],
+                "xai": ["grok-4-1-fast-reasoning", "grok-imagine-image"]
             }
             enabled_models[provider] = default_models.get(provider, [])
 
@@ -342,7 +393,8 @@ def get_enabled_models_by_provider(provider):
         default_models = {
             "openai": ["gpt-4o-mini", "gpt-4o"],
             "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"],
-            "google": ["gemini-3-flash-preview", "gemini-2.5-flash"]
+            "google": ["gemini-3-flash-preview", "gemini-2.5-flash"],
+            "xai": ["grok-4-1-fast-reasoning"]
         }
         enabled_models = default_models.get(provider, [])
 
@@ -370,7 +422,7 @@ def save_model_order():
     provider = data.get("provider")
     model_order = data.get("model_order", [])
 
-    if provider not in ["openai", "anthropic", "google"]:
+    if provider not in ["openai", "anthropic", "google", "xai"]:
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     key = f"model_order_{provider}"
@@ -446,7 +498,7 @@ def refresh_models(provider):
     if not current_user.is_admin:
         return jsonify({"error": "관리자 권한이 필요합니다."}), 403
 
-    if provider not in ["openai", "anthropic", "google"]:
+    if provider not in ["openai", "anthropic", "google", "xai"]:
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     try:
@@ -482,6 +534,24 @@ def refresh_models(provider):
                     for m in genai.list_models()
                     if 'generateContent' in m.supported_generation_methods
                 ]
+
+        elif provider == "xai":
+            from services.ai_service import xai_client
+            if xai_client:
+                try:
+                    models_list = xai_client.models.list()
+                    api_models = [m.id for m in models_list.data]
+                except Exception as e:
+                    print(f"[WARNING] xAI API calls failed: {e}")
+
+        elif provider == "xai":
+            from services.ai_service import xai_client
+            if xai_client:
+                try:
+                    models_list = xai_client.models.list()
+                    api_models = [m.id for m in models_list.data]
+                except Exception as e:
+                    print(f"[WARNING] xAI API calls failed: {e}")
 
         # 3. 새로운 모델 감지
         new_models = [m for m in api_models if m not in enabled_models]

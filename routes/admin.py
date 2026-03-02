@@ -36,12 +36,14 @@ def admin_get_persona_config():
                 "model_openai": c.model_openai if c else DEFAULT_MODELS["openai"],
                 "model_anthropic": c.model_anthropic if c else DEFAULT_MODELS["anthropic"],
                 "model_google": c.model_google if c else DEFAULT_MODELS["google"],
+                "model_xai": c.model_xai if c else DEFAULT_MODELS.get("xai", "grok-4-1-fast-reasoning"),
                 "max_tokens": c.max_tokens if c else DEFAULT_MAX_TOKENS,
                 "allow_user": c.allow_user if c else True,
                 "allow_teacher": c.allow_teacher if c else True,
                 "restrict_google": c.restrict_google if c else False,
                 "restrict_anthropic": c.restrict_anthropic if c else False,
                 "restrict_openai": c.restrict_openai if c else False,
+                "restrict_xai": c.restrict_xai if c else False,
             }
         )
     return jsonify({"personas": personas_data, "models": AVAILABLE_MODELS})
@@ -74,6 +76,8 @@ def admin_update_persona_config():
         conf.model_anthropic = data.get("model_anthropic")
     if data.get("model_google"):
         conf.model_google = data.get("model_google")
+    if data.get("model_xai"):
+        conf.model_xai = data.get("model_xai")
 
     # 토큰 입력은 숫자 변환 후 저장
     if "max_tokens" in data:
@@ -100,6 +104,9 @@ def admin_update_persona_config():
     if "restrict_openai" in data:
         val = data.get("restrict_openai")
         conf.restrict_openai = True if val in [True, "true", "True", 1, "1"] else False
+    if "restrict_xai" in data:
+        val = data.get("restrict_xai")
+        conf.restrict_xai = True if val in [True, "true", "True", 1, "1"] else False
 
     db.session.commit()
     return jsonify({"success": True})
@@ -334,3 +341,69 @@ def cleanup_orphaned_files():
         # 예외 발생 시 롤백 후 오류 반환
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/bulk_approve_users", methods=["POST"])
+@login_required
+def admin_bulk_approve_users():
+    """관리자 전용: 선택 사용자 일괄 승인."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+    user_ids = request.json.get("user_ids", [])
+    if not user_ids:
+        return jsonify({"success": True})
+        
+    User.query.filter(User.id.in_(user_ids)).update({User.is_approved: True}, synchronize_session=False)
+    db.session.commit()
+    return jsonify({"success": True, "count": len(user_ids)})
+
+
+@admin_bp.route("/api/admin/bulk_delete_users", methods=["POST"])
+@login_required
+def admin_bulk_delete_users():
+    """관리자 전용: 선택 사용자 일괄 삭제."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+    user_ids = request.json.get("user_ids", [])
+    if not user_ids:
+        return jsonify({"success": True})
+        
+    if current_user.id in user_ids:
+        user_ids.remove(current_user.id)
+        
+    users = User.query.filter(User.id.in_(user_ids)).all()
+    deleted_count = 0
+    try:
+        for u in users:
+            uid = u.id
+            user_files = ChatFile.query.filter_by(user_id=uid).all()
+            for f in user_files:
+                try:
+                    if f.file_type and f.file_type.startswith("image/"):
+                        path = os.path.join(
+                            current_app.config["UPLOAD_FOLDER"],
+                            os.path.basename(f.storage_path),
+                        )
+                    else:
+                        path = os.path.join(
+                            current_app.config["UPLOAD_FOLDER"],
+                            "files",
+                            os.path.basename(f.storage_path),
+                        )
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception:
+                    pass
+                db.session.delete(f)
+
+            Message.query.filter_by(user_id=uid).delete()
+            ChatSession.query.filter_by(user_id=uid).delete()
+            db.session.delete(u)
+            deleted_count += 1
+            
+        db.session.commit()
+        return jsonify({"success": True, "deleted_count": deleted_count})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Delete failed: {str(e)}"}), 500
+

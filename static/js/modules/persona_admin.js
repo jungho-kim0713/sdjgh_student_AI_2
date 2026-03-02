@@ -96,6 +96,18 @@ async function populateModelDropdowns() {
             });
         }
 
+        // xAI 드롭다운
+        const xaiSelect = document.getElementById('modelXai');
+        if (xaiSelect && enabledModels.xai && enabledModels.xai.length > 0) {
+            xaiSelect.innerHTML = '';
+            enabledModels.xai.forEach(modelId => {
+                const option = document.createElement('option');
+                option.value = modelId;
+                option.textContent = modelId;
+                xaiSelect.appendChild(option);
+            });
+        }
+
         console.log('✅ 모델 드롭다운 초기화 완료:', enabledModels);
 
     } catch (error) {
@@ -114,7 +126,8 @@ function setDefaultModelDropdowns() {
     const defaultModels = {
         openai: ['gpt-4o-mini', 'gpt-4o'],
         anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929'],
-        google: ['gemini-2.0-flash', 'gemini-1.5-pro']
+        google: ['gemini-3-flash-preview', 'gemini-2.5-flash'],
+        xai: ['grok-4-1-fast-reasoning']
     };
 
     // OpenAI
@@ -150,6 +163,18 @@ function setDefaultModelDropdowns() {
             option.value = modelId;
             option.textContent = modelId;
             googleSelect.appendChild(option);
+        });
+    }
+
+    // xAI
+    const xaiSelect = document.getElementById('modelXai');
+    if (xaiSelect) {
+        xaiSelect.innerHTML = '';
+        defaultModels.xai.forEach(modelId => {
+            const option = document.createElement('option');
+            option.value = modelId;
+            option.textContent = modelId;
+            xaiSelect.appendChild(option);
         });
     }
 }
@@ -224,7 +249,8 @@ async function loadPersonaDetails(persona) {
     // AI 모델 설정 (드롭다운이 준비된 후 값 설정)
     document.getElementById('modelOpenai').value = persona.model_openai || 'gpt-4o-mini';
     document.getElementById('modelAnthropic').value = persona.model_anthropic || 'claude-haiku-4-5-20251001';
-    document.getElementById('modelGoogle').value = persona.model_google || 'gemini-2.0-flash';
+    document.getElementById('modelGoogle').value = persona.model_google || 'gemini-3-flash-preview';
+    document.getElementById('modelXai').value = persona.model_xai || 'grok-4-1-fast-reasoning';
     document.getElementById('maxTokens').value = persona.max_tokens || 4096;
 
     // RAG 설정
@@ -248,6 +274,7 @@ async function loadPersonaDetails(persona) {
     document.getElementById('restrictGoogle').checked = persona.restrict_google || false;
     document.getElementById('restrictAnthropic').checked = persona.restrict_anthropic || false;
     document.getElementById('restrictOpenai').checked = persona.restrict_openai || false;
+    document.getElementById('restrictXai').checked = persona.restrict_xai || false;
 
     // 교사 목록 로드
     loadPersonaTeachers(persona.id);
@@ -361,7 +388,8 @@ function createNewPersona() {
 
     document.getElementById('modelOpenai').value = 'gpt-4o-mini';
     document.getElementById('modelAnthropic').value = 'claude-haiku-4-5-20251001';
-    document.getElementById('modelGoogle').value = 'gemini-2.0-flash';
+    document.getElementById('modelGoogle').value = 'gemini-3-flash-preview';
+    document.getElementById('modelXai').value = 'grok-4-1-fast-reasoning';
     document.getElementById('maxTokens').value = '4096';
 
     document.getElementById('useRag').checked = false;
@@ -379,6 +407,7 @@ function createNewPersona() {
     document.getElementById('restrictGoogle').checked = false;
     document.getElementById('restrictAnthropic').checked = false;
     document.getElementById('restrictOpenai').checked = false;
+    document.getElementById('restrictXai').checked = false;
 
     document.getElementById('teacherList').innerHTML = '<p style="color: #999; text-align: center;">새 페르소나를 저장한 후 교사를 추가할 수 있습니다</p>';
 }
@@ -410,6 +439,7 @@ async function savePersona() {
         model_openai: document.getElementById('modelOpenai').value,
         model_anthropic: document.getElementById('modelAnthropic').value,
         model_google: document.getElementById('modelGoogle').value,
+        model_xai: document.getElementById('modelXai').value,
         max_tokens: parseInt(document.getElementById('maxTokens').value),
 
         use_rag: document.getElementById('useRag').checked,
@@ -426,7 +456,8 @@ async function savePersona() {
         allow_teacher: document.getElementById('allowTeacher').checked,
         restrict_google: document.getElementById('restrictGoogle').checked,
         restrict_anthropic: document.getElementById('restrictAnthropic').checked,
-        restrict_openai: document.getElementById('restrictOpenai').checked
+        restrict_openai: document.getElementById('restrictOpenai').checked,
+        restrict_xai: document.getElementById('restrictXai').checked
     };
 
     try {
@@ -903,12 +934,12 @@ async function loadKnowledgeStats() {
 /**
  * RAG 체크박스 변경 시 지식 베이스 섹션 표시/숨김
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const useRagCheckbox = document.getElementById('useRag');
     const knowledgeBaseSection = document.getElementById('knowledgeBaseSection');
 
     if (useRagCheckbox) {
-        useRagCheckbox.addEventListener('change', function() {
+        useRagCheckbox.addEventListener('change', function () {
             if (this.checked) {
                 knowledgeBaseSection.style.display = 'block';
                 // RAG 활성화 시 문서 목록 및 통계 로드

@@ -2,7 +2,7 @@
 window.App.registerModule((ctx) => {
     const { dom, state } = ctx;
     // 제한 시 대체 우선순위(요청한 순서).
-    const PROVIDER_PRIORITY = ['google', 'anthropic', 'openai'];
+    const PROVIDER_PRIORITY = ['google', 'anthropic', 'openai', 'xai'];
 
     /**
      * 현재 공급사를 변경하고 UI 활성 상태를 갱신한다.
@@ -53,7 +53,7 @@ window.App.registerModule((ctx) => {
      */
     ctx.provider.updateProviderUI = async function updateProviderUI() {
         try {
-            const response = await fetch('/api/get_provider_status');
+            const response = await fetch(`/api/get_provider_status?t=${Date.now()}`);
             if (response.ok) {
                 state.providerStatuses = await response.json();
             }
@@ -85,17 +85,18 @@ window.App.registerModule((ctx) => {
 
     ctx.provider.fetchPersonaRestrictions = async function fetchPersonaRestrictions(roleKey) {
         try {
-            const response = await fetch(`/api/get_persona_provider_restrictions?role_key=${encodeURIComponent(roleKey)}`);
+            const response = await fetch(`/api/get_persona_provider_restrictions?role_key=${encodeURIComponent(roleKey)}&t=${Date.now()}`);
             if (!response.ok) throw new Error('Failed to fetch persona restrictions');
             const data = await response.json();
             state.personaProviderRestrictions = {
                 google: !!data.restrict_google,
                 anthropic: !!data.restrict_anthropic,
-                openai: !!data.restrict_openai
+                openai: !!data.restrict_openai,
+                xai: !!data.restrict_xai
             };
         } catch (e) {
             console.error("Persona restriction fetch error:", e);
-            state.personaProviderRestrictions = { google: false, anthropic: false, openai: false };
+            state.personaProviderRestrictions = { google: false, anthropic: false, openai: false, xai: false };
         }
     };
 
