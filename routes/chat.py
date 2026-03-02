@@ -778,7 +778,7 @@ def get_available_personas():
         query = PersonaDefinition.query.filter_by(is_active=True).order_by(PersonaDefinition.id.asc())
 
         # 권한에 따라 필터링
-        if user.role == 'admin':
+        if user.is_admin or user.role == 'admin':
             # 관리자는 모든 페르소나 접근 가능
             personas = query.all()
         elif user.role == 'teacher':

@@ -694,9 +694,9 @@ window.App.registerModule((ctx) => {
                     <td style="text-align: center;"><input type="checkbox" class="user-select-checkbox" data-user-id="${user.id}"></td>
                     <td style="text-align: center;">${user.id}</td>
                     <td>${user.username}</td>
-                    <td style="font-size: 0.85rem;">${emailCell}</td>
+                    <td style="font-size: 0.85rem; width: 100%; word-break: break-all;">${emailCell}</td>
                     <td style="text-align: center;">${approvalIcon}</td>
-                    <td>${roleCell}</td>
+                    <td style="text-align: center;">${roleCell}</td>
                     <td style="text-align: center;">
                         <div class="btn-group" style="justify-content: center;">
                             <button class="btn-secondary btn-xs view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록</button>
