@@ -5,10 +5,9 @@ import traceback
 
 import requests
 import google.generativeai as genai
-from flask import Blueprint, jsonify, request, render_template, url_for, current_app
+from flask import Blueprint, jsonify, request, render_template, url_for, current_app, Response, stream_with_context
 from flask_login import login_required, current_user
-
-from extensions import db
+import json
 from models import (
     ChatSession,
     Message,
@@ -21,6 +20,7 @@ from models import (
 )
 from services.ai_service import (
     generate_ai_response,
+    generate_ai_response_stream,
     DEFAULT_MODELS,
     DEFAULT_MODEL,
     DEFAULT_MAX_TOKENS,
@@ -193,12 +193,12 @@ def chat():
             session_id = data.get("session_id")
             if not session_id:
                 # 새 세션 생성(이미지 생성 전용 제목)
-                title = f"그림 생성: {user_message[:20]}"
+                title = f"그림 생성: {user_message[:20]}" if user_message else "그림 생성"
                 current_session = ChatSession(
                     title=title, user_id=current_user.id, role_key=role_key
                 )
                 db.session.add(current_session)
-                db.session.commit()
+                db.session.flush()
                 session_id = current_session.id
 
             # 사용자 메시지 저장
@@ -417,7 +417,7 @@ def chat():
                     uploaded_by="ai",
                 )
                 db.session.add(new_file)
-                db.session.commit()
+                
                 # 사용자에게 이미지 결과 HTML 반환
                 response_html = (
                     "🎨 **생성된 이미지**\n\n"
@@ -447,15 +447,14 @@ def chat():
     image_paths_for_ai = []
 
     # 업로드된 파일 중 이미지 경로만 AI 입력으로 전달
-    for fid in file_ids:
-        f = db.session.get(ChatFile, fid)
-        if f and f.user_id == current_user.id:
-            if data.get("session_id"):
-                f.session_id = data.get("session_id")
-            if f.file_type and f.file_type.startswith("image/"):
-                image_paths_for_ai.append(f.storage_path)
-
-    db.session.commit()
+    if file_ids:
+        files = ChatFile.query.filter(ChatFile.id.in_(file_ids)).all()
+        for f in files:
+            if f and f.user_id == current_user.id:
+                if data.get("session_id"):
+                    f.session_id = data.get("session_id")
+                if f.file_type and f.file_type.startswith("image/"):
+                    image_paths_for_ai.append(f.storage_path)
 
     # DB에서 페르소나 조회
     persona = get_persona_from_db(role_key)
@@ -529,14 +528,14 @@ def chat():
                 title=title, user_id=current_user.id, role_key=role_key
             )
             db.session.add(current_session)
-            db.session.commit()
+            db.session.flush()
             session_id = current_session.id
             # 첨부 파일에 세션 ID 연결
-            for fid in file_ids:
-                f = db.session.get(ChatFile, fid)
-                if f:
-                    f.session_id = session_id
-            db.session.commit()
+            if file_ids:
+                files = ChatFile.query.filter(ChatFile.id.in_(file_ids)).all()
+                for f in files:
+                    if f.user_id == current_user.id:
+                        f.session_id = session_id
 
         # 세션 내 기존 메시지 조회(대화 문맥용)
         db_messages = (
@@ -591,31 +590,49 @@ def chat():
         )
         db.session.commit()
 
-        # AI 응답 생성
-        ai_response_text = generate_ai_response(
-            model_id=selected_model_id,
-            system_prompt=system_prompt,
-            messages=final_messages,
-            max_tokens=selected_max_tokens,
-            upload_folder=current_app.config["UPLOAD_FOLDER"],
-        )
+        # AI 응답을 DB에 저장 (스트리밍 완료 후 저장을 위해, 이 블록은 스트리밍 제너레이터 내에서 처리하거나 프론트/비동기로 위임해야 합니다)
+        # HTTP 스트리밍(SSE) 응답 생성
+        def generate_sse():
+            yield f"data: {json.dumps({'message': '연결됨', 'session_id': session_id, 'provider': provider})}\n\n"
+            
+            full_content = ""
+            try:
+                for chunk in generate_ai_response_stream(
+                    model_id=selected_model_id,
+                    system_prompt=system_prompt,
+                    messages=final_messages,
+                    max_tokens=selected_max_tokens,
+                    upload_folder=current_app.config["UPLOAD_FOLDER"],
+                ):
+                    full_content += chunk
+                    # JSON 포맷으로 이스케이프해서 클라이언트로 전송
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                
+                # 전송이 모두 끝나면 마무리 데이터 알림
+                yield f"data: {json.dumps({'done': True})}\n\n"
+                
+                # 완성된 메시지 DB에 비동기적으로 저장 (Flask app context 이용)
+                try:
+                    from app import app
+                    with app.app_context():
+                        db.session.add(
+                            Message(
+                                session_id=session_id,
+                                user_id=current_user.id,
+                                is_user=False,
+                                content=full_content,
+                                provider=provider,
+                            )
+                        )
+                        db.session.commit()
+                except Exception as save_err:
+                    print(f"SSE 완료 후 DB 저장 오류: {save_err}")
+                    
+            except Exception as stream_err:
+                print(f"SSE 스트리밍 오류: {stream_err}")
+                yield f"data: {json.dumps({'error': str(stream_err)})}\n\n"
 
-        # AI 응답을 DB에 저장
-        db.session.add(
-            Message(
-                session_id=session_id,
-                user_id=current_user.id,
-                is_user=False,
-                content=ai_response_text,
-                provider=provider,
-            )
-        )
-        db.session.commit()
-
-        # 클라이언트에 응답 반환
-        return jsonify(
-            {"response": ai_response_text, "session_id": session_id, "provider": provider}
-        )
+        return Response(stream_with_context(generate_sse()), mimetype='text/event-stream')
 
     except Exception as e:
         # 처리 실패 시 롤백 및 오류 응답

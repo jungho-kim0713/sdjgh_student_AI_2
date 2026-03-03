@@ -38,8 +38,8 @@ class ChatSession(db.Model):
     """
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)  # 대화방 제목 (보통 첫 질문으로 자동 설정)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # 소유자 ID
-    role_key = db.Column(db.String(50), nullable=False) # 사용된 AI 페르소나 (예: 'wangchobo_tutor')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True) # 소유자 ID
+    role_key = db.Column(db.String(50), nullable=False, index=True) # 사용된 AI 페르소나 (예: 'wangchobo_tutor')
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow) # 생성 시간
 
 # ---------------------------------------------------------
@@ -50,8 +50,8 @@ class Message(db.Model):
     채팅방 내의 개별 말풍선(질문/답변)을 저장하는 테이블입니다.
     """
     id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=False) 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=False, index=True) 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     is_user = db.Column(db.Boolean, default=True)      # True: 사용자 질문, False: AI 답변
     content = db.Column(db.Text, nullable=True)        # 텍스트 내용
     image_path = db.Column(db.String(1024), nullable=True) # 이미지 경로 (콤마로 구분)
@@ -66,8 +66,8 @@ class ChatFile(db.Model):
     사용자가 업로드하거나 AI가 생성한 파일 정보를 저장합니다.
     """
     id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=True) 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id'), nullable=True, index=True) 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)       # 원본 파일명
     storage_path = db.Column(db.String(512), nullable=False)   # 서버 저장 경로 (static/uploads/...)
     file_type = db.Column(db.String(100), nullable=True)       # MIME 타입 (image/png, text/plain 등)
@@ -170,7 +170,7 @@ class PersonaSystemPrompt(db.Model):
     __tablename__ = 'persona_system_prompt'
 
     id = db.Column(db.Integer, primary_key=True)
-    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False, index=True)
     provider = db.Column(db.String(20), nullable=False)              # 'default', 'openai', 'anthropic', 'google'
     system_prompt = db.Column(db.Text, nullable=False)
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -261,7 +261,7 @@ class DocumentChunk(db.Model):
     __tablename__ = 'document_chunk'
 
     id = db.Column(db.Integer, primary_key=True)
-    document_id = db.Column(db.Integer, db.ForeignKey('knowledge_document.id', ondelete='CASCADE'), nullable=False)
+    document_id = db.Column(db.Integer, db.ForeignKey('knowledge_document.id', ondelete='CASCADE'), nullable=False, index=True)
     chunk_index = db.Column(db.Integer, nullable=False)
     content = db.Column(db.Text, nullable=False)
     content_length = db.Column(db.Integer)

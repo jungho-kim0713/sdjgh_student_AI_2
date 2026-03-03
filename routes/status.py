@@ -259,31 +259,6 @@ def get_available_models(provider):
 
             return jsonify({"provider": provider, "models": available})
 
-        elif provider == "xai":
-            api_models_data = []
-            
-            from services.ai_service import xai_client
-            if xai_client:
-                try:
-                    models_list = xai_client.models.list()
-                    for model in models_list.data:
-                         api_models_data.append(model.id)
-                except Exception as e:
-                    print(f"[WARNING] xAI API calls failed: {e}")
-
-            available = []
-            for model_id, metadata in AVAILABLE_MODELS.items():
-                if metadata["provider"] == "xai":
-                    available.append({
-                        "id": model_id,
-                        "name": metadata["name"],
-                        "input_price": metadata["input_price"],
-                        "output_price": metadata["output_price"],
-                        "description": metadata["description"]
-                    })
-
-            return jsonify({"provider": provider, "models": available})
-
         else:
             return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
@@ -534,15 +509,6 @@ def refresh_models(provider):
                     for m in genai.list_models()
                     if 'generateContent' in m.supported_generation_methods
                 ]
-
-        elif provider == "xai":
-            from services.ai_service import xai_client
-            if xai_client:
-                try:
-                    models_list = xai_client.models.list()
-                    api_models = [m.id for m in models_list.data]
-                except Exception as e:
-                    print(f"[WARNING] xAI API calls failed: {e}")
 
         elif provider == "xai":
             from services.ai_service import xai_client

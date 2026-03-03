@@ -355,6 +355,8 @@ deactivate
 키 권한 오류 시(WARNING: UNPROTECTED...):
 관리자 권한 PowerShell에서 권한 재설정 스크립트 실행 (icacls / reset).
 
+로컬에서 실행: python app.py
+
 로컬 접속 주소: http://127.0.0.1:8081
 
 [ 3.1 서버 접속 및 기본 정보 ]
@@ -493,3 +495,15 @@ Season 7 RAG 시스템 구현 완료 (약 3-4주 소요 예정)
 - 최신 코드(UI 개선 및 버그 수정)가 `main` 브랜치에 푸시됨.
 - Oracle Cloud 서버에 배포 완료 (`git pull` & `docker-compose restart`).
 - 관리자 패널 정상 작동 확인 완료.
+
+[ 5.5 트러블슈팅 및 버그 수정 (2026-03-03) ]
+- **Grok (xAI) 모델 통합**: `app.py` 스키마 초기화 스크립트에 `model_xai`, `restrict_xai` 컬럼 추가.
+- **PostgreSQL DB 초기화 오류 해결**: `ALTER TABLE`문에서 SQLite에는 통용되던 `BOOLEAN DEFAULT 0` 문법이 PostgreSQL 15에서 파싱 에러(DatatypeMismatch)를 일으켜 `model_xai` 컬럼이 생성되지 않던 치명적 결함을 발견하여, 명시적인 `BOOLEAN DEFAULT FALSE` 및 `TRUE`로 전체 수정 완료.
+- **관리자 권한 버그 해결**: `routes/chat.py` 및 `routes/admin_persona.py` 내의 모든 `user.is_admin` 로직에 명시적 `role == 'admin'` 및 `username == 'admin'` 검증 로직 추가. 이로 인해 모든 페르소나가 누락 없이 다시 출력되도록 수정.
+- **UI/UX 수정**: 관리자 패널의 '승인' 열 두 줄 바꿈(Wrapping) 현상 제거 (최소 너비 80px 설정), 모바일 환경에서의 `서대전여고 수업용 AI` 헤더 텍스트 축소 최적화, 모델 드롭다운 병렬 배치.
+
+[ 5.6 성능 및 병목 현상 개선 (2026-03-04) ]
+- **동기식 API 호출 블로킹 해결**: `ai_core.py`에 `generate_ai_response_stream`을 추가하여 OpenAI, Anthropic, Google, xAI 모두 Server-Sent Events (SSE) 기반의 비동기 텍스트 스트리밍을 지원하도록 변경.
+- **클라이언트 스트리밍 UI 렌더링**: `static/js/modules/chat.js`의 `sendMessageToServer`를 재적용하여 `fetch`의 ReadableStream을 통해 실시간 타자 효과(렌더링) 지원. 다수 동시 접속 시 Gunicorn 워커 스레드 고갈 방지.
+- **데이터베이스 인덱스(DB Index) 도입**: `models.py` 내의 잦은 검색 대상 외래키(Foreign Key) 속성인 `session_id`, `user_id`, `role_key`, `persona_id`, `document_id` 등에 `index=True` 부여. 로컬(SQLite) 및 마이그레이션 적용.
+- **N+1 및 중복 쿼리 최적화**: `routes/chat.py` 파일 내 파일 배열 검사 반복문을 `ChatFile.id.in_(file_ids)`로 교체 및 무수히 잦던 DB `commit()`을 `flush()`로 변경하여 트랜잭션 오버헤드를 감소.

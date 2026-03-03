@@ -80,7 +80,7 @@ window.App.registerModule((ctx) => {
     }
 
     /**
-     * 메시지를 서버로 전송하고 응답을 렌더링한다.
+     * 메시지를 서버로 전송하고 스트리밍 응답을 렌더링한다.
      * @param {string} message - 전송할 메시지
      * @param {string|null} image - 이미지 경로/데이터
      * @param {string|number|null} sessionId - 세션 ID
@@ -88,7 +88,24 @@ window.App.registerModule((ctx) => {
      */
     async function sendMessageToServer(message, image, sessionId, fileIds = []) {
         const selectedModel = dom.modelSelector ? dom.modelSelector.value : 'general';
-        addLoadingMessage();
+        
+        let senderName = "AI 도우미";
+        if (state.currentProvider === 'openai') senderName = "GPT";
+        else if (state.currentProvider === 'google') senderName = "Gemini";
+        else if (state.currentProvider === 'xai') senderName = "Grok";
+        else senderName = "Claude";
+
+        // 서버 전송 전 사용자 화면에 임시 말풍선을 생성
+        const messageWrapper = ctx.messages.addMessage("...", 'ai', null, senderName, null);
+        const contentDiv = messageWrapper.querySelector('.message-content');
+        
+        // 로딩 스피너 설정
+        contentDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div class="loading-spinner"></div>
+                <span>생성 중...</span>
+            </div>
+        `;
 
         try {
             const response = await fetch('/chat', {
@@ -104,8 +121,6 @@ window.App.registerModule((ctx) => {
                 }),
             });
 
-            removeLoadingMessage();
-
             if (!response.ok) {
                 let errorMessage = `서버 오류 (${response.status})`;
                 try {
@@ -117,39 +132,74 @@ window.App.registerModule((ctx) => {
                 throw new Error(errorMessage);
             }
 
-            const data = await response.json();
+            // 응답 스트리밍 읽기
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let accumulatedText = "";
+            let isFirstChunk = true;
 
-            if (data.error) {
-                ctx.messages.addMessage(data.error, 'ai', null, "오류", null);
-                return;
-            }
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            let senderName = "AI 도우미";
-            if (state.currentProvider === 'openai') senderName = "GPT";
-            else if (state.currentProvider === 'google') senderName = "Gemini";
-            else senderName = "Claude";
+                const chunkString = decoder.decode(value, { stream: true });
+                const lines = chunkString.split('\n');
 
-            ctx.messages.addMessage(data.response, 'ai', null, senderName, null);
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
 
-            if (data.session_id && !state.currentSessionId) {
-                state.currentSessionId = data.session_id;
-                ctx.sessions.fetchHistory(selectedModel);
-            }
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+                            
+                            // 스트리밍 문자열 이어붙이기
+                            if (data.chunk !== undefined) {
+                                if (isFirstChunk) {
+                                    contentDiv.innerHTML = "";
+                                    isFirstChunk = false;
+                                }
+                                accumulatedText += data.chunk;
+                                // 스트리밍 도중엔 단순 text 변환 (최종 완료 시 마크다운 변환)
+                                contentDiv.innerText = accumulatedText;
+                                dom.chatWindow.scrollTop = dom.chatWindow.scrollHeight;
+                            }
 
-            if (state.currentSessionId) {
-                ctx.messages.extractCodeAndSaveFile(data.response, state.currentSessionId);
-                if (data.response.includes("```")) {
-                    const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/;
-                    const match = codeBlockRegex.exec(data.response);
-                    if (match) {
-                        ctx.canvas.openCanvas(match[2].trim(), match[1] || 'txt');
+                            if (data.session_id && !state.currentSessionId) {
+                                state.currentSessionId = data.session_id;
+                                ctx.sessions.fetchHistory(selectedModel);
+                            }
+
+                            // 스트리밍 종료 처리
+                            if (data.done) {
+                                // 마크다운 렌더링 호출
+                                const rawHtml = window.marked.parse(accumulatedText);
+                                contentDiv.innerHTML = ctx.messages.processCodeBlocksInHtml(rawHtml);
+                                
+                                // 코드 추출 로직 실행
+                                if (state.currentSessionId) {
+                                    ctx.messages.extractCodeAndSaveFile(accumulatedText, state.currentSessionId);
+                                    if (accumulatedText.includes("\`\`\`")) {
+                                        const codeBlockRegex = /\`\`\`(\\w+)?\\s*([\\s\\S]*?)\`\`\`/;
+                                        const match = codeBlockRegex.exec(accumulatedText);
+                                        if (match) {
+                                            ctx.canvas.openCanvas(match[2].trim(), match[1] || 'txt');
+                                        }
+                                    }
+                                }
+                            }
+
+                        } catch (err) {
+                            console.error("SSE parse error", err, line);
+                        }
                     }
                 }
             }
+
         } catch (error) {
-            removeLoadingMessage();
             console.error('API Error:', error);
-            ctx.messages.addMessage(`🚫 오류가 발생했습니다:\n${error.message}`, 'ai', null, "오류", null);
+            contentDiv.innerHTML = `<p style="color: red;">🚫 오류가 발생했습니다: ${error.message}</p>`;
         }
     }
 
