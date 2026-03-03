@@ -541,3 +541,208 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
             raise e
 
     return "Error: Provider not supported"
+
+# ---------------------------------------------------------
+# [4] 비동기 스트리밍 AI 응답 생성 함수 (Server-Sent Events 용)
+# ---------------------------------------------------------
+def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, upload_folder):
+    """
+    선택된 모델에 따라 스트리밍 형태(Generator)로 텍스트 청크를 반환합니다. (Yield)
+    SSE(Server-Sent Events)를 통해 클라이언트가 실시간으로 텍스트를 받게 됩니다.
+    """
+    model_info = AVAILABLE_MODELS.get(model_id)
+    if not model_info:
+        if "gpt" in str(model_id): model_id = DEFAULT_MODELS["openai"]
+        elif "claude" in str(model_id): model_id = DEFAULT_MODELS["anthropic"]
+        elif "gemini" in str(model_id): model_id = DEFAULT_MODELS["google"]
+        elif "grok" in str(model_id): model_id = DEFAULT_MODELS["xai"]
+        else: model_id = DEFAULT_MODELS["anthropic"]
+        model_info = AVAILABLE_MODELS[model_id]
+
+    provider = model_info["provider"]
+
+    # --- A. Anthropic (Claude) 스트리밍 ---
+    if provider == "anthropic":
+        if not anthropic_client:
+            yield "Anthropic API Key가 없습니다."
+            return
+        
+        anthropic_messages = []
+        for msg in messages:
+            content_list = []
+            
+            # 텍스트 처리 
+            msg_content = msg.get("content")
+            if isinstance(msg_content, str) and msg_content.strip():
+                content_list.append({"type": "text", "text": msg_content})
+                
+            # 이미지 처리 (스트리밍 시에도 동일 규격)
+            img_paths = msg.get("image_paths", [])
+            if not img_paths and msg.get("image_path"):
+                img_paths = [msg.get("image_path")]
+
+            for img_path in img_paths:
+                try:
+                    relative_path = img_path.replace("uploads/", "", 1)
+                    full_path = os.path.join(upload_folder, relative_path)
+                    with open(full_path, "rb") as f:
+                        img_data = base64.b64encode(f.read()).decode("utf-8")
+                        media_type = mimetypes.guess_type(full_path)[0] or "image/jpeg"
+                        content_list.append({
+                            "type": "image", 
+                            "source": {"type": "base64", "media_type": media_type, "data": img_data}
+                        })
+                except Exception as e:
+                    print(f"Anthropic Image Load Warning: {e}")
+            
+            if content_list:
+                anthropic_messages.append({"role": msg["role"], "content": content_list})
+        
+        try:
+            with anthropic_client.messages.stream(
+                max_tokens=max_tokens,
+                system=system_prompt,
+                messages=anthropic_messages,
+                model=model_id,
+            ) as stream:
+                for text_chunk in stream.text_stream:
+                    yield text_chunk
+        except Exception as e:
+            yield f"\n[오류 발생: {str(e)}]"
+
+    # --- B. OpenAI (GPT) 스트리밍 ---
+    elif provider == "openai":
+        if not openai_client:
+            yield "OpenAI API Key가 없습니다."
+            return
+        
+        openai_messages = [{"role": "system", "content": system_prompt}]
+        for msg in messages:
+            content_list = []
+            
+            msg_content = msg.get("content")
+            if isinstance(msg_content, str) and msg_content:
+                content_list.append({"type": "text", "text": msg_content})
+
+            img_paths = msg.get("image_paths", [])
+            if not img_paths and msg.get("image_path"):
+                img_paths = [msg.get("image_path")]
+
+            for img_path in img_paths:
+                try:
+                    relative_path = img_path.replace("uploads/", "", 1)
+                    full_path = os.path.join(upload_folder, relative_path)
+                    with open(full_path, "rb") as f:
+                        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+                        mime = mimetypes.guess_type(full_path)[0] or "image/jpeg"
+                        content_list.append({
+                            "type": "image_url", 
+                            "image_url": {"url": f"data:{mime};base64,{img_b64}"}
+                        })
+                except: pass
+            
+            if content_list:
+                openai_messages.append({"role": msg["role"], "content": content_list})
+            
+        try:
+            stream = openai_client.chat.completions.create(
+                model=model_id,
+                messages=openai_messages,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            yield f"\n[오류 발생: {str(e)}]"
+
+    # --- C. Google (Gemini) 스트리밍 ---
+    elif provider == "google":
+        if not os.getenv("GOOGLE_API_KEY"):
+            yield "Google API Key가 없습니다."
+            return
+        
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+        
+        gen_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
+        gemini_model = genai.GenerativeModel(model_id, system_instruction=system_prompt)
+        
+        chat_history = []
+        for msg in messages:
+            role = "user" if msg["role"] == "user" else "model"
+            parts = []
+            
+            msg_content = msg.get("content")
+            if isinstance(msg_content, str) and msg_content:
+                parts.append(msg_content)
+
+            img_paths = msg.get("image_paths", [])
+            if not img_paths and msg.get("image_path"):
+                img_paths = [msg.get("image_path")]
+
+            for img_path in img_paths:
+                try:
+                    import PIL.Image
+                    relative_path = img_path.replace("uploads/", "", 1)
+                    full_path = os.path.join(upload_folder, relative_path)
+                    img = PIL.Image.open(full_path)
+                    parts.append(img)
+                except Exception as e:
+                    print(f"Gemini Image Load Error: {e}")
+            
+            if parts:
+                chat_history.append({"role": role, "parts": parts})
+        
+        try:
+            if chat_history and chat_history[-1]["role"] == "user":
+                last_msg = chat_history.pop()
+                chat_session = gemini_model.start_chat(history=chat_history)
+                response = chat_session.send_message(
+                    last_msg["parts"], 
+                    generation_config=gen_config, 
+                    safety_settings=safety_settings,
+                    stream=True
+                )
+                for chunk in response:
+                    yield chunk.text
+            else:
+                yield "대화 기록 오류: 마지막 메시지가 사용자가 아닙니다."
+        except ValueError:
+            yield "⚠️ [Google Gemini Error] 안전 정책에 의해 답변이 차단되었습니다."
+        except Exception as e:
+            print(f"Gemini API Error: {e}")
+            yield f"\n[오류 발생: {str(e)}]"
+
+    # --- D. xAI 스트리밍 ---
+    elif provider == "xai":
+        if not xai_client:
+            yield "xAI API Key가 없습니다."
+            return
+            
+        xai_messages = [{"role": "system", "content": system_prompt}]
+        for msg in messages:
+            msg_content = msg.get("content")
+            if isinstance(msg_content, str) and msg_content:
+                xai_messages.append({"role": msg["role"], "content": msg_content})
+                
+        try:
+            stream = xai_client.chat.completions.create(
+                model=model_id,
+                messages=xai_messages,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            yield f"\n[오류 발생: {str(e)}]"
+
+    else:
+        yield "Error: 스트리밍을 지원하지 않는 공급사입니다."
