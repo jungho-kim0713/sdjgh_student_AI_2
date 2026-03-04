@@ -6,6 +6,14 @@ Flask 애플리케이션 엔트리 파일.
 import os
 import datetime
 
+try:
+    import gevent.monkey
+    gevent.monkey.patch_all()
+    import psycogreen.gevent
+    psycogreen.gevent.patch_psycopg()
+except ImportError:
+    pass
+
 import certifi
 from sqlalchemy import inspect, text
 from flask import Flask, jsonify

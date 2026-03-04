@@ -677,10 +677,10 @@ def get_session(session_id):
     owner = db.session.get(User, session_info.user_id)
     owner_username = owner.username if owner else "Unknown"
 
-    # 메시지와 작성자명을 조인해서 가져온다
+    # 메시지와 작성자명을 조인해서 가져온다 (AI 메시지는 User가 없으므로 outerjoin 사용)
     msgs = (
         db.session.query(Message, User.username)
-        .join(User)
+        .outerjoin(User, Message.user_id == User.id)
         .filter(Message.session_id == session_id)
         .order_by(Message.timestamp.asc())
         .all()
