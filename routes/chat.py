@@ -27,6 +27,7 @@ from services.ai_service import (
     AVAILABLE_MODELS,
     openai_client,
 )
+from extensions import db
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -70,12 +71,7 @@ def index():
     # 교사 패널 접근 권한 체크 (관리 교사 여부)
     is_teacher_manager = False
     if not current_user.is_admin and current_user.role == 'teacher':
-        # PersonaTeacherPermission이 하나 이상 있으면 관리 교사
-        from models import PersonaTeacherPermission
-        count = PersonaTeacherPermission.query.filter_by(
-            teacher_id=current_user.id
-        ).count()
-        is_teacher_manager = count > 0
+        is_teacher_manager = True
 
     return render_template(
         "index.html",

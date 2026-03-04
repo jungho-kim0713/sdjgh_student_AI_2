@@ -114,11 +114,7 @@ def is_persona_manager(user):
         return True
 
     if user.role == 'teacher':
-        # 하나 이상의 페르소나 관리 권한이 있으면 True
-        count = PersonaTeacherPermission.query.filter_by(
-            teacher_id=user.id
-        ).count()
-        return count > 0
+        return True
 
     return False
 
