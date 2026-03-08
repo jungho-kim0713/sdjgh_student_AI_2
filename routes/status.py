@@ -509,6 +509,12 @@ def refresh_models(provider):
                 # 모델 수가 여전히 너무 많을 경우, 짧은 이름(Alias, 예: gpt-4o) 우선으로 최대 60개까지만 잘라서 Claude 호출 최소화
                 # 단, AI 화가 이미지 생성을 위한 dall-e 모델은 예외적으로 반드시 포함
                 dalle_models = [m for m in api_models if "dall-e" in m]
+                # API 응답 이름에 따라 필터가 누락될 수 있으므로, 하드코딩된 필수 DALL-E 모델 추가 보장 (중복 제거)
+                essential_dalle = ["dall-e-3", "dall-e-2"]
+                for ed in essential_dalle:
+                    if ed not in dalle_models:
+                        dalle_models.append(ed)
+                        
                 other_models = [m for m in api_models if "dall-e" not in m]
                 other_models = sorted(other_models, key=lambda x: (len(x), x))[:60 - len(dalle_models)]
                 api_models = dalle_models + other_models
