@@ -255,7 +255,7 @@ def get_enabled_models_by_provider(provider):
             "enabled_models": ["gpt-4o", "gpt-4o-mini"]
         }
     """
-    if provider not in ["openai", "anthropic", "google"]:
+    if provider not in ["openai", "anthropic", "google", "xai"]:
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     key = f"enabled_models_{provider}"
@@ -331,7 +331,7 @@ def get_model_order(provider):
             "model_order": ["gpt-4o", "gpt-4o-mini"]
         }
     """
-    if provider not in ["openai", "anthropic", "google"]:
+    if provider not in ["openai", "anthropic", "google", "xai"]:
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     key = f"model_order_{provider}"
@@ -370,7 +370,7 @@ def generate_model_metadata_via_claude(provider, model_list):
     import traceback
     
     all_metadata = []
-    chunk_size = 15
+    chunk_size = 50  # 15에서 50으로 증가시켜 API 호출 횟수를 줄이고 504 Timeout 방지
     
     # 모델 리스트를 chunk_size 단위로 나눔
     for i in range(0, len(model_list), chunk_size):
