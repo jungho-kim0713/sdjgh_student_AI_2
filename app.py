@@ -20,7 +20,7 @@ from flask import Flask, jsonify
 from dotenv import load_dotenv
 
 from extensions import db, login_manager
-from models import User, SystemConfig, PersonaConfig
+from models import User, SystemConfig, PersonaConfig, PersonaDefinition
 from prompts import AI_PERSONAS
 
 # Windows/서버 환경에서 SSL 인증서 경로를 강제로 지정해 오류를 예방한다.
@@ -53,7 +53,7 @@ def add_security_headers(response):
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://cloudflareinsights.com;"
     )
@@ -177,7 +177,18 @@ with app.app_context():
                     )
                 )
         db.session.commit()
-        db.session.commit()
+        
+        # ----------------------------------------------------
+        # 기본 페르소나 자동 복구(Auto-Seed)
+        # ----------------------------------------------------
+        # 사용자가 chatbot.db 파일을 윈도우에서 직접 삭제하여 DB가 초기화될 경우
+        # 기본 제공 페르소나 5개가 날아가는 것을 방지하기 위해 
+        # 페르소나 테이블이 비어있다면 자동 1회 파종(결실)을 거칩니다.
+        if PersonaDefinition.query.count() == 0:
+            print("INFO: 페르소나 테이블이 비어 있습니다. 기본 5개 페르소나를 자동 생성합니다.")
+            from migrations.seed_personas import seed_personas
+            seed_personas()
+            
     except Exception as e:
         print(f"DB Initialization Error: {e}")
 

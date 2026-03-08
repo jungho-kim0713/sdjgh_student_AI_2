@@ -12,50 +12,47 @@ import openai
 import google.generativeai as genai
 import httpx
 
-# Anthropic 클라이언트는 키가 있을 때만 초기화한다.
-anthropic_client = None
-if os.getenv("ANTHROPIC_API_KEY"):
-    try:
-        # Anthropic 클라이언트 초기화 (httpx 파라미터 없이)
-        anthropic_client = anthropic.Anthropic(
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
-    except Exception as e:
-        print(f"⚠️ Anthropic Client Init Error: {e}")
+_anthropic_client = None
+def get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is None and os.getenv("ANTHROPIC_API_KEY"):
+        try:
+            _anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        except Exception as e:
+            print(f"⚠️ Anthropic Client Init Error: {e}")
+    return _anthropic_client
 
-# OpenAI 클라이언트는 키가 있을 때만 초기화한다.
-openai_client = None
-if os.getenv("OPENAI_API_KEY"):
-    try:
-        # httpx 클라이언트를 명시적으로 생성 (proxies 자동 감지 비활성화)
-        http_client = httpx.Client()
-        openai_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            http_client=http_client
-        )
-    except Exception as e:
-        print(f"⚠️ OpenAI Client Init Error: {e}")
+_openai_client = None
+def get_openai_client():
+    global _openai_client
+    if _openai_client is None and os.getenv("OPENAI_API_KEY"):
+        try:
+            _openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        except Exception as e:
+            print(f"⚠️ OpenAI Client Init Error: {e}")
+    return _openai_client
 
-# Google Gemini는 전역 configure로 키를 등록한다.
-if os.getenv("GOOGLE_API_KEY"):
-    try:
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-    except Exception as e:
-        print(f"⚠️ Google Client Init Error: {e}")
+_xai_client = None
+def get_xai_client():
+    global _xai_client
+    if _xai_client is None and os.getenv("XAI_API_KEY"):
+        try:
+            _xai_client = openai.OpenAI(
+                api_key=os.getenv("XAI_API_KEY"),
+                base_url="https://api.x.ai/v1"
+            )
+        except Exception as e:
+            print(f"⚠️ xAI Client Init Error: {e}")
+    return _xai_client
 
-# xAI 클라이언트는 키가 있을 때만 초기화한다.
-xai_client = None
-if os.getenv("XAI_API_KEY"):
-    try:
-        # httpx 클라이언트를 명시적으로 생성하여 OpenAI 호환 클라이언트로 xAI 사용
-        http_client = httpx.Client()
-        xai_client = openai.OpenAI(
-            api_key=os.getenv("XAI_API_KEY"),
-            base_url="https://api.x.ai/v1",
-            http_client=http_client
-        )
-    except Exception as e:
-        print(f"⚠️ xAI Client Init Error: {e}")
+def init_google_client():
+    if os.getenv("GOOGLE_API_KEY"):
+        try:
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        except Exception as e:
+            print(f"⚠️ Google Client Init Error: {e}")
+
+init_google_client()
 
 # 지원 모델 목록(프론트 관리자 패널에 노출되는 기준)
 # 2025년 모델만 포함, 모든 모델에 출시일/가격/특징 포함
@@ -354,6 +351,7 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
 
     if provider == "anthropic":
         # Anthropic 메시지 포맷(텍스트+이미지)을 구성한다.
+        anthropic_client = get_anthropic_client()
         if not anthropic_client:
             raise ValueError("Anthropic API Key가 없거나 초기화되지 않았습니다.")
         anthropic_messages = []
@@ -394,6 +392,7 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
 
     if provider == "openai":
         # OpenAI 메시지 포맷(텍스트+이미지)을 구성한다.
+        openai_client = get_openai_client()
         if not openai_client:
             raise ValueError("OpenAI API Key가 없거나 초기화되지 않았습니다.")
         openai_messages = [{"role": "system", "content": system_prompt}]
@@ -434,6 +433,7 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
 
     if provider == "xai":
         # xAI는 OpenAI 호환 클라이언트를 사용하므로 유사하게 처리한다.
+        xai_client = get_xai_client()
         if not xai_client:
             raise ValueError("xAI API Key가 없거나 초기화되지 않았습니다.")
         
@@ -563,6 +563,7 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
     # --- A. Anthropic (Claude) 스트리밍 ---
     if provider == "anthropic":
+        anthropic_client = get_anthropic_client()
         if not anthropic_client:
             yield "Anthropic API Key가 없습니다."
             return
@@ -612,6 +613,7 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
     # --- B. OpenAI (GPT) 스트리밍 ---
     elif provider == "openai":
+        openai_client = get_openai_client()
         if not openai_client:
             yield "OpenAI API Key가 없습니다."
             return
@@ -645,14 +647,30 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
                 openai_messages.append({"role": msg["role"], "content": content_list})
             
         try:
-            stream = openai_client.chat.completions.create(
-                model=model_id,
-                messages=openai_messages,
-                max_tokens=max_tokens,
-                stream=True,
-            )
+            kwargs = {
+                "model": model_id,
+                "messages": openai_messages,
+                "stream": True,
+            }
+            m_id_lower = model_id.lower()
+            if "o1" in m_id_lower or "o3" in m_id_lower or "gpt-4.5" in m_id_lower or "gpt-5" in m_id_lower:
+                kwargs["max_completion_tokens"] = max_tokens
+            else:
+                kwargs["max_tokens"] = max_tokens
+                
+            try:
+                stream = openai_client.chat.completions.create(**kwargs)
+            except openai.BadRequestError as e:
+                # max_tokens 에러 발생 시 최신 파라미터로 재시도
+                if "max_completion_tokens" in str(e):
+                    kwargs.pop("max_tokens", None)
+                    kwargs["max_completion_tokens"] = max_tokens
+                    stream = openai_client.chat.completions.create(**kwargs)
+                else:
+                    raise e
+                    
             for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
+                if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
                     yield chunk.choices[0].delta.content
         except Exception as e:
             yield f"\n[오류 발생: {str(e)}]"
@@ -710,7 +728,12 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
                     stream=True
                 )
                 for chunk in response:
-                    yield chunk.text
+                    try:
+                        if chunk.text:
+                            yield chunk.text
+                    except ValueError as ve:
+                        print(f"Gemini Content Error in chunk: {ve}")
+                        yield "\n[⚠️ Gemini: 응답의 일부가 안전 필터 등에 의해 제한되었습니다.]"
             else:
                 yield "대화 기록 오류: 마지막 메시지가 사용자가 아닙니다."
         except ValueError:
@@ -721,6 +744,7 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
     # --- D. xAI 스트리밍 ---
     elif provider == "xai":
+        xai_client = get_xai_client()
         if not xai_client:
             yield "xAI API Key가 없습니다."
             return

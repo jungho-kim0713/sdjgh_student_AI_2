@@ -15,7 +15,8 @@ from models import (
     PersonaKnowledgeBase,
     KnowledgeDocument,
     DocumentChunk,
-    User
+    User,
+    SystemConfig
 )
 from services.ai_service import AVAILABLE_MODELS
 from services.rag_service import get_rag_statistics
@@ -23,9 +24,60 @@ from prompts import AI_PERSONAS
 from tasks import process_document_async
 import datetime
 import os
+import json
 from werkzeug.utils import secure_filename
 
 admin_persona_bp = Blueprint("admin_persona", __name__)
+
+
+def get_enabled_models_merged():
+    """DB에서 활성화된 모델과 메타데이터를 병합하여 반환합니다."""
+    enabled_models_merged = {}
+    for provider in ["openai", "anthropic", "google", "xai"]:
+        enabled_key = f"enabled_models_{provider}"
+        enabled_conf = SystemConfig.query.filter_by(key=enabled_key).first()
+        enabled_models = []
+        if enabled_conf:
+            try:
+                enabled_models = json.loads(enabled_conf.value)
+            except:
+                pass
+        
+        metadata_key = f"available_models_metadata_{provider}"
+        metadata_conf = SystemConfig.query.filter_by(key=metadata_key).first()
+        metadata_dict = {}
+        if metadata_conf:
+            try:
+                available = json.loads(metadata_conf.value)
+                for item in available:
+                    metadata_dict[item["id"]] = item
+            except:
+                pass
+                
+        for m_id in enabled_models:
+            if m_id in metadata_dict:
+                info = metadata_dict[m_id]
+                info["provider"] = provider
+                enabled_models_merged[m_id] = info
+            elif m_id in AVAILABLE_MODELS:
+                info = AVAILABLE_MODELS[m_id].copy()
+                info["id"] = m_id
+                enabled_models_merged[m_id] = info
+            else:
+                enabled_models_merged[m_id] = {
+                    "id": m_id,
+                    "name": m_id,
+                    "provider": provider,
+                    "input_price": 0,
+                    "output_price": 0,
+                    "description": "새로운 활성화 모델"
+                }
+                
+    if not enabled_models_merged:
+        return AVAILABLE_MODELS
+        
+    return enabled_models_merged
+
 
 
 # =============================================================================
@@ -236,7 +288,7 @@ def get_persona_list():
 
     return jsonify({
         "personas": persona_list,
-        "available_models": AVAILABLE_MODELS
+        "available_models": get_enabled_models_merged()
     })
 
 

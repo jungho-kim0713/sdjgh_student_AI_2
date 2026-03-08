@@ -139,128 +139,31 @@ def get_available_models(provider):
         return jsonify({"error": "관리자 권한이 필요합니다."}), 403
 
     try:
-        # AVAILABLE_MODELS와 초기화된 클라이언트 가져오기
-        from services.ai_service import AVAILABLE_MODELS, openai_client, anthropic_client
+        # 1. DB에서 동적으로 저장된 모델 메타데이터 확인 (새로고침 기능 사용 후)
+        metadata_key = f"available_models_metadata_{provider}"
+        metadata_conf = SystemConfig.query.filter_by(key=metadata_key).first()
+        
+        if metadata_conf:
+            try:
+                available = json.loads(metadata_conf.value)
+                return jsonify({"provider": provider, "models": available})
+            except Exception as e:
+                print(f"[WARNING] 메타데이터 JSON 로딩 실패: {e}")
 
-        if provider == "openai":
-            api_models_data = []
-            
-            # 1. API 호출 시도
-            if openai_client:
-                try:
-                    models_list = openai_client.models.list()
-                    for model in models_list:
-                         api_models_data.append(model.id)
-                except Exception as e:
-                    print(f"[WARNING] OpenAI API calls failed: {e}")
-            
-            # 2. AVAILABLE_MODELS에서 필터링 (Fallback)
-            available = []
-            # API 호출이 성공했으면 API에 있는 것만, 실패했거나 키가 없으면 전체 목록 표시
-            use_api_filter = len(api_models_data) > 0
-            
-            for model_id, metadata in AVAILABLE_MODELS.items():
-                if metadata["provider"] == "openai":
-                    # API 호출에 성공했다면, 실제로 존재하는 모델인지 확인 (옵션)
-                    # 여기서는 '화이트리스트' 개념이므로 AVAILABLE_MODELS에 있는 것만 보여줌.
-                    # 단, API가 살아있는데 API 목록에 없다면(deprecated 등) 제외할 수도 있음.
-                    # 안전을 위해: API가 죽었으면 무조건 보여주고, 살았으면 교차 검증?
-                    # 사용자 요구사항: "에러 안 나게". -> 그냥 무조건 AVAILABLE_MODELS 뿌려도 됨.
-                    # 하지만 '실제 사용 가능 여부'를 체크하는 원래 의도를 살리기 위해:
-                    # keys가 없으면 -> 다 보여줌.
-                    # keys가 있으면 -> API 리스트에 있는 것만 보여줌?
-                    # -> API 키가 있어도 쿼터 초과 등으로 실패하면 다 보여주는게 안전함.
-                    
-                    available.append({
-                        "id": model_id,
-                        "name": metadata["name"],
-                        "input_price": metadata["input_price"],
-                        "output_price": metadata["output_price"],
-                        "description": metadata["description"]
-                    })
+        # 2. DB에 없다면 Fallback (로컬 AVAILABLE_MODELS 정적 데이터 리턴)
+        from services.ai_service import AVAILABLE_MODELS
+        available = []
+        for model_id, metadata in AVAILABLE_MODELS.items():
+            if metadata["provider"] == provider:
+                available.append({
+                    "id": model_id,
+                    "name": metadata["name"],
+                    "input_price": metadata["input_price"],
+                    "output_price": metadata["output_price"],
+                    "description": metadata["description"]
+                })
 
-            return jsonify({"provider": provider, "models": available})
-
-        elif provider == "anthropic":
-            api_models_data = []
-
-            if anthropic_client:
-                try:
-                    models_page = anthropic_client.models.list()
-                    for model in models_page:
-                        api_models_data.append(model.id)
-                except Exception as e:
-                    print(f"[WARNING] Anthropic API calls failed: {e}")
-
-            available = []
-            for model_id, metadata in AVAILABLE_MODELS.items():
-                if metadata["provider"] == "anthropic":
-                    available.append({
-                        "id": model_id,
-                        "name": metadata["name"],
-                        "input_price": metadata["input_price"],
-                        "output_price": metadata["output_price"],
-                        "description": metadata["description"]
-                    })
-
-            return jsonify({"provider": provider, "models": available})
-
-        elif provider == "google":
-            api_models_data = []
-            
-            import google.generativeai as genai
-            api_key = os.getenv("GOOGLE_API_KEY")
-            
-            if api_key:
-                try:
-                    genai.configure(api_key=api_key)
-                    for model in genai.list_models():
-                        if 'generateContent' in model.supported_generation_methods:
-                            model_id = model.name.replace('models/', '')
-                            api_models_data.append(model_id)
-                except Exception as e:
-                    print(f"[WARNING] Google API calls failed: {e}")
-
-            available = []
-            for model_id, metadata in AVAILABLE_MODELS.items():
-                if metadata["provider"] == "google":
-                    available.append({
-                        "id": model_id,
-                        "name": metadata["name"],
-                        "input_price": metadata["input_price"],
-                        "output_price": metadata["output_price"],
-                        "description": metadata["description"]
-                    })
-
-            return jsonify({"provider": provider, "models": available})
-
-        elif provider == "xai":
-            api_models_data = []
-            
-            from services.ai_service import xai_client
-            if xai_client:
-                try:
-                    models_list = xai_client.models.list()
-                    for model in models_list.data:
-                         api_models_data.append(model.id)
-                except Exception as e:
-                    print(f"[WARNING] xAI API calls failed: {e}")
-
-            available = []
-            for model_id, metadata in AVAILABLE_MODELS.items():
-                if metadata["provider"] == "xai":
-                    available.append({
-                        "id": model_id,
-                        "name": metadata["name"],
-                        "input_price": metadata["input_price"],
-                        "output_price": metadata["output_price"],
-                        "description": metadata["description"]
-                    })
-
-            return jsonify({"provider": provider, "models": available})
-
-        else:
-            return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
+        return jsonify({"provider": provider, "models": available})
 
     except Exception as e:
         return jsonify({"error": f"모델 조회 실패: {str(e)}"}), 500
@@ -457,19 +360,126 @@ def get_model_order(provider):
     })
 
 
+def generate_model_metadata_via_claude(provider, model_list):
+    """Claude API를 이용해 모델을 최신순으로 정렬하고 메타데이터(설명/가격) JSON을 생성합니다."""
+    from services.ai_service import get_anthropic_client
+    client = get_anthropic_client()
+    if not client:
+        return None
+
+    import traceback
+    
+    all_metadata = []
+    chunk_size = 15
+    
+    # 모델 리스트를 chunk_size 단위로 나눔
+    for i in range(0, len(model_list), chunk_size):
+        chunk = model_list[i:i + chunk_size]
+        
+        prompt = f"""
+다음은 {provider} 공급사에서 제공하는 AI 모델 ID 전체 목록의 일부({i+1}~{i+len(chunk)}번째)입니다:
+{json.dumps(chunk)}
+
+요구사항:
+0. 중요! 절대 모델 목록 중 일부를 생략하지 말고, 제공된 모델 ID {len(chunk)}개를 하나도 빠짐없이 모두 결과에 포함하세요.
+1. 각 모델의 특징과 용도(description)를 1줄 이내로 아주 짧게 요약하세요.
+2. 2024~2025년 기준 대략적인 API 100만 토큰당 입력(input)과 출력(output) 예상 비용(USD)을 추정하여 숫자로 적어주세요.
+3. 반드시 다음 JSON 배열 형식으로만 응답하고, 마크다운 코드블록 등 다른 설명 텍스트는 일체 생략하세요.
+
+형식:
+[
+  {{
+    "id": "모델ID",
+    "name": "일반인이 알아보기 쉬운 모델명",
+    "input_price": 5.0,
+    "output_price": 15.0,
+    "description": "다목적 추론에 최적화된 최신 모델입니다."
+  }},
+  ...
+]
+"""
+        try:
+            available_claude_models = [m.id for m in client.models.list()]
+            claude_model = next((m for m in available_claude_models if "sonnet" in m), available_claude_models[0] if available_claude_models else "claude-3-5-sonnet-20240620")
+            
+            response = client.messages.create(
+                model=claude_model,
+                max_tokens=4000,
+                system="You are an AI assistant that only outputs strictly valid JSON arrays.",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            text = response.content[0].text.strip()
+            import re
+            json_pattern = re.compile(r'\[.*\]', re.DOTALL)
+            match = json_pattern.search(text)
+            if match:
+                chunk_metadata = json.loads(match.group(0))
+                all_metadata.extend(chunk_metadata)
+            else:
+                print("JSON Error: Claude response did not contain a valid array.")
+                print("Raw Text:", text)
+        except Exception as e:
+            print(f"[Error generating metadata via Claude for chunk {i}-{i+len(chunk)}]: {e}")
+            traceback.print_exc()
+            
+    # 전체 메타데이터가 생성되었으면 자체적으로 최신/고성능 순으로 간략하게 정렬
+    # (Claude가 아닌 Python 레벨에서 정렬. 이름 및 id 길이 기준 등 간단한 휴리스틱)
+    def sort_score(m):
+        import re
+        m_id = str(m.get("id", "")).lower()
+        score = 0
+        
+        # 1. Family priority (lower is top)
+        if "o3" in m_id: score -= 110
+        elif "o1" in m_id: score -= 100
+        elif "gpt-5" in m_id: score -= 98
+        elif "gpt-4.5" in m_id: score -= 95
+        elif "gpt-4o" in m_id: score -= 90
+        elif "gpt-4-turbo" in m_id: score -= 80
+        elif "gpt-4" in m_id: score -= 70
+        elif "gpt-3.5" in m_id: score -= 50
+        elif "gpt-" in m_id: score -= 60
+        
+        if "sonnet" in m_id: score -= 90
+        elif "opus" in m_id: score -= 85
+        elif "haiku" in m_id: score -= 75
+        
+        if "gemini-2.5" in m_id: score -= 90
+        elif "gemini-1.5" in m_id: score -= 70
+        elif "gemini-1.0" in m_id: score -= 50
+        
+        if "grok-4" in m_id: score -= 90
+        elif "grok-3" in m_id: score -= 80
+        elif "grok-2" in m_id: score -= 60
+        elif "grok" in m_id: score -= 50
+        
+        # 2. Extract versions using regex to sort descending (negative float)
+        nums = re.findall(r'\d+(?:\.\d+)?', m_id)
+        num_score = 0
+        if nums:
+            try:
+                num_score = -float(nums[0])
+            except:
+                pass
+                
+        # 3. Tie-breaker suffixes
+        if "latest" in m_id: num_score -= 0.5
+        if "preview" in m_id: num_score -= 0.2
+        if "vision" in m_id: num_score += 0.1
+        if "mini" in m_id or "flash" in m_id or "haiku" in m_id or "nano" in m_id: num_score += 0.2
+        
+        return (score, num_score, m_id)
+        
+    all_metadata.sort(key=sort_score)
+    print(f"Successfully generated metadata for {len(all_metadata)} out of {len(model_list)} models")
+    return all_metadata
+
+
+
 @status_bp.route("/api/admin/refresh_models/<provider>", methods=["POST"])
 @login_required
 def refresh_models(provider):
-    """특정 공급사의 모델 리스트를 수동으로 새로고침.
-
-    Returns:
-        {
-            "success": True,
-            "provider": "openai",
-            "new_models": ["gpt-5"],  # 새로 발견된 모델
-            "updated_at": "2026-02-16T10:30:00Z"
-        }
-    """
+    """특정 공급사의 모델 리스트를 API에서 새로고침하고 Claude로 메타데이터를 갱신합니다."""
     if not current_user.is_admin:
         return jsonify({"error": "관리자 권한이 필요합니다."}), 403
 
@@ -477,25 +487,24 @@ def refresh_models(provider):
         return jsonify({"error": "유효하지 않은 공급사입니다."}), 400
 
     try:
-        # 초기화된 클라이언트 가져오기
-        from services.ai_service import openai_client, anthropic_client, AVAILABLE_MODELS
-
-        # 1. 현재 활성화된 모델 조회
+        from services.ai_service import get_openai_client, get_anthropic_client, get_xai_client
+        
+        # 1. 현재 활성화된 모델 (새 모델 비교용)
         enabled_key = f"enabled_models_{provider}"
         enabled_conf = SystemConfig.query.filter_by(key=enabled_key).first()
         enabled_models = json.loads(enabled_conf.value) if enabled_conf else []
 
-        # 2. API에서 최신 모델 리스트 가져오기
         api_models = []
 
         if provider == "openai":
+            openai_client = get_openai_client()
             if openai_client:
                 models_list = openai_client.models.list()
-                api_models = [m.id for m in models_list if m.id.startswith("gpt")]
+                api_models = [m.id for m in models_list if m.id.startswith("gpt") or m.id.startswith("o1") or m.id.startswith("o3") or "dall-e" in m.id]
 
         elif provider == "anthropic":
+            anthropic_client = get_anthropic_client()
             if anthropic_client:
-                # Anthropic API로 모델 리스트 조회
                 models_page = anthropic_client.models.list()
                 api_models = [m.id for m in models_page]
 
@@ -511,7 +520,7 @@ def refresh_models(provider):
                 ]
 
         elif provider == "xai":
-            from services.ai_service import xai_client
+            xai_client = get_xai_client()
             if xai_client:
                 try:
                     models_list = xai_client.models.list()
@@ -519,8 +528,21 @@ def refresh_models(provider):
                 except Exception as e:
                     print(f"[WARNING] xAI API calls failed: {e}")
 
-        # 3. 새로운 모델 감지
         new_models = [m for m in api_models if m not in enabled_models]
+
+        # 2. Claude API를 통해 동적 메타데이터(정렬, 가격, 설명) 생성 및 DB 저장
+        if api_models:
+            metadata_json = generate_model_metadata_via_claude(provider, api_models)
+            if metadata_json:
+                metadata_key = f"available_models_metadata_{provider}"
+                metadata_conf = SystemConfig.query.filter_by(key=metadata_key).first()
+                if not metadata_conf:
+                    metadata_conf = SystemConfig(key=metadata_key, value=json.dumps(metadata_json))
+                    db.session.add(metadata_conf)
+                else:
+                    metadata_conf.value = json.dumps(metadata_json)
+
+        # 3. 업데이트 시간 기록
 
         # 4. 마지막 업데이트 시간 기록
         update_key = f"last_model_update_{provider}"

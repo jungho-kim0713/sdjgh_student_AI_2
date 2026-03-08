@@ -2257,3 +2257,11 @@ textarea::placeholder {
         transform: rotate(360deg);
     }
 }
+
+/* 관리자 패널 모델 목록 접기 스타일 */
+.provider-section.collapsed .models-section {
+    display: none !important;
+}
+.provider-section.collapsed {
+    padding-bottom: 0.5rem;
+}

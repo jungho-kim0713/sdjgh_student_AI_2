@@ -327,6 +327,43 @@ def cleanup_orphaned_files():
             db.session.delete(f)
             deleted_count += 1
 
+        # 추가: DB 레코드 자체가 없는 물리적 파일(OS 고아 파일) 검사 및 삭제
+        # 지식 DB업로드용 'knowledge' 폴더는 제외
+        upload_base = current_app.config["UPLOAD_FOLDER"]
+        directories_to_check = [upload_base, os.path.join(upload_base, "files")]
+        
+        # 현재 DB에 존재하는 모든 정상 파일의 경로 집합을 만든다
+        valid_db_files = set()
+        for chat_file in ChatFile.query.all():
+            if chat_file.storage_path:
+                valid_db_files.add(os.path.basename(chat_file.storage_path))
+                
+        for check_dir in directories_to_check:
+            if not os.path.exists(check_dir):
+                continue
+                
+            for filename in os.listdir(check_dir):
+                # 파일이 폴더이거나 knowledge 폴더인 경우 제외
+                file_path = os.path.join(check_dir, filename)
+                if not os.path.isfile(file_path):
+                    continue
+                    
+                # 파일 생성/수정 시간이 1시간 이내면 무시(다운로드/업로드 중인 파일 보호)
+                # os.path.getmtime은 로컬 타임스탬프를 반환하므로 utcfromtimestamp로 변환하여 UTC(cutoff_time)와 형태를 맞춤
+                file_mtime = datetime.datetime.utcfromtimestamp(os.path.getmtime(file_path))
+                if file_mtime >= cutoff_time:
+                    continue
+                    
+                # DB에 존재하지 않는 파일이면 삭제
+                if filename not in valid_db_files:
+                    try:
+                        file_size = os.path.getsize(file_path)
+                        os.remove(file_path)
+                        cleaned_space_mb += file_size
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"Physical Orphan File delete error ({filename}): {e}")
+
         db.session.commit()
 
         return jsonify(

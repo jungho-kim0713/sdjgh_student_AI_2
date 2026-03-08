@@ -1,0 +1,313 @@
+﻿ai_platform_web  | [2026-03-04 16:17:58 +0000] [1] [INFO] Starting gunicorn 21.2.0
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [1] [INFO] Using worker: gevent
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [7] [INFO] Booting worker with pid: 7
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [8] [INFO] Booting worker with pid: 8
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [9] [INFO] Booting worker with pid: 9
+ai_platform_web  | [2026-03-04 16:17:58 +0000] [10] [INFO] Booting worker with pid: 10
+ai_platform_web  | /usr/local/lib/python3.12/site-packages/pypdf/_crypt_providers/_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+ai_platform_web  |   from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+ai_platform_web  | /usr/local/lib/python3.12/site-packages/pypdf/_crypt_providers/_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+ai_platform_web  |   from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+ai_platform_web  | /usr/local/lib/python3.12/site-packages/pypdf/_crypt_providers/_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+ai_platform_web  |   from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+ai_platform_web  | /usr/local/lib/python3.12/site-packages/pypdf/_crypt_providers/_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+ai_platform_web  |   from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+ai_platform_web  | INFO: PostgreSQL(db)???곌껐?⑸땲??
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:38 +0000] "GET / HTTP/1.1" 400 167 "-" "-"
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:47 +0000] "GET / HTTP/1.1" 302 217 "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+ai_platform_web  | INFO: PostgreSQL(db)???곌껐?⑸땲??
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:47 +0000] "PRI * HTTP/2.0" 404 207 "-" "-"
+ai_platform_web  | [2026-03-04 16:31:47 +0000] [7] [WARNING] Invalid request from ip=167.94.138.36: Invalid HTTP request line: 'SM'
+ai_platform_web  | INFO: PostgreSQL(db)???곌껐?⑸땲??
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:48 +0000] "GET /login HTTP/1.1" 200 3408 "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+ai_platform_web  | INFO: PostgreSQL(db)???곌껐?⑸땲??
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:48 +0000] "GET /favicon.ico HTTP/1.1" 404 207 "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+ai_platform_web  | 167.94.138.36 - - [04/Mar/2026:16:31:54 +0000] "GET /robots.txt HTTP/1.1" 404 207 "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+ai_platform_web  | 162.158.179.209 - - [04/Mar/2026:16:36:08 +0000] "HEAD / HTTP/1.0" 302 0 "-" "curl/8.16.0"
+ai_platform_web  | 154.44.10.118 - - [04/Mar/2026:16:36:34 +0000] "GET / HTTP/1.1" 302 217 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+ai_platform_web  | 154.44.10.118 - - [04/Mar/2026:16:36:34 +0000] "GET /login?next=%2F HTTP/1.1" 200 3558 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+ai_platform_web  | 5.61.209.96 - - [04/Mar/2026:16:46:34 +0000] "GET /SDK/webLanguage HTTP/1.1" 404 207 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36 Edg/90.0.818.46"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:45 +0000] "GET / HTTP/1.0" 302 217 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:45 +0000] "GET /login?next=%2F HTTP/1.0" 200 3558 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:49 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login?next=%2F" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:49 +0000] "GET / HTTP/1.0" 200 31995 "https://student-ai.sdjgh-ai.kr/login?next=%2F" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:50 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643409894 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:50 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:50 +0000] "GET /api/get_provider_status?t=1772643410020 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:50 +0000] "GET /api/get_status HTTP/1.0" 200 20 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:52 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:53 +0000] "GET /api/admin/get_user_history/2 HTTP/1.0" 200 2271 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [2026-03-04 16:56:54,914] ERROR in app: Exception on /api/get_session/140 [GET]
+ai_platform_web  | Traceback (most recent call last):
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1455, in wsgi_app
+ai_platform_web  |     response = self.full_dispatch_request()
+ai_platform_web  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 869, in full_dispatch_request
+ai_platform_web  |     rv = self.handle_user_exception(e)
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+ai_platform_web  |     rv = self.dispatch_request()
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+ai_platform_web  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+ai_platform_web  |     return current_app.ensure_sync(func)(*args, **kwargs)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/app/routes/chat.py", line 674, in get_session
+ai_platform_web  |     session_info = db.session.get(ChatSession, session_id)
+ai_platform_web  |                    ^^
+ai_platform_web  | NameError: name 'db' is not defined
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:54 +0000] "GET /api/get_session/140 HTTP/1.0" 500 265 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:56 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:57 +0000] "GET /api/admin/get_user_history/2 HTTP/1.0" 200 2271 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [2026-03-04 16:56:58,812] ERROR in app: Exception on /api/get_session/127 [GET]
+ai_platform_web  | Traceback (most recent call last):
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1455, in wsgi_app
+ai_platform_web  |     response = self.full_dispatch_request()
+ai_platform_web  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 869, in full_dispatch_request
+ai_platform_web  |     rv = self.handle_user_exception(e)
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+ai_platform_web  |     rv = self.dispatch_request()
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+ai_platform_web  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+ai_platform_web  |     return current_app.ensure_sync(func)(*args, **kwargs)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/app/routes/chat.py", line 674, in get_session
+ai_platform_web  |     session_info = db.session.get(ChatSession, session_id)
+ai_platform_web  |                    ^^
+ai_platform_web  | NameError: name 'db' is not defined
+ai_platform_web  | 172.71.215.208 - - [04/Mar/2026:16:56:58 +0000] "GET /api/get_session/127 HTTP/1.0" 500 265 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:47 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.215 - - [04/Mar/2026:16:57:47 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.215 - - [04/Mar/2026:16:57:53 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.215 - - [04/Mar/2026:16:57:53 +0000] "GET / HTTP/1.0" 200 16187 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:53 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:53 +0000] "GET /api/get_persona_visibility HTTP/1.0" 200 590 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:57:53 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643473411 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:53 +0000] "GET /api/get_persona_provider_restrictions?role_key=wangchobo_tutor&t=1772643473711 HTTP/1.0" 200 98 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [2026-03-04 16:57:53,930] ERROR in app: Exception on /api/get_chat_history [GET]
+ai_platform_web  | Traceback (most recent call last):
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1455, in wsgi_app
+ai_platform_web  |     response = self.full_dispatch_request()
+ai_platform_web  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 869, in full_dispatch_request
+ai_platform_web  |     rv = self.handle_user_exception(e)
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+ai_platform_web  |     rv = self.dispatch_request()
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+ai_platform_web  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+ai_platform_web  |     return current_app.ensure_sync(func)(*args, **kwargs)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/app/routes/chat.py", line 655, in get_chat_history
+ai_platform_web  |     db.session.query(ChatSession.id, ChatSession.title, User.username)
+ai_platform_web  |     ^^
+ai_platform_web  | NameError: name 'db' is not defined
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:53 +0000] "GET /api/get_chat_history?role=wangchobo_tutor HTTP/1.0" 500 265 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:57:53 +0000] "GET /api/get_provider_status?t=1772643473779 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:54 +0000] "GET /api/get_provider_status?t=1772643473808 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:57:57 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:57:57 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:02 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:02 +0000] "GET / HTTP/1.0" 200 31995 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:03 +0000] "GET /api/get_status HTTP/1.0" 200 20 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:03 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643483147 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:03 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:03 +0000] "GET /api/get_provider_status?t=1772643483331 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:04 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] ?섎Ⅴ?뚮굹 愿由??붾㈃ ?묎렐: user_id=1, username=愿由ъ옄, role=admin
+ai_platform_web  | [DEBUG] is_persona_manager 寃곌낵: True
+ai_platform_web  | [DEBUG] 沅뚰븳 ?뺤씤 ?꾨즺 - ?섎Ⅴ?뚮굹 愿由??붾㈃ ?뚮뜑留?ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:05 +0000] "GET /admin/persona HTTP/1.0" 200 34519 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:06 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:06 +0000] "GET /api/get_persona_provider_restrictions?role_key=general&t=1772643485931 HTTP/1.0" 200 98 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:06 +0000] "GET /api/admin/enabled_models HTTP/1.0" 200 322 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:06 +0000] "GET /api/get_provider_status?t=1772643486146 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] get_persona_list ?붿껌: user=愿由ъ옄, is_admin=True, role=admin
+ai_platform_web  | [DEBUG] manageable_ids: None
+ai_platform_web  | [DEBUG] 議고쉶???섎Ⅴ?뚮굹 媛쒖닔: 5
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:06 +0000] "GET /api/admin/persona/list HTTP/1.0" 200 10140 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:06 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:07 +0000] "GET /api/admin/persona/2 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:07 +0000] "GET /api/admin/persona/2/prompts HTTP/1.0" 200 3617 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:07 +0000] "GET /api/admin/persona/2/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/3 HTTP/1.0" 200 862 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/3/prompts HTTP/1.0" 200 2557 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/3/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/4 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/4/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:08 +0000] "GET /api/admin/persona/4/prompts HTTP/1.0" 200 17464 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:11 +0000] "GET /api/admin/persona/3 HTTP/1.0" 200 862 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:11 +0000] "GET /api/admin/persona/3/prompts HTTP/1.0" 200 2557 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:11 +0000] "GET /api/admin/persona/3/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/2 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/2/prompts HTTP/1.0" 200 3617 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/2/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/3 HTTP/1.0" 200 862 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/3/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:12 +0000] "GET /api/admin/persona/3/prompts HTTP/1.0" 200 2557 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:13 +0000] "GET /api/admin/persona/4 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:13 +0000] "GET /api/admin/persona/4/prompts HTTP/1.0" 200 17464 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:13 +0000] "GET /api/admin/persona/4/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/5 HTTP/1.0" 200 930 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/5/prompts HTTP/1.0" 200 1135 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/5/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/6 HTTP/1.0" 200 798 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/6/prompts HTTP/1.0" 200 385 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:14 +0000] "GET /api/admin/persona/6/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/5 HTTP/1.0" 200 930 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/5/prompts HTTP/1.0" 200 1135 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/5/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/4 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/4/prompts HTTP/1.0" 200 17464 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/4/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/3 HTTP/1.0" 200 862 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/3/prompts HTTP/1.0" 200 2557 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:15 +0000] "GET /api/admin/persona/3/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:16 +0000] "GET /api/admin/persona/2 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:16 +0000] "GET /api/admin/persona/2/prompts HTTP/1.0" 200 3617 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:16 +0000] "GET /api/admin/persona/2/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:16 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:16 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:20 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:20 +0000] "GET / HTTP/1.0" 200 31995 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:20 +0000] "GET /api/get_status HTTP/1.0" 200 20 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:20 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643500745 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:20 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:21 +0000] "GET /api/get_provider_status?t=1772643500926 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:21 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:26 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] ?섎Ⅴ?뚮굹 愿由??붾㈃ ?묎렐: user_id=1, username=愿由ъ옄, role=admin
+ai_platform_web  | [DEBUG] is_persona_manager 寃곌낵: True
+ai_platform_web  | [DEBUG] 沅뚰븳 ?뺤씤 ?꾨즺 - ?섎Ⅴ?뚮굹 愿由??붾㈃ ?뚮뜑留?ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:35 +0000] "GET /admin/persona HTTP/1.0" 200 34519 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:35 +0000] "GET /api/get_persona_provider_restrictions?role_key=general&t=1772643515510 HTTP/1.0" 200 98 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:35 +0000] "GET /api/admin/enabled_models HTTP/1.0" 200 322 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:35 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:35 +0000] "GET /api/get_provider_status?t=1772643515736 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] get_persona_list ?붿껌: user=愿由ъ옄, is_admin=True, role=admin
+ai_platform_web  | [DEBUG] manageable_ids: None
+ai_platform_web  | [DEBUG] 議고쉶???섎Ⅴ?뚮굹 媛쒖닔: 5
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:35 +0000] "GET /api/admin/persona/list HTTP/1.0" 200 10140 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:36 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:39 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:39 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:45 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:45 +0000] "GET / HTTP/1.0" 200 16187 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:45 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:45 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643525513 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:45 +0000] "GET /api/get_persona_visibility HTTP/1.0" 200 590 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:45 +0000] "GET /api/get_provider_status?t=1772643525691 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [2026-03-04 16:58:45,953] ERROR in app: Exception on /api/get_chat_history [GET]
+ai_platform_web  | Traceback (most recent call last):
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1455, in wsgi_app
+ai_platform_web  |     response = self.full_dispatch_request()
+ai_platform_web  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 869, in full_dispatch_request
+ai_platform_web  |     rv = self.handle_user_exception(e)
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+ai_platform_web  |     rv = self.dispatch_request()
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+ai_platform_web  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+ai_platform_web  |     return current_app.ensure_sync(func)(*args, **kwargs)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/app/routes/chat.py", line 655, in get_chat_history
+ai_platform_web  |     db.session.query(ChatSession.id, ChatSession.title, User.username)
+ai_platform_web  |     ^^
+ai_platform_web  | NameError: name 'db' is not defined
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:45 +0000] "GET /api/get_chat_history?role=ai_illustrator HTTP/1.0" 500 265 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:45 +0000] "GET /api/get_persona_provider_restrictions?role_key=ai_illustrator&t=1772643525734 HTTP/1.0" 200 97 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:46 +0000] "GET /api/get_provider_status?t=1772643525856 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:51 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:51 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:56 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:56 +0000] "GET / HTTP/1.0" 200 31995 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:57 +0000] "GET /api/get_status HTTP/1.0" 200 20 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:58:57 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:57 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643536873 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:57 +0000] "GET /api/get_provider_status?t=1772643537062 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:58:58 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:00 +0000] "GET /api/admin/available_models/openai HTTP/1.0" 200 1956 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:00 +0000] "GET /api/admin/enabled_models/openai HTTP/1.0" 200 85 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:00 +0000] "GET /api/admin/model_order/openai HTTP/1.0" 200 155 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:01 +0000] "GET /api/admin/system_config/last_model_update_openai HTTP/1.0" 404 77 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:01 +0000] "GET /api/admin/available_models/anthropic HTTP/1.0" 200 2525 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:01 +0000] "GET /api/admin/enabled_models/anthropic HTTP/1.0" 200 101 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/model_order/anthropic HTTP/1.0" 200 305 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/system_config/last_model_update_anthropic HTTP/1.0" 404 77 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/available_models/google HTTP/1.0" 200 2368 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/enabled_models/google HTTP/1.0" 200 139 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/model_order/google HTTP/1.0" 200 262 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/available_models/xai HTTP/1.0" 200 925 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/system_config/last_model_update_google HTTP/1.0" 404 77 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:02 +0000] "GET /api/admin/enabled_models/xai HTTP/1.0" 400 88 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:03 +0000] "GET /api/admin/model_order/xai HTTP/1.0" 400 88 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:03 +0000] "GET /api/admin/system_config/last_model_update_xai HTTP/1.0" 404 77 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] ?섎Ⅴ?뚮굹 愿由??붾㈃ ?묎렐: user_id=1, username=愿由ъ옄, role=admin
+ai_platform_web  | [DEBUG] is_persona_manager 寃곌낵: True
+ai_platform_web  | [DEBUG] 沅뚰븳 ?뺤씤 ?꾨즺 - ?섎Ⅴ?뚮굹 愿由??붾㈃ ?뚮뜑留?ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:03 +0000] "GET /admin/persona HTTP/1.0" 200 34519 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:03 +0000] "GET /api/get_persona_provider_restrictions?role_key=general&t=1772643543525 HTTP/1.0" 200 98 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:03 +0000] "GET /api/admin/enabled_models HTTP/1.0" 200 322 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:03 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:03 +0000] "GET /api/get_provider_status?t=1772643543733 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [DEBUG] get_persona_list ?붿껌: user=愿由ъ옄, is_admin=True, role=admin
+ai_platform_web  | [DEBUG] manageable_ids: None
+ai_platform_web  | [DEBUG] 議고쉶???섎Ⅴ?뚮굹 媛쒖닔: 5
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:03 +0000] "GET /api/admin/persona/list HTTP/1.0" 200 10140 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:04 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/3 HTTP/1.0" 200 862 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/3/prompts HTTP/1.0" 200 2557 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/3/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/4 HTTP/1.0" 200 832 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/4/prompts HTTP/1.0" 200 17464 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:05 +0000] "GET /api/admin/persona/4/teachers HTTP/1.0" 200 149 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:07 +0000] "GET /logout HTTP/1.0" 302 199 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:07 +0000] "GET /login HTTP/1.0" 200 3408 "https://student-ai.sdjgh-ai.kr/admin/persona" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:09 +0000] "POST /login HTTP/1.0" 302 189 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:09 +0000] "GET / HTTP/1.0" 200 31995 "https://student-ai.sdjgh-ai.kr/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:09 +0000] "GET /api/get_persona_provider_restrictions?role_key=&t=1772643549629 HTTP/1.0" 400 25 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:09 +0000] "GET /api/personas/available HTTP/1.0" 200 1246 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:09 +0000] "GET /api/get_status HTTP/1.0" 200 20 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:10 +0000] "GET /api/get_provider_status?t=1772643549810 HTTP/1.0" 200 74 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.100 - - [04/Mar/2026:16:59:10 +0000] "GET /api/admin/get_users HTTP/1.0" 200 10549 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:13 +0000] "GET /api/admin/get_user_history/2 HTTP/1.0" 200 2271 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | [2026-03-04 16:59:14,731] ERROR in app: Exception on /api/get_session/140 [GET]
+ai_platform_web  | Traceback (most recent call last):
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 1455, in wsgi_app
+ai_platform_web  |     response = self.full_dispatch_request()
+ai_platform_web  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 869, in full_dispatch_request
+ai_platform_web  |     rv = self.handle_user_exception(e)
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+ai_platform_web  |     rv = self.dispatch_request()
+ai_platform_web  |          ^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+ai_platform_web  |     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/usr/local/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+ai_platform_web  |     return current_app.ensure_sync(func)(*args, **kwargs)
+ai_platform_web  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ai_platform_web  |   File "/app/routes/chat.py", line 674, in get_session
+ai_platform_web  |     session_info = db.session.get(ChatSession, session_id)
+ai_platform_web  |                    ^^
+ai_platform_web  | NameError: name 'db' is not defined
+ai_platform_web  | 162.158.193.101 - - [04/Mar/2026:16:59:14 +0000] "GET /api/get_session/140 HTTP/1.0" 500 265 "https://student-ai.sdjgh-ai.kr/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+ai_platform_web  | 193.142.146.230 - - [04/Mar/2026:17:49:53 +0000] "GET /login HTTP/1.1" 200 3408 "-" "Go-http-client/1.1"
+ai_platform_web  | 9.234.10.188 - - [04/Mar/2026:18:59:52 +0000] "GET / HTTP/1.1" 302 217 "-" "Mozilla/5.0 zgrab/0.x"
+ai_platform_web  | 9.234.10.188 - - [04/Mar/2026:18:59:52 +0000] "GET /login?next=%2F HTTP/1.1" 200 3408 "http://152.67.193.142:8081/" "Mozilla/5.0 zgrab/0.x"
+ai_platform_web  | 198.235.24.140 - - [04/Mar/2026:19:00:30 +0000] "GET / HTTP/1.1" 302 217 "-" "Hello from Palo Alto Networks, find out more about our scans in https://docs-cortex.paloaltonetworks.com/r/1/Cortex-Xpanse/Scanning-activity"
+ai_platform_web  | 198.235.24.140 - - [04/Mar/2026:19:00:31 +0000] "GET /login?next=%2F HTTP/1.1" 200 3408 "http://152.67.193.142:8081/" "Hello from Palo Alto Networks, find out more about our scans in https://docs-cortex.paloaltonetworks.com/r/1/Cortex-Xpanse/Scanning-activity"

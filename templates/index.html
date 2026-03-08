@@ -320,7 +320,7 @@
                 </p>
 
                 <!-- OpenAI 섹션 -->
-                <div class="provider-section" data-provider="openai">
+                <div class="provider-section collapsed" data-provider="openai">
                     <h4>
                         <span style="display: inline-flex; align-items: center; gap: 8px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -331,9 +331,9 @@
                             </svg>
                             OpenAI
                         </span>
-                        <button class="btn-toggle-models" onclick="toggleProviderModels('openai')" title="모델 목록 접기/펴기">
-                            <span class="toggle-icon">🔽</span>
-                            <span class="toggle-text">접기</span>
+                        <button class="btn-toggle-models collapsed" onclick="toggleProviderModels('openai')" title="모델 목록 접기/펴기">
+                            <span class="toggle-icon">🔼</span>
+                            <span class="toggle-text">펴기</span>
                         </button>
                         <button class="btn-refresh" onclick="refreshModels('openai')" title="모델 목록 새로고침">
                             🔄
@@ -359,7 +359,7 @@
                 </div>
 
                 <!-- Anthropic 섹션 -->
-                <div class="provider-section" data-provider="anthropic">
+                <div class="provider-section collapsed" data-provider="anthropic">
                     <h4>
                         <span style="display: inline-flex; align-items: center; gap: 8px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -368,10 +368,10 @@
                             </svg>
                             Anthropic Claude
                         </span>
-                        <button class="btn-toggle-models" onclick="toggleProviderModels('anthropic')"
+                        <button class="btn-toggle-models collapsed" onclick="toggleProviderModels('anthropic')"
                             title="모델 목록 접기/펴기">
-                            <span class="toggle-icon">🔽</span>
-                            <span class="toggle-text">접기</span>
+                            <span class="toggle-icon">🔼</span>
+                            <span class="toggle-text">펴기</span>
                         </button>
                         <button class="btn-refresh" onclick="refreshModels('anthropic')" title="모델 목록 새로고침">
                             🔄
@@ -397,7 +397,7 @@
                 </div>
 
                 <!-- Google 섹션 -->
-                <div class="provider-section" data-provider="google">
+                <div class="provider-section collapsed" data-provider="google">
                     <h4>
                         <span style="display: inline-flex; align-items: center; gap: 8px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -417,9 +417,9 @@
                             </svg>
                             Google Gemini
                         </span>
-                        <button class="btn-toggle-models" onclick="toggleProviderModels('google')" title="모델 목록 접기/펴기">
-                            <span class="toggle-icon">🔽</span>
-                            <span class="toggle-text">접기</span>
+                        <button class="btn-toggle-models collapsed" onclick="toggleProviderModels('google')" title="모델 목록 접기/펴기">
+                            <span class="toggle-icon">🔼</span>
+                            <span class="toggle-text">펴기</span>
                         </button>
                         <button class="btn-refresh" onclick="refreshModels('google')" title="모델 목록 새로고침">
                             🔄
@@ -444,7 +444,7 @@
                     </div>
                 </div> <!-- [수정] Google 섹션 div 닫기 -->
                 <!-- xAI (Grok) 섹션 -->
-                <div class="provider-section" data-provider="xai">
+                <div class="provider-section collapsed" data-provider="xai">
                     <h4>
                         <span style="display: inline-flex; align-items: center; gap: 8px;">
                             <img src="{{ url_for('static', filename='images/grok.png') }}" width="24" height="24"
@@ -452,9 +452,9 @@
                                 alt="xAI Logo" style="border-radius: 4px;">
                             xAI Grok
                         </span>
-                        <button class="btn-toggle-models" onclick="toggleProviderModels('xai')" title="모델 목록 접기/펴기">
-                            <span class="toggle-icon">🔽</span>
-                            <span class="toggle-text">접기</span>
+                        <button class="btn-toggle-models collapsed" onclick="toggleProviderModels('xai')" title="모델 목록 접기/펴기">
+                            <span class="toggle-icon">🔼</span>
+                            <span class="toggle-text">펴기</span>
                         </button>
                         <button class="btn-refresh" onclick="refreshModels('xai')" title="모델 목록 새로고침">
                             🔄

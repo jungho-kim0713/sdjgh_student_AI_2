@@ -25,7 +25,7 @@ from services.ai_service import (
     DEFAULT_MODEL,
     DEFAULT_MAX_TOKENS,
     AVAILABLE_MODELS,
-    openai_client,
+    get_openai_client,
 )
 from extensions import db
 
@@ -133,6 +133,14 @@ def get_persona_provider_restrictions():
     - 응답: restrict_google/restrict_anthropic/restrict_openai
     """
     role_key = request.args.get("role_key")
+    if not role_key:
+        return jsonify({
+            "restrict_google": False,
+            "restrict_anthropic": False,
+            "restrict_openai": False,
+            "restrict_xai": False,
+        })
+        
     persona = PersonaDefinition.query.filter_by(role_key=role_key, is_active=True).first()
 
     if not persona:
@@ -327,6 +335,7 @@ def chat():
             elif provider == "openai":
                 import traceback
                 # DALL-E 3 호출
+                openai_client = get_openai_client()
                 if not openai_client:
                     raise ValueError("OpenAI API Key Missing")
                 
@@ -358,7 +367,8 @@ def chat():
                     
             elif provider == "xai":
                 import traceback
-                from services.ai_service import xai_client
+                from services.ai_service import get_xai_client
+                xai_client = get_xai_client()
                 if not xai_client:
                     raise ValueError("xAI API Key Missing")
 
@@ -390,15 +400,12 @@ def chat():
 
             else:
                 # Claude는 이미지 생성 미지원
-                return jsonify(
-                    {
-                        "response": (
-                            "Claude(Anthropic)는 아직 이미지 생성을 지원하지 않습니다. "
-                            "Google이나 GPT를 선택해주세요."
-                        ),
-                        "session_id": session_id,
-                    }
-                )
+                def generate_unsupported():
+                    chunk = "Claude(Anthropic)는 아직 이미지 생성을 지원하지 않습니다. Google이나 GPT를 선택해주세요."
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                    yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+                
+                return Response(stream_with_context(generate_unsupported()), mimetype="text/event-stream")
 
             if generated_image_filename:
                 # 이미지 파일 메타데이터 저장
@@ -431,14 +438,20 @@ def chat():
                     )
                 )
                 db.session.commit()
-                return jsonify(
-                    {"response": response_html, "session_id": session_id, "provider": provider}
-                )
+                def generate_image_stream():
+                    yield f"data: {json.dumps({'chunk': response_html})}\n\n"
+                    yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+                
+                return Response(stream_with_context(generate_image_stream()), mimetype="text/event-stream")
 
         except Exception as e:
             # 이미지 생성 예외 처리
             print(f"Image Gen Error: {e}")
-            return jsonify({"error": f"이미지 생성 실패: {str(e)}"}), 500
+            
+            def generate_error_stream():
+                yield f"data: {json.dumps({'error': f'이미지 생성 실패: {str(e)}'})}\n\n"
+            
+            return Response(stream_with_context(generate_error_stream()), mimetype="text/event-stream")
 
     image_paths_for_ai = []
 

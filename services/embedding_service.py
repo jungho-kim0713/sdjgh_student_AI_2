@@ -7,7 +7,7 @@ RAG 시스템에서 문서 검색을 위해 사용됩니다.
 
 import os
 from typing import List
-from services.ai_service import openai_client
+from services.ai_service import get_openai_client
 
 
 def generate_embedding(text: str) -> List[float]:
@@ -24,6 +24,7 @@ def generate_embedding(text: str) -> List[float]:
         ValueError: OpenAI 클라이언트가 초기화되지 않은 경우
         Exception: API 호출 실패 시
     """
+    openai_client = get_openai_client()
     if not openai_client:
         raise ValueError("OpenAI 클라이언트가 초기화되지 않았습니다. OPENAI_API_KEY를 확인하세요.")
 
@@ -52,6 +53,7 @@ def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
         ValueError: OpenAI 클라이언트가 초기화되지 않은 경우
         Exception: API 호출 실패 시
     """
+    openai_client = get_openai_client()
     if not openai_client:
         raise ValueError("OpenAI 클라이언트가 초기화되지 않았습니다. OPENAI_API_KEY를 확인하세요.")
 
