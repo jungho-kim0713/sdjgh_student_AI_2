@@ -501,6 +501,13 @@ def refresh_models(provider):
             if openai_client:
                 models_list = openai_client.models.list()
                 api_models = [m.id for m in models_list if m.id.startswith("gpt") or m.id.startswith("o1") or m.id.startswith("o3") or "dall-e" in m.id]
+                
+                # 504 Timeout 방지를 위한 2차 필터링: 구버전 스냅샷 등 파생 모델 제거
+                exclude_patterns = ["-0301", "-0613", "-1106", "-0314", "-0409", "vision-preview", "instruct", "realtime", "audio"]
+                api_models = [m for m in api_models if not any(p in m for p in exclude_patterns)]
+                
+                # 모델 수가 여전히 너무 많을 경우, 짧은 이름(Alias, 예: gpt-4o) 우선으로 최대 60개까지만 잘라서 Claude 호출 최소화
+                api_models = sorted(api_models, key=lambda x: (len(x), x))[:60]
 
         elif provider == "anthropic":
             anthropic_client = get_anthropic_client()
