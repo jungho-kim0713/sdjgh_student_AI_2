@@ -507,7 +507,11 @@ def refresh_models(provider):
                 api_models = [m for m in api_models if not any(p in m for p in exclude_patterns)]
                 
                 # 모델 수가 여전히 너무 많을 경우, 짧은 이름(Alias, 예: gpt-4o) 우선으로 최대 60개까지만 잘라서 Claude 호출 최소화
-                api_models = sorted(api_models, key=lambda x: (len(x), x))[:60]
+                # 단, AI 화가 이미지 생성을 위한 dall-e 모델은 예외적으로 반드시 포함
+                dalle_models = [m for m in api_models if "dall-e" in m]
+                other_models = [m for m in api_models if "dall-e" not in m]
+                other_models = sorted(other_models, key=lambda x: (len(x), x))[:60 - len(dalle_models)]
+                api_models = dalle_models + other_models
 
         elif provider == "anthropic":
             anthropic_client = get_anthropic_client()
