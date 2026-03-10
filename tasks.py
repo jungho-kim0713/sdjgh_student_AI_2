@@ -17,8 +17,8 @@ from services.embedding_service import generate_embeddings_batch
 # Celery 앱 초기화
 celery = Celery(
     'tasks',
-    broker=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
-    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 )
 
 # Celery 설정
@@ -132,9 +132,51 @@ def process_document_async(self, document_id: int):
 
         print(f"  ├─ 청킹 완료 ({len(chunks)}개 청크 생성)")
 
-        # 4. 임베딩 생성 (배치)
+        # 3.5. Smart Indexing (Contextual Retrieval) - 청크별 문맥 요약 생성
+        print(f"  ├─ 청크별 문맥 요약(Context) 생성 중...")
+        from services.ai_service import generate_ai_response
+        
+        # 전체 문서의 앞부분(최대 1000자)을 사용하여 문서의 전반적인 맥락을 파악
+        document_context = extracted_text[:1000]
+        
+        # 요약 프롬프트 템플릿 (Anthropic Contextual Retrieval 방식)
+        system_prompt = (
+            "당신은 문서 검색(RAG) 시스템의 인덱싱 도우미입니다. "
+            "주어진 [전체 문서 맥락]과 [현재 청크]를 읽고, 이 청크가 문서 내에서 어떤 정보인지, "
+            "주요 키워드와 핵심 맥락을 1~2문장으로 짧게 요약해주세요. "
+            "이 요약본은 데이터베이스에 벡터로 저장되어 향후 사용자 질문과 매칭될 매우 중요한 데이터입니다. "
+            "답변은 요약된 텍스트만 출력하세요."
+        )
+        
+        chunk_summaries = []
+        # 빠르고 저렴한 모델 사용 (Gemini 2.5 Flash 우선, 없으면 gpt-4.1-mini)
+        summary_model_id = "gemini-2.5-flash" if os.getenv("GOOGLE_API_KEY") else ("gpt-4.1-mini" if os.getenv("OPENAI_API_KEY") else "grok-4-1-fast-reasoning")
+        
+        import time
+        for i, chunk_text in enumerate(chunks):
+            # API 제한 시간 등을 고려한 약간의 딜레이
+            if i > 0 and i % 10 == 0:
+                time.sleep(1)
+                
+            user_prompt = f"[전체 문서 맥락 (앞부분)]\n{document_context}\n\n[현재 청크]\n{chunk_text}"
+            try:
+                # 임시 업로드 폴더 빈 값 전달
+                summary = generate_ai_response(
+                    model_id=summary_model_id,
+                    system_prompt=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                    max_tokens=150,
+                    upload_folder=""
+                )
+                chunk_summaries.append(summary.strip())
+            except Exception as e:
+                print(f"     ⚠️ 청크 {i} 요약 실패, 원본 일부 대체: {e}")
+                # 실패 시 청크 앞부분을 요약으로 대체
+                chunk_summaries.append(chunk_text[:150])
+
+        # 4. 임베딩 생성 (배치) - 원본 텍스트가 아닌 '요약본 + 원본 텍스트'를 함께 임베딩
         print(f"  ├─ 임베딩 생성 중... (OpenAI API 호출)")
-        embeddings = generate_embeddings_batch(chunks)
+        embeddings = generate_embeddings_batch(chunk_summaries)
 
         if len(embeddings) != len(chunks):
             raise ValueError(f"임베딩 수 불일치: {len(embeddings)} != {len(chunks)}")
@@ -148,14 +190,14 @@ def process_document_async(self, document_id: int):
         DocumentChunk.query.filter_by(document_id=doc.id).delete()
 
         # 새 청크 저장
-        for i, (chunk_content, embedding) in enumerate(zip(chunks, embeddings)):
+        for i, (chunk_content, summary, embedding) in enumerate(zip(chunks, chunk_summaries, embeddings)):
             chunk = DocumentChunk(
                 document_id=doc.id,
                 chunk_index=i,
                 content=chunk_content,
                 content_length=len(chunk_content),
                 embedding=embedding,
-                chunk_metadata={}
+                chunk_metadata={"context_summary": summary}
             )
             db.session.add(chunk)
 

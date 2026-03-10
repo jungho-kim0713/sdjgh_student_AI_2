@@ -291,13 +291,16 @@ def format_rag_context(retrieved_docs: List[dict]) -> str:
         context += f"[자료 {i+1}] 파일명: {doc['filename']}\n"
         context += f"유사도: {doc['similarity']:.2f}\n"
 
-        # 메타데이터에 페이지 정보가 있으면 표시
-        if doc.get('metadata') and doc['metadata'].get('page'):
-            context += f"페이지: {doc['metadata']['page']}\n"
+        # 메타데이터에 문서 내 요약본(Contextual Summary)나 페이지 정보가 있으면 표시
+        if doc.get('metadata'):
+            if doc['metadata'].get('page'):
+                context += f"페이지: {doc['metadata']['page']}\n"
+            if doc['metadata'].get('context_summary'):
+                context += f"핵심 맥락(요약): {doc['metadata']['context_summary']}\n"
 
-        context += f"내용:\n{doc['content']}\n\n"
+        context += f"원본 내용:\n{doc['content']}\n\n"
 
-    context += "위 자료를 참고하여 답변하되, 자료에 없는 내용은 일반 지식으로 답변하세요.\n"
+    context += "위 원본 내용과 핵심 맥락(요약) 자료를 참고하여 정확하게 답변하되, 자료에 없는 내용은 일반 지식으로 답변하세요.\n"
     return context
 
 
