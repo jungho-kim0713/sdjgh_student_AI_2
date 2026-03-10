@@ -727,19 +727,48 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
             if chat_history and chat_history[-1]["role"] == "user":
                 last_msg = chat_history.pop()
                 chat_session = gemini_model.start_chat(history=chat_history)
-                response = chat_session.send_message(
-                    last_msg["parts"], 
-                    generation_config=gen_config, 
-                    safety_settings=safety_settings,
-                    stream=True
-                )
-                for chunk in response:
+                
+                # gRPC-gevent 데드락 우회 (스레딩 큐 방식)
+                import threading
+                import queue
+                q = queue.Queue()
+                
+                def _stream_worker():
                     try:
-                        if chunk.text:
-                            yield chunk.text
+                        response = chat_session.send_message(
+                            last_msg["parts"], 
+                            generation_config=gen_config, 
+                            safety_settings=safety_settings,
+                            stream=True
+                        )
+                        for chunk in response:
+                            if chunk.text:
+                                q.put(("chunk", chunk.text))
                     except ValueError as ve:
                         print(f"Gemini Content Error in chunk: {ve}")
-                        yield "\n[⚠️ Gemini: 응답의 일부가 안전 필터 등에 의해 제한되었습니다.]"
+                        q.put(("chunk", "\n[⚠️ Gemini: 응답의 일부가 안전 필터 등에 의해 제한되었습니다.]"))
+                    except Exception as e:
+                        q.put(("error", str(e)))
+                    finally:
+                        q.put(("done", None))
+                
+                t = threading.Thread(target=_stream_worker)
+                t.start()
+                
+                while True:
+                    # 블로킹되지 않도록 약간의 타임아웃을 걸어 폴링
+                    try:
+                        msg_type, content = q.get(timeout=30)
+                        if msg_type == "done":
+                            break
+                        elif msg_type == "error":
+                            yield f"\n[오류 발생: {content}]"
+                            break
+                        elif msg_type == "chunk":
+                            yield content
+                    except queue.Empty:
+                        yield "\n[⚠️ Gemini Timeout]"
+                        break
             else:
                 yield "대화 기록 오류: 마지막 메시지가 사용자가 아닙니다."
         except ValueError:
