@@ -7,15 +7,8 @@ import os
 import base64
 import mimetypes
 
-# Google Generative AI SDK가 백그라운드에서 gRPC를 사용할 때 gevent(Gunicorn) 환경과 데드락을 
-# 일으켜 502 504 타임아웃 오류를 발생시키는 것을 방지하기 위해 강제로 REST Transport를 사용하게 설정합니다.
-os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-os.environ["GOOGLE_API_USE_REST"] = "1"
-os.environ["GOOGLE_API_USE_GRPC"] = "0"
-
 import anthropic
 import openai
-import google.generativeai as genai
 import httpx
 
 _anthropic_client = None
@@ -686,25 +679,21 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
         if not os.getenv("GOOGLE_API_KEY"):
             yield "Google API Key가 없습니다."
             return
+            
+        # Google Generative AI SDK (gRPC) 대신 HTTP/SSE가 안정적인 OpenAI 호환 엔드포인트를 사용합니다.
+        gemini_client = openai.OpenAI(
+            api_key=os.getenv("GOOGLE_API_KEY"),
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        )
         
-        safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-        ]
-        
-        gen_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
-        gemini_model = genai.GenerativeModel(model_id, system_instruction=system_prompt)
-        
-        chat_history = []
+        # OpenAI 규격과 동일하므로 메시지를 그대로 파싱합니다.
+        gemini_messages = [{"role": "system", "content": system_prompt}]
         for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
-            parts = []
+            content_list = []
             
             msg_content = msg.get("content")
             if isinstance(msg_content, str) and msg_content:
-                parts.append(msg_content)
+                content_list.append({"type": "text", "text": msg_content})
 
             img_paths = msg.get("image_paths", [])
             if not img_paths and msg.get("image_path"):
@@ -712,69 +701,32 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
             for img_path in img_paths:
                 try:
-                    import PIL.Image
                     relative_path = img_path.replace("uploads/", "", 1)
                     full_path = os.path.join(upload_folder, relative_path)
-                    img = PIL.Image.open(full_path)
-                    parts.append(img)
-                except Exception as e:
+                    with open(full_path, "rb") as f:
+                        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+                        mime = mimetypes.guess_type(full_path)[0] or "image/jpeg"
+                        content_list.append({
+                            "type": "image_url", 
+                            "image_url": {"url": f"data:{mime};base64,{img_b64}"}
+                        })
+                except Exception as e: 
                     print(f"Gemini Image Load Error: {e}")
             
-            if parts:
-                chat_history.append({"role": role, "parts": parts})
+            if content_list:
+                gemini_messages.append({"role": msg["role"], "content": content_list})
         
         try:
-            if chat_history and chat_history[-1]["role"] == "user":
-                last_msg = chat_history.pop()
-                chat_session = gemini_model.start_chat(history=chat_history)
-                
-                # gRPC-gevent 데드락 우회 (스레딩 큐 방식)
-                import threading
-                import queue
-                q = queue.Queue()
-                
-                def _stream_worker():
-                    try:
-                        response = chat_session.send_message(
-                            last_msg["parts"], 
-                            generation_config=gen_config, 
-                            safety_settings=safety_settings,
-                            stream=True
-                        )
-                        for chunk in response:
-                            if chunk.text:
-                                q.put(("chunk", chunk.text))
-                    except ValueError as ve:
-                        print(f"Gemini Content Error in chunk: {ve}")
-                        q.put(("chunk", "\n[⚠️ Gemini: 응답의 일부가 안전 필터 등에 의해 제한되었습니다.]"))
-                    except Exception as e:
-                        q.put(("error", str(e)))
-                    finally:
-                        q.put(("done", None))
-                
-                t = threading.Thread(target=_stream_worker)
-                t.start()
-                
-                while True:
-                    # 블로킹되지 않도록 약간의 타임아웃을 걸어 폴링
-                    try:
-                        msg_type, content = q.get(timeout=30)
-                        if msg_type == "done":
-                            break
-                        elif msg_type == "error":
-                            yield f"\n[오류 발생: {content}]"
-                            break
-                        elif msg_type == "chunk":
-                            yield content
-                    except queue.Empty:
-                        yield "\n[⚠️ Gemini Timeout]"
-                        break
-            else:
-                yield "대화 기록 오류: 마지막 메시지가 사용자가 아닙니다."
-        except ValueError:
-            yield "⚠️ [Google Gemini Error] 안전 정책에 의해 답변이 차단되었습니다."
+            stream = gemini_client.chat.completions.create(
+                model=model_id,
+                messages=gemini_messages,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
         except Exception as e:
-            print(f"Gemini API Error: {e}")
             yield f"\n[오류 발생: {str(e)}]"
 
     # --- D. xAI 스트리밍 ---
