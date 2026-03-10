@@ -400,7 +400,7 @@ GitHub 저장소: https://github.com/jungho-kim0713/sdjgh_student_AI_2.git
 
 4. 원라이너 (로컬에서 푸시 후 서버 업데이트까지 한 번에):
    - PowerShell (Windows 기본):
-     git push origin main; ssh oracle-student-ai "cd ~/sdjgh_ai; git pull origin main; docker-compose restart"
+     git push origin main; ssh oracle-student-ai "cd ~/sdjgh_ai; git pull origin main; docker-compose up -d --build --force-recreate"
 
    - Git Bash / CMD / Mac / Linux:
      git push origin main && ssh oracle-student-ai "cd ~/sdjgh_ai && git pull origin main && docker-compose restart"

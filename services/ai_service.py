@@ -7,6 +7,12 @@ import os
 import base64
 import mimetypes
 
+# Google Generative AI SDK가 백그라운드에서 gRPC를 사용할 때 gevent(Gunicorn) 환경과 데드락을 
+# 일으켜 502 504 타임아웃 오류를 발생시키는 것을 방지하기 위해 강제로 REST Transport를 사용하게 설정합니다.
+os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
+os.environ["GOOGLE_API_USE_REST"] = "1"
+os.environ["GOOGLE_API_USE_GRPC"] = "0"
+
 import anthropic
 import openai
 import google.generativeai as genai
