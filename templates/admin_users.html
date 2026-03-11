@@ -2,12 +2,17 @@
 
 {% block content %}
 <div class="admin-container">
-    <h2>👥 사용자 관리</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <h2 style="margin: 0;">👥 사용자 관리</h2>
+        <button onclick="location.href='/'" class="btn-secondary" style="padding: 8px 16px;">
+            ← 홈으로 돌아가기
+        </button>
+    </div>
 
     <div class="card">
-        <h3>일괄 등록 (이메일)</h3>
-        <p>여기에 이메일을 입력하면 해당 구글 계정 사용자는 첫 로그인 시 자동 승인됩니다.</p>
-        <textarea id="emailList" rows="5" placeholder="user1@gmail.com&#10;user2@gmail.com"
+        <h3>일괄 등록 (이름, 이메일)</h3>
+        <p>이름, 이메일이 포함된 엑셀 데이터를 복사해서 붙여넣으세요. 구글 계정 사용자는 첫 로그인 시 자동 승인됩니다.</p>
+        <textarea id="usersDataList" rows="5" placeholder="홍길동&#9;hong@gmail.com&#10;김철수&#9;kim@gmail.com"
             style="width:100%;"></textarea>
         <button onclick="batchAddUsers()" class="btn-primary" style="margin-top:10px;">일괄 등록</button>
     </div>
@@ -67,13 +72,13 @@
     }
 
     async function batchAddUsers() {
-        const text = document.getElementById('emailList').value;
-        if (!text.trim()) return alert('이메일을 입력하세요.');
+        const text = document.getElementById('usersDataList').value;
+        if (!text.trim()) return alert('사용자 데이터를 입력하세요.');
 
         const res = await fetch('/admin/users/batch_add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ emails: text })
+            body: JSON.stringify({ users_data: text })
         });
         const data = await res.json();
         if (data.success) {

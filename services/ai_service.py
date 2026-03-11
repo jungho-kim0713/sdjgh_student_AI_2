@@ -9,6 +9,7 @@ import mimetypes
 
 import anthropic
 import openai
+import google.generativeai as genai
 import httpx
 
 _anthropic_client = None

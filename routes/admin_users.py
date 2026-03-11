@@ -37,13 +37,26 @@ def batch_add_users():
     if not current_user.is_admin:
         return jsonify({"error": "Denied"}), 403
     
-    text = request.json.get("emails", "")
-    emails = [e.strip() for e in text.splitlines() if e.strip()]
+    text = request.json.get("users_data", request.json.get("emails", ""))
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
     
     added_count = 0
     duplicate_count = 0
     
-    for email in emails:
+    for line in lines:
+        parts = line.split('\t')
+        if len(parts) < 2:
+            parts = line.split(',')
+        if len(parts) < 2:
+            parts = line.split()
+            
+        if len(parts) >= 2:
+            name = parts[0].strip()
+            email = parts[-1].strip()
+        else:
+            email = line.strip()
+            name = email.split('@')[0]
+            
         # 이메일 중복 확인
         existing = User.query.filter((User.email == email) | (User.username == email)).first()
         if existing:
@@ -52,11 +65,9 @@ def batch_add_users():
                 existing.is_approved = True
                 added_count += 1
         else:
-            # 구글 로그인 시 매칭될 수 있도록 email과 username을 동일하게 설정하거나
-            # google_id는 비워두고 email만 매칭 키로 사용.
-            # 여기서는 빈 껍데기 유저를 생성. (로그인 로직에서 email로 매칭)
+            # 빈 껍데기 유저를 생성. (로그인 로직에서 email로 매칭)
             new_user = User(
-                username=email, # 닉네임을 이메일로 임시 설정
+                username=name,
                 email=email,
                 is_approved=True,
                 role="user",

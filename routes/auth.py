@@ -111,9 +111,42 @@ def google_callback():
     user = User.query.filter((User.google_id == google_id) | (User.email == email)).first()
 
     if not user:
-        # 신규 가입 (승인 대기)
+        # 신규 가입 (승인 대기) - 이름을 입력받기 위해 세션에 저장 후 리다이렉트
+        session['pending_google_email'] = email
+        session['pending_google_id'] = google_id
+        return redirect(url_for("auth.google_register_name"))
+    else:
+        # 기존 사용자 정보 업데이트 (google_id가 없는 경우 연동)
+        if not user.google_id:
+            user.google_id = google_id
+            db.session.commit()
+            
+        # 승인 여부 확인
+        if not user.is_approved:
+            flash("관리자 승인 대기 중입니다.", "warning")
+            return redirect(url_for("auth.login"))
+            
+        login_user(user)
+        return redirect(url_for("chat.index"))
+
+
+@auth_bp.route("/google/register_name", methods=["GET", "POST"])
+def google_register_name():
+    """구글 로그인 후 이름 입력받기"""
+    if 'pending_google_email' not in session or 'pending_google_id' not in session:
+        return redirect(url_for("auth.login"))
+        
+    email = session['pending_google_email']
+    google_id = session['pending_google_id']
+    
+    if request.method == "POST":
+        name = request.form.get("name")
+        if not name:
+            flash("이름을 입력해주세요.", "error")
+            return redirect(url_for("auth.google_register_name"))
+            
         user = User(
-            username=email, # 식별자로 이메일 사용
+            username=name,
             email=email,
             google_id=google_id,
             role="user",
@@ -130,25 +163,18 @@ def google_callback():
         db.session.add(user)
         db.session.commit()
         
+        # 세션에서 임시 데이터 삭제
+        session.pop('pending_google_email', None)
+        session.pop('pending_google_id', None)
+        
         if user.is_approved:
             login_user(user)
             return redirect(url_for("chat.index"))
         else:
             flash("가입 신청되었습니다. 관리자 승인 후 이용 가능합니다.", "info")
             return redirect(url_for("auth.login"))
-    else:
-        # 기존 사용자 정보 업데이트 (google_id가 없는 경우 연동)
-        if not user.google_id:
-            user.google_id = google_id
-            db.session.commit()
             
-        # 승인 여부 확인
-        if not user.is_approved:
-            flash("관리자 승인 대기 중입니다.", "warning")
-            return redirect(url_for("auth.login"))
-            
-        login_user(user)
-        return redirect(url_for("chat.index"))
+    return render_template("google_register.html", email=email)
 
 
 @auth_bp.route("/logout")
