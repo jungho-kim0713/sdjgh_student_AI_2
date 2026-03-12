@@ -320,6 +320,19 @@ UI 개선: 헤더에 공급사(Provider) 선택 드롭다운 메뉴 추가.
 Docker 도입: 개발 환경과 배포 환경의 일치화 (Docker Compose).
 
 데이터 복원: SQL 백업 파일을 이용해 기존 GCP의 대화 기록 완벽 복구.
+
+[ 3.0 pc 터미널에서 가상 환경 ]
+가상 환경 켜기, 끄기
+.\venv\Scripts\Activate.ps1
+deactivate
+
+키 권한 오류 시(WARNING: UNPROTECTED...):
+관리자 권한 PowerShell에서 권한 재설정 스크립트 실행 (icacls / reset).
+
+로컬에서 실행: python app.py
+
+로컬 접속 주소: http://127.0.0.1:8081
+
 [ 3.1 서버 접속 및 기본 정보 ]
 
 접속 명령어 (PC 터미널):
