@@ -28,9 +28,9 @@ def extract_text_from_file(file_content, filename):
     파일 바이트에서 텍스트를 추출한다.
     이미지가 아닌 문서/오피스 파일을 대상으로 하며 실패 시 오류 메시지를 반환한다.
     """
-    ext = filename.rsplit(".", 1)[1].lower()
-    text = ""
     try:
+        ext = filename.rsplit(".", 1)[1].lower() if "." in filename else ""
+        text = ""
         file_stream = BytesIO(file_content)
         if ext == "pdf":
             # PDF: 페이지별 텍스트 추출

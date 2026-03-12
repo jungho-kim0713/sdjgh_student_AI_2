@@ -761,11 +761,10 @@ def delete_session(session_id):
                         os.path.basename(f.storage_path),
                     )
 
-                # 파일이 없으면 static 폴더 경로도 확인
+                # 파일이 없으면 static 폴더 경로도 확인 (safe_join으로 경로 조작 방지)
                 if not os.path.exists(path):
-                    path = os.path.join(
-                        current_app.static_folder, f.storage_path.replace("uploads/", "", 1)
-                    )
+                    from werkzeug.security import safe_join
+                    path = safe_join(current_app.static_folder, f.storage_path)
 
                 if os.path.exists(path):
                     os.remove(path)

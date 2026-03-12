@@ -3,6 +3,7 @@ import datetime
 
 from flask import Blueprint, jsonify, request, send_file, current_app
 from flask_login import login_required, current_user
+import re
 from werkzeug.utils import secure_filename
 
 from extensions import db
@@ -26,7 +27,8 @@ def upload_file_api():
     if not file:
         return jsonify({"error": "No file"}), 400
     try:
-        filename = secure_filename(file.filename)
+        # secure_filename은 한글을 모두 날려버리므로, 정규식으로 위험 문자를 제거
+        filename = re.sub(r'[/\\?%*:|"<>]', '-', file.filename)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_name = f"{timestamp}_{filename}"
 
@@ -44,10 +46,11 @@ def upload_file_api():
             os.makedirs(save_dir)
         save_path = os.path.join(save_dir, unique_name)
 
-        # 파일 저장
+        # 파일 저장 및 실행 권한 제거 (보안)
         content = file.read()
         with open(save_path, "wb") as f:
             f.write(content)
+        os.chmod(save_path, 0o644)
 
         # 이미지가 아닌 경우 텍스트 추출
         text = ""
@@ -91,16 +94,18 @@ def save_ai_file_api():
     """
     data = request.json
     try:
-        filename = secure_filename(data.get("filename", "code.txt"))
+        filename = data.get("filename", "code.txt")
+        filename = re.sub(r'[/\\?%*:|"<>]', '-', filename)
         unique_name = (
             f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_AI_{filename}"
         )
         save_path = os.path.join(
             current_app.config["UPLOAD_FOLDER"], "files", unique_name
         )
-        # 텍스트 파일로 저장
+        # 텍스트 파일로 저장 및 실행 권한 제거 (보안)
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(data.get("content"))
+        os.chmod(save_path, 0o644)
         # 저장된 파일을 ChatFile로 기록
         new_file = ChatFile(
             session_id=data.get("session_id"),
@@ -130,6 +135,11 @@ def view_file_api(file_id):
     f = db.session.get(ChatFile, file_id)
     if not f:
         return jsonify({"error": "Not found"}), 404
+        
+    # 소유권 검사 (권한 없는 사용자의 열람 차단)
+    if f.user_id != current_user.id and not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+        
     try:
         # 이미지/일반 파일 위치 분기
         if f.file_type.startswith("image/"):
@@ -141,11 +151,12 @@ def view_file_api(file_id):
                 current_app.config["UPLOAD_FOLDER"], "files", os.path.basename(f.storage_path)
             )
 
-        # 파일이 없으면 static 폴더 경로도 확인
+        # 파일이 없으면 static 폴더 경로도 확인 (safe_join으로 경로 조작 차단)
         if not os.path.exists(path):
-            path = os.path.join(
-                current_app.static_folder, f.storage_path.replace("uploads/", "", 1)
-            )
+            from werkzeug.security import safe_join
+            path = safe_join(current_app.static_folder, f.storage_path)
+            if not path or not os.path.exists(path):
+                return jsonify({"error": "File not found on server"}), 404
 
         # 텍스트로 변환 후 응답
         with open(path, "rb") as file:
@@ -172,11 +183,11 @@ def download_file_api(file_id):
     if f.user_id != current_user.id and not current_user.is_admin:
         return "Unauthorized", 403
 
-    # 기본은 static 경로, 없으면 업로드 폴더에서 탐색
-    path = os.path.join(
-        current_app.static_folder, f.storage_path.replace("uploads/", "", 1)
-    )
-    if not os.path.exists(path):
+    # 기본은 static 경로, 없으면 업로드 폴더에서 탐색 (safe_join으로 경로 조작 차단)
+    from werkzeug.security import safe_join
+    path = safe_join(current_app.static_folder, f.storage_path)
+    
+    if not path or not os.path.exists(path):
         if f.file_type.startswith("image/"):
             path = os.path.join(
                 current_app.config["UPLOAD_FOLDER"], os.path.basename(f.storage_path)
@@ -185,6 +196,9 @@ def download_file_api(file_id):
             path = os.path.join(
                 current_app.config["UPLOAD_FOLDER"], "files", os.path.basename(f.storage_path)
             )
+
+    if not path or not os.path.exists(path):
+        return "File not found on server", 404
 
     return send_file(path, as_attachment=True, download_name=f.filename)
 

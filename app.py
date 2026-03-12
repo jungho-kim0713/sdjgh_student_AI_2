@@ -16,7 +16,7 @@ except ImportError:
 
 import certifi
 from sqlalchemy import inspect, text
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 
 from extensions import db, login_manager
@@ -58,6 +58,12 @@ def add_security_headers(response):
         "connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://cloudflareinsights.com;"
     )
     response.headers["Content-Security-Policy"] = csp
+    
+    # [보안] 업로드된 일반 파일 접근 시 강제 다운로드 처리 (XSS 방어)
+    if request.path.startswith('/static/uploads/files/'):
+        response.headers['Content-Disposition'] = 'attachment'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        
     return response
 
 
