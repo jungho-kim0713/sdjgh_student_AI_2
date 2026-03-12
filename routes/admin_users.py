@@ -58,7 +58,7 @@ def batch_add_users():
             name = email.split('@')[0]
             
         # 이메일 중복 확인
-        existing = User.query.filter((User.email == email) | (User.username == email)).first()
+        existing = User.query.filter((User.email == email) | (User.username == email) | (User.username == f"{name}/{email}")).first()
         if existing:
             duplicate_count += 1
             if not existing.is_approved:
@@ -66,8 +66,9 @@ def batch_add_users():
                 added_count += 1
         else:
             # 빈 껍데기 유저를 생성. (로그인 로직에서 email로 매칭)
+            # username을 이름/이메일 형식으로 저장하여 고유성 확보 및 동명이인 구분 가능하게 함
             new_user = User(
-                username=name,
+                username=f"{name}/{email}",
                 email=email,
                 is_approved=True,
                 role="user",

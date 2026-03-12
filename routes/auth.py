@@ -146,7 +146,7 @@ def google_register_name():
             return redirect(url_for("auth.google_register_name"))
             
         user = User(
-            username=name,
+            username=f"{name}/{email}",
             email=email,
             google_id=google_id,
             role="user",

@@ -495,4 +495,9 @@ Season 7 RAG 시스템 구현 완료 (약 3-4주 소요 예정)
 - **동기식 API 호출 블로킹 해결**: `ai_core.py`에 `generate_ai_response_stream`을 추가하여 OpenAI, Anthropic, Google, xAI 모두 Server-Sent Events (SSE) 기반의 비동기 텍스트 스트리밍을 지원하도록 변경.
 - **클라이언트 스트리밍 UI 렌더링**: `static/js/modules/chat.js`의 `sendMessageToServer`를 재적용하여 `fetch`의 ReadableStream을 통해 실시간 타자 효과(렌더링) 지원. 다수 동시 접속 시 Gunicorn 워커 스레드 고갈 방지.
 - **데이터베이스 인덱스(DB Index) 도입**: `models.py` 내의 잦은 검색 대상 외래키(Foreign Key) 속성인 `session_id`, `user_id`, `role_key`, `persona_id`, `document_id` 등에 `index=True` 부여. 로컬(SQLite) 및 마이그레이션 적용.
-- **N+1 및 중복 쿼리 최적화**: `routes/chat.py` 파일 내 파일 배열 검사 반복문을 `ChatFile.id.in_(file_ids)`로 교체 및 무수히 잦던 DB `commit()`을 `flush()`로 변경하여 트랜잭션 오버헤드를 감소.
+- N+1 및 중복 쿼리 최적화: `routes/chat.py` 파일 내 파일 배열 검사 반복문을 `ChatFile.id.in_(file_ids)`로 교체 및 무수히 잦던 DB `commit()`을 `flush()`로 변경하여 트랜잭션 오버헤드를 감소.
+
+[ 5.7 동명이인 일괄 등록 이슈 및 관리자 패널 개선 (2026-03-13) ]
+- 500 오류 (사용자 일괄 등록) 해결: 관리자가 일괄 등록 시, 동명이인 데이터베이스 `username` UNIQUE 제약 조건 충돌 문제를 해결하기 위해 백엔드에선 조합형(`이름/이메일`)으로 저장하고, 프론트엔드 및 템플릿에선 모델의 `display_name` 프로퍼티를 활용하여 이름만 노출되도록 완전 구조 개선 완료.
+- 콘솔 에러 해결: 관리자 패널에서 발생하던 `persona_selector.js` 오류를 제거하여 예외 처리 완비 (`model-selector` DOM 요소 탐색 핸들링 추가).
+- 사용자 다중 다중 선택 (Shift+Click) 기능 추가: `admin_users.html` 전체 화면 및 `status_admin.js` 관리자 모달창 모두에서, 체크박스 한 곳을 선택하고 다른 곳을 `Shift + 클릭` 시 일괄 체크되도록 편의성 대폭 증대. (일괄 삭제/승인 버튼 기능 연동 포함)

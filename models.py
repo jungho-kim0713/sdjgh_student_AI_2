@@ -21,6 +21,17 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True)     # 구글 이메일
     is_approved = db.Column(db.Boolean, default=False)                # 관리자 승인 여부
 
+    @property
+    def display_name(self):
+        """
+        화면 표시용 이름 반환.
+        username이 '이름/이메일' 형태면 '/' 앞부분(이름)만 반환하고,
+        그렇지 않으면 username 전체를 반환합니다.
+        """
+        if self.username and '/' in self.username:
+            return self.username.split('/')[0]
+        return self.username
+
     def set_password(self, password):
         """비밀번호를 안전하게 해시화하여 저장합니다."""
         self.password_hash = generate_password_hash(password)

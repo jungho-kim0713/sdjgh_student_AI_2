@@ -17,7 +17,7 @@ window.App.registerModule((ctx) => {
 
             const modelSelector = document.getElementById('model-selector');
             if (!modelSelector) {
-                console.error('model-selector 요소를 찾을 수 없습니다');
+                // 관리자 페이지 등에서는 model-selector가 없을 수 있으므로 조용히 종료합니다.
                 return;
             }
 

@@ -23,6 +23,7 @@
             <table class="admin-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllUsers" title="전체 선택"></th>
                         <th>ID</th>
                         <th>Username / Email</th>
                         <th>Role</th>
@@ -33,10 +34,11 @@
                 <tbody>
                     {% for user in users %}
                     <tr>
+                        <td><input type="checkbox" class="user-select-checkbox" data-user-id="{{ user.id }}"></td>
                         <td>{{ user.id }}</td>
                         <td>
-                            {{ user.username }}
-                            {% if user.email and user.email != user.username %}
+                            {{ user.display_name }}
+                            {% if user.email and user.email != user.display_name %}
                             <br><span style="font-size:0.8em; color:#666;">({{ user.email }})</span>
                             {% endif %}
                         </td>
@@ -60,9 +62,34 @@
             </table>
         </div>
     </div>
+    <div id="bulk-actions-container" style="display: none; justify-content: flex-end; margin-top: 10px; gap: 10px;">
+        <button id="btn-bulk-approve" class="btn-primary" style="background-color: #2ecc71;">선택 사용자 승인</button>
+        <button id="btn-bulk-delete" class="btn-primary" style="background-color: #e74c3c;">선택 사용자 삭제</button>
+    </div>
 </div>
 
 <script>
+    let lastCheckedIndex = null;
+
+    // Attach shift-click handlers to existing checkboxes on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkboxes = Array.from(document.querySelectorAll('tbody input[type="checkbox"]'));
+        
+        checkboxes.forEach((cb, index) => {
+            cb.addEventListener('click', (e) => {
+                if (e.shiftKey && lastCheckedIndex !== null) {
+                    const start = Math.min(lastCheckedIndex, index);
+                    const end = Math.max(lastCheckedIndex, index);
+                    
+                    for (let i = start; i <= end; i++) {
+                        checkboxes[i].checked = cb.checked;
+                    }
+                }
+                lastCheckedIndex = index;
+            });
+        });
+    });
+
     async function approveUser(userId) {
         if (!confirm('이 사용자를 승인하시겠습니까?')) return;
         const res = await fetch(`/admin/users/approve/${userId}`, { method: 'POST' });
@@ -100,6 +127,67 @@
         if (data.success) location.reload();
         else alert(data.error);
     }
+
+    // Bulk actions logic for the standalone admin unapproved page
+    function updateBulkButtons() {
+        const checkedCount = document.querySelectorAll('.user-select-checkbox:checked').length;
+        const container = document.getElementById('bulk-actions-container');
+        if (checkedCount >= 2) {
+            container.style.display = 'flex';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const selectAllCheck = document.getElementById('selectAllUsers');
+        if (selectAllCheck) {
+            selectAllCheck.onchange = (e) => {
+                const checkboxes = document.querySelectorAll('.user-select-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+                updateBulkButtons();
+            };
+        }
+
+        const userCheckboxes = document.querySelectorAll('.user-select-checkbox');
+        userCheckboxes.forEach(cb => {
+            cb.addEventListener('change', updateBulkButtons);
+        });
+
+        const btnApprove = document.getElementById('btn-bulk-approve');
+        if (btnApprove) {
+            btnApprove.onclick = async () => {
+                const checked = document.querySelectorAll('.user-select-checkbox:checked');
+                if (checked.length === 0) return;
+                const ids = Array.from(checked).map(cb => parseInt(cb.dataset.userId));
+                if (!confirm(`선택한 ${ids.length}명의 사용자를 일괄 승인 처리하시겠습니까?`)) return;
+                try {
+                    const res = await fetch('/api/admin/bulk_approve_users', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_ids: ids })
+                    });
+                    if (res.ok) { alert('✅ 일괄 승인 완료'); location.reload(); }
+                } catch (e) { console.error(e); }
+            };
+        }
+
+        const btnDelete = document.getElementById('btn-bulk-delete');
+        if (btnDelete) {
+            btnDelete.onclick = async () => {
+                const checked = document.querySelectorAll('.user-select-checkbox:checked');
+                if (checked.length === 0) return;
+                const ids = Array.from(checked).map(cb => parseInt(cb.dataset.userId));
+                if (!confirm(`⚠️ 선택한 ${ids.length}명의 사용자를 부속 기록과 함께 영구 삭제하시겠습니까?`)) return;
+                try {
+                    const res = await fetch('/api/admin/bulk_delete_users', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_ids: ids })
+                    });
+                    if (res.ok) { alert('✅ 일괄 삭제 완료'); location.reload(); }
+                } catch (e) { console.error(e); }
+            };
+        }
+    });
 </script>
 
 <style>

@@ -717,8 +717,20 @@ window.App.registerModule((ctx) => {
                 };
             }
 
-            const userCheckboxes = document.querySelectorAll('.user-select-checkbox');
-            userCheckboxes.forEach(cb => {
+            const userCheckboxes = Array.from(document.querySelectorAll('.user-select-checkbox'));
+            let lastCheckedIndex = null;
+            userCheckboxes.forEach((cb, index) => {
+                cb.addEventListener('click', (e) => {
+                    if (e.shiftKey && lastCheckedIndex !== null) {
+                        const start = Math.min(lastCheckedIndex, index);
+                        const end = Math.max(lastCheckedIndex, index);
+                        
+                        for (let i = start; i <= end; i++) {
+                            userCheckboxes[i].checked = cb.checked;
+                        }
+                    }
+                    lastCheckedIndex = index;
+                });
                 cb.addEventListener('change', updateBulkButtons);
             });
             updateBulkButtons();
