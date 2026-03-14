@@ -18,13 +18,19 @@
     </div>
 
     <div class="card" style="margin-top: 20px;">
-        <h3>사용자 목록</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">사용자 목록</h3>
+            <div id="bulk-actions-container" style="display: none; gap: 10px;">
+                <button id="btn-bulk-approve" class="btn-primary" style="background-color: #2ecc71; padding: 6px 14px; font-size: 0.9em;">선택 사용자 승인</button>
+                <button id="btn-bulk-delete" class="btn-primary" style="background-color: #e74c3c; padding: 6px 14px; font-size: 0.9em;">선택 사용자 삭제</button>
+            </div>
+        </div>
         <div class="table-container">
             <table class="admin-table">
                 <thead>
                     <tr>
                         <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllUsers" title="전체 선택"></th>
-                        <th>ID</th>
+                        <th>NO.</th>
                         <th>Username / Email</th>
                         <th>Role</th>
                         <th>승인 여부</th>
@@ -61,10 +67,6 @@
                 </tbody>
             </table>
         </div>
-    </div>
-    <div id="bulk-actions-container" style="display: none; justify-content: flex-end; margin-top: 10px; gap: 10px;">
-        <button id="btn-bulk-approve" class="btn-primary" style="background-color: #2ecc71;">선택 사용자 승인</button>
-        <button id="btn-bulk-delete" class="btn-primary" style="background-color: #e74c3c;">선택 사용자 삭제</button>
     </div>
 </div>
 

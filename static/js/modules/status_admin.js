@@ -690,10 +690,13 @@ window.App.registerModule((ctx) => {
                     }
                 }
 
+                // 이름과 이메일 분리하여 이름만 가져오기
+                const displayName = user.username.includes('/') ? user.username.split('/')[0] : user.username;
+
                 tr.innerHTML = `
                     <td style="text-align: center;"><input type="checkbox" class="user-select-checkbox" data-user-id="${user.id}"></td>
                     <td style="text-align: center;">${user.id}</td>
-                    <td>${user.username}</td>
+                    <td>${displayName}</td>
                     <td style="font-size: 0.85rem; width: 100%; word-break: break-all;">${emailCell}</td>
                     <td style="text-align: center;">${approvalIcon}</td>
                     <td style="text-align: center;">${roleCell}</td>
@@ -740,18 +743,20 @@ window.App.registerModule((ctx) => {
             if (thead && !thead.dataset.sortInitialized) {
                 thead.dataset.sortInitialized = 'true';
 
-                // 헤더에 sortKey 데이터 속성 주입
+                // 헤더에 sortKey 데이터 속성 주입 (0번은 체크박스라 제외)
                 const headers = thead.querySelectorAll('th');
                 if (headers.length >= 6) {
-                    headers[0].dataset.sortKey = 'id';
-                    headers[1].dataset.sortKey = 'username';
-                    headers[2].dataset.sortKey = 'email';
-                    headers[3].dataset.sortKey = 'is_approved';
-                    // Role, Action 등은 정렬 제외할 수도 있지만 일단 포함
-                    headers[4].dataset.sortKey = 'role';
+                    headers[1].dataset.sortKey = 'id';
+                    headers[2].dataset.sortKey = 'username';
+                    headers[3].dataset.sortKey = 'email';
+                    headers[4].dataset.sortKey = 'is_approved';
+                    headers[5].dataset.sortKey = 'role';
                 }
 
                 thead.addEventListener('click', (e) => {
+                    // Prevent sort if clicking on the checkbox or its cell
+                    if (e.target.tagName.toLowerCase() === 'input') return;
+
                     const th = e.target.closest('th');
                     if (!th || !th.dataset.sortKey) return;
 
