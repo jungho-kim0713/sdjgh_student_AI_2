@@ -29,7 +29,7 @@ def upload_file_api():
     try:
         # secure_filename은 한글을 모두 날려버리므로, 정규식으로 위험 문자를 제거
         filename = re.sub(r'[/\\?%*:|"<>]', '-', file.filename)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         unique_name = f"{timestamp}_{filename}"
 
         # 이미지인지 여부에 따라 저장 위치를 분리
@@ -201,6 +201,32 @@ def download_file_api(file_id):
         return "File not found on server", 404
 
     return send_file(path, as_attachment=True, download_name=f.filename)
+
+
+@files_bp.route("/api/view_image/<int:file_id>")
+@login_required
+def view_image_api(file_id):
+    """이미지 파일을 인라인으로 서빙한다 (라이트박스용).
+
+    - 권한: 소유자 또는 관리자
+    - 동작: Content-Disposition 없이 이미지 반환 (다운로드 강제 없음)
+    """
+    from werkzeug.security import safe_join
+    f = db.session.get(ChatFile, file_id)
+    if not f:
+        return "Not found", 404
+    if f.user_id != current_user.id and not current_user.is_admin:
+        return "Unauthorized", 403
+    if not f.file_type.startswith("image/"):
+        return "Not an image", 400
+
+    path = safe_join(current_app.static_folder, f.storage_path)
+    if not path or not os.path.exists(path):
+        path = os.path.join(current_app.config["UPLOAD_FOLDER"], os.path.basename(f.storage_path))
+    if not path or not os.path.exists(path):
+        return "File not found", 404
+
+    return send_file(path, mimetype=f.file_type)
 
 
 @files_bp.route("/api/get_session_files/<int:session_id>")

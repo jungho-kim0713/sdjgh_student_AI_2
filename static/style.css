@@ -1258,8 +1258,8 @@ textarea::placeholder {
 }
 
 .user-message {
-    background-color: #EC4899;
-    color: white;
+    background-color: #FCE4EC;
+    color: #333333;
     border-bottom-right-radius: 0.5rem;
 }
 
@@ -1269,7 +1269,7 @@ textarea::placeholder {
 }
 
 .user-message .message-sender {
-    color: white;
+    color: #D81B60;
     text-align: left;
 }
 
@@ -1356,7 +1356,7 @@ textarea::placeholder {
 }
 
 .user-message .message-content strong {
-    color: #FDF2F8;
+    color: #D81B60;
 }
 
 .message-content code {
@@ -1368,7 +1368,13 @@ textarea::placeholder {
 }
 
 .user-message .message-content code {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #333333;
+}
+
+.user-message .code-preview-content {
+    max-height: none;
+    background: #1e1e1e;
 }
 
 

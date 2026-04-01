@@ -98,6 +98,7 @@ if not os.path.exists(os.path.join(UPLOAD_FOLDER, "files")):
 db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
+login_manager.login_message = ""
 
 # Celery 초기화 (RAG 백그라운드 작업용)
 from tasks import init_celery

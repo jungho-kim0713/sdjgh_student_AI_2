@@ -54,10 +54,10 @@
     color: #1F2937;
     border-bottom-left-radius: 0.5rem;
 }
-/* 사용자 메시지 버블: 브랜드 핑크 */
+/* 사용자 메시지 버블: 더스티 로즈 & 베이비 핑크 */
 .user-message {
-    background-color: #EC4899;
-    color: white;
+    background-color: #FCE4EC;
+    color: #333333;
     border-bottom-right-radius: 0.5rem;
 }
 /* 발신자 이름 */
@@ -67,7 +67,7 @@
 }
 /* 사용자 메시지 발신자 */
 .user-message .message-sender {
-    color: white;
+    color: #D81B60;
     text-align: left;
 }
 /* 메시지 내 이미지 미리보기 */
@@ -126,7 +126,7 @@
 }
 /* 사용자 메시지 내 강조 색상 */
 .user-message .message-content strong {
-    color: #FDF2F8;
+    color: #D81B60;
 }
 /* 인라인 코드 */
 .message-content code {
@@ -136,9 +136,15 @@
     font-family: monospace;
     font-size: 0.9em;
 }
-/* 사용자 메시지 인라인 코드: 반투명 배경 */
+/* 사용자 메시지 인라인 코드 */
 .user-message .message-content code {
-    background-color: rgba(255,255,255,0.2);
+    background-color: rgba(0,0,0,0.06);
+    color: #333333;
+}
+/* 사용자 메시지 내 코드 블록: 전체 높이 표시 (미리보기 제한 해제) */
+.user-message .code-preview-content {
+    max-height: none;
+    background: #1e1e1e;
 }
 
 /* Code Preview Block in Chat
@@ -438,6 +444,38 @@
 
 /* --- Drag & Drop Overlay ---
    파일 드래그 시 표시되는 오버레이 */
+/* --- Image Lightbox ---
+   이미지 클릭 시 원본 크게 보기 */
+.image-lightbox {
+    position: fixed; inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    cursor: zoom-out;
+    animation: fade-in 0.2s ease;
+}
+.image-lightbox img {
+    max-width: 90vw; max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    object-fit: contain;
+    cursor: default;
+}
+.lightbox-close {
+    position: fixed; top: 1.2rem; right: 1.5rem;
+    background: none; border: none;
+    color: white; font-size: 2.5rem; line-height: 1;
+    cursor: pointer; opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.lightbox-close:hover { opacity: 1; }
+/* 채팅 이미지: 클릭 가능 표시 */
+.message-image {
+    cursor: zoom-in;
+    transition: opacity 0.15s;
+}
+.message-image:hover { opacity: 0.85; }
+
 .drag-overlay {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     background-color: rgba(254, 242, 242, 0.85);

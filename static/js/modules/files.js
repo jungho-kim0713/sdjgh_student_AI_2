@@ -187,7 +187,8 @@ window.App.registerModule((ctx) => {
                 const isImage = viewTrigger.dataset.isImage === 'true';
 
                 if (isImage) {
-                    alert("이미지 파일은 캔버스에서 볼 수 없습니다. 우측의 다운로드 버튼을 이용해 확인해주세요.");
+                    ctx.ui.openImageLightbox(`/api/view_image/${fileId}`);
+                    ctx.files.closeFileModal();
                     return;
                 }
 

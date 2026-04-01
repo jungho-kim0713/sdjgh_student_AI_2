@@ -21,18 +21,10 @@ window.App.registerModule((ctx) => {
                 return;
             }
 
-            // 기존 옵션 제거
-            modelSelector.innerHTML = '';
-
-            // 페르소나 목록을 드롭박스에 추가
-            data.personas.forEach(persona => {
-                const option = document.createElement('option');
-                option.value = persona.role_key;
-                option.textContent = `${persona.icon} ${persona.role_name}`;
-                option.dataset.description = persona.description;
-                option.dataset.useRag = persona.use_rag;
-                modelSelector.appendChild(option);
-            });
+            // 한 번에 innerHTML 교체 (clear → append 분리 시 발생하는 깜빡임 방지)
+            modelSelector.innerHTML = data.personas.map(persona =>
+                `<option value="${persona.role_key}" data-description="${persona.description}" data-use-rag="${persona.use_rag}">${persona.icon} ${persona.role_name}</option>`
+            ).join('');
 
             // 첫 번째 페르소나 선택
             if (data.personas.length > 0) {
@@ -76,6 +68,12 @@ window.App.registerModule((ctx) => {
                 ctx.provider.checkAndFallbackProvider(false);
             }
         });
+    }
+
+    // 서버에서 미리 렌더링된 옵션이 있으면 즉시 state 초기화 (fetch 완료 전 전송 방지)
+    const modelSelector = document.getElementById('model-selector');
+    if (modelSelector && modelSelector.options.length > 0) {
+        state.currentRole = modelSelector.options[0].value;
     }
 
     // 초기화: 페르소나 목록 로드

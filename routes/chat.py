@@ -73,12 +73,22 @@ def index():
     if not current_user.is_admin and current_user.role == 'teacher':
         is_teacher_manager = True
 
+    # 페르소나 목록을 서버에서 미리 렌더링 (초기 로딩 시 빈 드롭다운 깜빡임 방지)
+    query = PersonaDefinition.query.filter_by(is_active=True).order_by(PersonaDefinition.id.asc())
+    if current_user.is_admin or getattr(current_user, 'role', '') == 'admin':
+        initial_personas = query.all()
+    elif getattr(current_user, 'role', '') == 'teacher':
+        initial_personas = query.filter_by(allow_teacher=True).all()
+    else:
+        initial_personas = query.filter_by(allow_user=True).all()
+
     return render_template(
         "index.html",
         is_admin=current_user.is_admin,
         current_username=current_user.username,
         current_user_role=getattr(current_user, "role", "user"),
-        is_teacher_manager=is_teacher_manager
+        is_teacher_manager=is_teacher_manager,
+        initial_personas=initial_personas
     )
 
 
@@ -697,16 +707,18 @@ def get_session(session_id):
 
     message_list = []
     for m in msgs:
-        img_url = None
+        img_urls = []
         if m.Message.image_path:
-            first_path = m.Message.image_path.split(",")[0]
-            img_url = url_for("static", filename=first_path)
+            for path in m.Message.image_path.split(","):
+                path = path.strip()
+                if path:
+                    img_urls.append(url_for("static", filename=path))
 
         # 프론트에서 바로 렌더링 가능한 형태로 변환
         message_list.append(
             {
                 "text": m.Message.content,
-                "image_path": img_url,
+                "image_paths": img_urls,
                 "sender": "user" if m.Message.is_user else "ai",
                 "username": m.username if m.Message.is_user else "AI",
             }

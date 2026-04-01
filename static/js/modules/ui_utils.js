@@ -32,4 +32,38 @@ window.App.registerModule((ctx) => {
         }
         document.body.removeChild(textArea);
     };
+
+    /**
+     * 이미지 라이트박스를 열어 원본 크기로 표시한다.
+     * @param {string} src - 이미지 URL
+     */
+    ctx.ui.openImageLightbox = function openImageLightbox(src) {
+        const lightbox = document.getElementById('image-lightbox');
+        const img = document.getElementById('lightbox-img');
+        if (!lightbox || !img) return;
+        img.src = src;
+        lightbox.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    };
+
+    // 라이트박스 닫기: 오버레이 클릭 또는 × 버튼
+    document.addEventListener('click', (e) => {
+        const lightbox = document.getElementById('image-lightbox');
+        if (!lightbox) return;
+        if (e.target === lightbox || e.target.id === 'lightbox-close-btn') {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+
+    // ESC 키로 라이트박스 닫기
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const lightbox = document.getElementById('image-lightbox');
+            if (lightbox && lightbox.style.display !== 'none') {
+                lightbox.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+    });
 });

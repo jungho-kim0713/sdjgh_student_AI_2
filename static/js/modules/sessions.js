@@ -147,7 +147,7 @@ window.App.registerModule((ctx) => {
 
             dom.chatWindow.innerHTML = '';
             messages.forEach(msg => {
-                ctx.messages.addMessage(msg.text, msg.sender, null, msg.username, msg.image_path);
+                ctx.messages.addMessage(msg.text, msg.sender, null, msg.username, msg.image_paths || []);
             });
             state.currentSessionId = sessionId;
 

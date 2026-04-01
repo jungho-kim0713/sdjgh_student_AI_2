@@ -44,6 +44,52 @@ window.App.registerModule((ctx) => {
     };
 
     /**
+     * 사용자 메시지 텍스트를 렌더링한다.
+     * ```코드블록```은 hljs 구문 하이라이팅 적용, 나머지는 일반 텍스트.
+     * @param {string} text - 사용자 입력 원문
+     * @returns {string} HTML 문자열
+     */
+    function processUserMessageText(text) {
+        const parts = [];
+        const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                const plain = text.slice(lastIndex, match.index);
+                if (plain.trim()) parts.push(`<p>${plain.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g, '<br>')}</p>`);
+            }
+
+            const lang = match[1] || '';
+            const code = match[2].trim();
+            let highlighted;
+            try {
+                if (window.hljs && lang && window.hljs.getLanguage(lang)) {
+                    highlighted = window.hljs.highlight(code, { language: lang }).value;
+                } else if (window.hljs) {
+                    highlighted = window.hljs.highlightAuto(code).value;
+                } else {
+                    highlighted = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                }
+            } catch (e) {
+                highlighted = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+
+            const displayLang = lang || 'code';
+            parts.push(`<div class="code-preview-block"><div class="code-preview-header"><span>${displayLang}</span></div><div class="code-preview-content hljs">${highlighted}</div></div>`);
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            const remaining = text.slice(lastIndex);
+            if (remaining.trim()) parts.push(`<p>${remaining.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g, '<br>')}</p>`);
+        }
+
+        return parts.length > 0 ? parts.join('') : `<p>${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g, '<br>')}</p>`;
+    }
+
+    /**
      * 채팅 메시지 버블을 렌더링한다.
      * 텍스트/이미지/복사 버튼을 지원한다.
      * @param {string} text - 메시지 텍스트
@@ -53,7 +99,7 @@ window.App.registerModule((ctx) => {
      * @param {string|null} imagePath - 서버 이미지 경로
      * @returns {HTMLElement|null} 생성된 메시지 래퍼
      */
-    ctx.messages.addMessage = function addMessage(text, sender, imageFile, username, imagePath) {
+    ctx.messages.addMessage = function addMessage(text, sender, imageFiles, username, imagePath) {
         if (!dom.chatWindow) return null;
         const messageWrapper = document.createElement('div');
         messageWrapper.className = `message-wrapper ${sender}`;
@@ -66,18 +112,25 @@ window.App.registerModule((ctx) => {
             messageBubble.innerHTML = `<p class="message-sender">${senderName}</p>`;
         }
 
-        if (imageFile) {
+        // imageFiles: File 배열 또는 단일 File (하위 호환)
+        const imgArr = Array.isArray(imageFiles) ? imageFiles : (imageFiles ? [imageFiles] : []);
+        imgArr.forEach(file => {
             const imgPreview = document.createElement('img');
-            imgPreview.src = URL.createObjectURL(imageFile);
+            imgPreview.src = URL.createObjectURL(file);
             imgPreview.className = "message-image";
+            imgPreview.addEventListener('click', () => ctx.ui.openImageLightbox(imgPreview.src));
             messageBubble.appendChild(imgPreview);
-        }
-        if (imagePath) {
+        });
+        // 히스토리 이미지: 배열 또는 단일 URL 모두 처리
+        const pathArr = Array.isArray(imagePath) ? imagePath : (imagePath ? [imagePath] : []);
+        pathArr.forEach(path => {
+            if (!path) return;
             const imgPreview = document.createElement('img');
-            imgPreview.src = imagePath;
+            imgPreview.src = path;
             imgPreview.className = "message-image";
+            imgPreview.addEventListener('click', () => ctx.ui.openImageLightbox(path));
             messageBubble.appendChild(imgPreview);
-        }
+        });
 
         if (text) {
             let contentHtml = '';
@@ -87,7 +140,7 @@ window.App.registerModule((ctx) => {
                 const rawHtml = window.marked.parse(text);
                 contentHtml = ctx.messages.processCodeBlocksInHtml(rawHtml);
             } else {
-                contentHtml = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+                contentHtml = processUserMessageText(text);
             }
 
             const textDiv = document.createElement('div');

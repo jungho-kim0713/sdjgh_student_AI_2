@@ -110,6 +110,12 @@
         {% block content %}
         <div id="main-content" class="container">
             <div class="chat-container">
+                <!-- 이미지 라이트박스 -->
+                <div id="image-lightbox" class="image-lightbox" style="display:none;">
+                    <button class="lightbox-close" id="lightbox-close-btn">&times;</button>
+                    <img id="lightbox-img" src="" alt="원본 이미지">
+                </div>
+
                 <div id="drag-overlay" class="drag-overlay">
                     <p>여기에 이미지를 드롭하세요</p>
                 </div>
@@ -128,8 +134,11 @@
                             <img src="{{ url_for('static', filename='images/logo.png') }}"
                                 onerror="this.onerror=null; this.src='https://placehold.co/28x28/EC4899/ffffff?text=AI';"
                                 alt="School Logo" class="logo">
-                            <!-- 페르소나 선택 (동적 로드) -->
+                            <!-- 페르소나 선택 (서버 사이드 초기 렌더링 + JS 동적 갱신) -->
                             <select id="model-selector" class="model-selector">
+                                {% for p in initial_personas %}
+                                <option value="{{ p.role_key }}" data-use-rag="{{ p.use_rag | lower }}" data-description="{{ p.description or '' }}">{{ p.icon or '🤖' }} {{ p.role_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>

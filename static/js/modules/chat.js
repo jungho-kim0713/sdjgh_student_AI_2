@@ -212,13 +212,9 @@ window.App.registerModule((ctx) => {
 
             if (!messageText && filesToSend.length === 0) return;
 
-            let displayFile = null;
-            if (filesToSend.length > 0) {
-                const imgFile = filesToSend.find(f => f.type.startsWith('image/'));
-                if (imgFile) displayFile = imgFile;
-            }
+            const imageFiles = filesToSend.filter(f => f.type.startsWith('image/'));
 
-            ctx.messages.addMessage(messageText, 'user', displayFile, state.currentUsername, null);
+            ctx.messages.addMessage(messageText, 'user', imageFiles, state.currentUsername, null);
 
             dom.userInput.value = '';
             ctx.ui.adjustTextareaHeight(dom.userInput);
