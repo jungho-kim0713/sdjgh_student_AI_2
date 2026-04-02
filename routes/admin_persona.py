@@ -12,6 +12,7 @@ from models import (
     PersonaDefinition,
     PersonaSystemPrompt,
     PersonaTeacherPermission,
+    PersonaStudentPermission,
     PersonaKnowledgeBase,
     KnowledgeDocument,
     DocumentChunk,
@@ -271,6 +272,11 @@ def get_persona_list():
             is_active=True
         ).count()
 
+        # 학생 배정 수
+        student_count = PersonaStudentPermission.query.filter_by(
+            persona_id=p.id
+        ).count()
+
         persona_list.append({
             "id": p.id,
             "role_key": p.role_key,
@@ -283,7 +289,8 @@ def get_persona_list():
             "retrieval_strategy": p.retrieval_strategy,
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "teacher_count": teacher_count,
-            "knowledge_base_count": kb_count
+            "knowledge_base_count": kb_count,
+            "student_count": student_count
         })
 
     return jsonify({
@@ -778,6 +785,143 @@ def revoke_teacher_permission(persona_id, teacher_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"권한 회수 실패: {str(e)}"}), 500
+
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/students", methods=["GET"])
+@login_required
+def get_persona_students(persona_id):
+    """
+    페르소나에 배정된 학생 목록 조회
+
+    Args:
+        persona_id: 페르소나 ID
+
+    Returns:
+        {"students": [...], "available_students": [...], "is_restricted": bool}
+    """
+    persona = db.session.get(PersonaDefinition, persona_id)
+    if not persona:
+        return jsonify({"error": "페르소나를 찾을 수 없습니다."}), 404
+
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    # 현재 배정된 학생 ID 집합
+    permissions = PersonaStudentPermission.query.filter_by(persona_id=persona_id).all()
+    assigned_ids = {perm.student_id for perm in permissions}
+
+    # 전체 승인된 학생 목록 (is_assigned 플래그 포함)
+    all_students_q = User.query.filter_by(role="user", is_approved=True).order_by(User.username.asc()).all()
+    all_students = [
+        {
+            "id": s.id,
+            "username": s.username,
+            "email": s.email,
+            "is_assigned": s.id in assigned_ids
+        }
+        for s in all_students_q
+    ]
+
+    # 배정된 학생만 따로 (섹션 목록용)
+    current_students = [s for s in all_students if s["is_assigned"]]
+
+    return jsonify({
+        "students": current_students,
+        "all_students": all_students,
+        "is_restricted": len(current_students) > 0
+    })
+
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/assign-student", methods=["POST"])
+@login_required
+def assign_student_permission(persona_id):
+    """
+    학생에게 페르소나 접근 권한 부여
+
+    Args:
+        persona_id: 페르소나 ID
+
+    Request Body:
+        {"student_id": 123}
+
+    Returns:
+        {"success": true}
+    """
+    persona = db.session.get(PersonaDefinition, persona_id)
+    if not persona:
+        return jsonify({"error": "페르소나를 찾을 수 없습니다."}), 404
+
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    data = request.json or {}
+    student_id = data.get("student_id")
+
+    if not student_id:
+        return jsonify({"error": "student_id가 필요합니다."}), 400
+
+    student = db.session.get(User, student_id)
+    if not student or student.role != "user":
+        return jsonify({"error": "유효한 학생이 아닙니다."}), 400
+
+    # 중복 확인
+    existing = PersonaStudentPermission.query.filter_by(
+        persona_id=persona_id,
+        student_id=student_id
+    ).first()
+
+    if existing:
+        return jsonify({"error": "이미 배정되어 있습니다."}), 400
+
+    try:
+        permission = PersonaStudentPermission(
+            persona_id=persona_id,
+            student_id=student_id,
+            granted_by=current_user.id
+        )
+        db.session.add(permission)
+        db.session.commit()
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"학생 배정 실패: {str(e)}"}), 500
+
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/unassign-student/<int:student_id>", methods=["DELETE"])
+@login_required
+def unassign_student_permission(persona_id, student_id):
+    """
+    학생의 페르소나 접근 권한 회수
+
+    Args:
+        persona_id: 페르소나 ID
+        student_id: 학생 ID
+
+    Returns:
+        {"success": true}
+    """
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    permission = PersonaStudentPermission.query.filter_by(
+        persona_id=persona_id,
+        student_id=student_id
+    ).first()
+
+    if not permission:
+        return jsonify({"error": "배정 정보를 찾을 수 없습니다."}), 404
+
+    try:
+        db.session.delete(permission)
+        db.session.commit()
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"배정 취소 실패: {str(e)}"}), 500
 
 
 @admin_persona_bp.route("/api/admin/persona/<int:persona_id>/prompts", methods=["GET"])

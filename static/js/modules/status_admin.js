@@ -639,6 +639,8 @@ window.App.registerModule((ctx) => {
             if (!response.ok) throw new Error('Failed to fetch users');
 
             let users = await response.json();
+            // 검색 필터링용 캐싱
+            ctx._adminAllUsers = users;
 
             // 정렬 상태 초기화 (최대 3개 기준)
             if (!ctx.adminSortState) {
@@ -816,6 +818,27 @@ window.App.registerModule((ctx) => {
             dom.adminUserListBody.innerHTML = '<tr><td colspan="6">사용자 목록 로드 실패: ' + error.message + '</td></tr>';
         }
     }
+
+    /**
+     * 사용자 검색 필터 (이름 또는 이메일)
+     * HTML의 oninput="filterAdminUserList()"에서 호출
+     */
+    window.filterAdminUserList = function() {
+        const query = (document.getElementById('adminUserSearch')?.value || '').toLowerCase().trim();
+        const allUsers = ctx._adminAllUsers || [];
+        const rows = dom.adminUserListBody?.querySelectorAll('tr') || [];
+
+        if (!query) {
+            rows.forEach(r => r.style.display = '');
+            return;
+        }
+
+        rows.forEach(row => {
+            const username = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+            const email    = (row.querySelector('td:nth-child(4)')?.textContent || '').toLowerCase();
+            row.style.display = (username.includes(query) || email.includes(query)) ? '' : 'none';
+        });
+    };
 
     // 사용자 목록 동작: 승인 토글, 삭제, 기록 보기 (이벤트 위임)
     if (dom.adminUserListBody) {

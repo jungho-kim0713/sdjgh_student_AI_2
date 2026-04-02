@@ -17,6 +17,7 @@ from models import (
     User,
     PersonaDefinition,
     PersonaSystemPrompt,
+    PersonaStudentPermission,
 )
 from services.ai_service import (
     generate_ai_response,
@@ -80,7 +81,22 @@ def index():
     elif getattr(current_user, 'role', '') == 'teacher':
         initial_personas = query.filter_by(allow_teacher=True).all()
     else:
-        initial_personas = query.filter_by(allow_user=True).all()
+        all_active = query.all()
+        # 2 queries로 N+1 방지
+        restricted_ids = {
+            r[0] for r in db.session.query(PersonaStudentPermission.persona_id).distinct().all()
+        }
+        my_ids = {
+            r[0] for r in db.session.query(PersonaStudentPermission.persona_id)
+                .filter(PersonaStudentPermission.student_id == current_user.id).all()
+        }
+        initial_personas = []
+        for p in all_active:
+            if p.id in restricted_ids:
+                if p.id in my_ids:
+                    initial_personas.append(p)
+            elif p.allow_user:
+                initial_personas.append(p)
 
     return render_template(
         "index.html",
@@ -115,10 +131,23 @@ def get_persona_visibility():
     user_role = getattr(current_user, "role", "user") or "user"
     personas = PersonaDefinition.query.filter_by(is_active=True).all()
 
+    # 학생인 경우 student permission 사전 조회 (N+1 방지)
+    if user_role == "user":
+        restricted_ids = {
+            r[0] for r in db.session.query(PersonaStudentPermission.persona_id).distinct().all()
+        }
+        my_ids = {
+            r[0] for r in db.session.query(PersonaStudentPermission.persona_id)
+                .filter(PersonaStudentPermission.student_id == current_user.id).all()
+        }
+
     allowed = []
     for p in personas:
         if user_role == "user":
-            is_allowed = p.allow_user
+            if p.id in restricted_ids:
+                is_allowed = p.id in my_ids
+            else:
+                is_allowed = p.allow_user
         else:  # teacher
             is_allowed = p.allow_teacher
 
@@ -486,7 +515,16 @@ def chat():
 
         # 사용자 역할별 접근 권한 확인
         if user_role == "user":
-            is_allowed = persona.allow_user
+            # 학생 배정이 있으면 allowlist 모드, 없으면 allow_user 플래그 적용
+            has_student_assignments = PersonaStudentPermission.query.filter_by(
+                persona_id=persona.id
+            ).first() is not None
+            if has_student_assignments:
+                is_allowed = PersonaStudentPermission.query.filter_by(
+                    persona_id=persona.id, student_id=current_user.id
+                ).first() is not None
+            else:
+                is_allowed = persona.allow_user
         else:  # teacher
             is_allowed = persona.allow_teacher
 

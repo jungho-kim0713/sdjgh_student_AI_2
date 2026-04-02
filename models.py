@@ -169,6 +169,7 @@ class PersonaDefinition(db.Model):
     system_prompts = db.relationship('PersonaSystemPrompt', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
     knowledge_bases = db.relationship('PersonaKnowledgeBase', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
     teacher_permissions = db.relationship('PersonaTeacherPermission', backref='persona', cascade='all, delete-orphan', lazy='dynamic')
+    student_permissions = db.relationship('PersonaStudentPermission', backref='persona_def', cascade='all, delete-orphan', lazy='dynamic', foreign_keys='PersonaStudentPermission.persona_id')
 
 # ---------------------------------------------------------
 # [8] 페르소나 시스템 프롬프트(PersonaSystemPrompt) 모델
@@ -208,6 +209,27 @@ class PersonaTeacherPermission(db.Model):
     granted_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('persona_id', 'teacher_id', name='_persona_teacher_uc'),)
+
+# ---------------------------------------------------------
+# [10-1] 학생 접근 권한(PersonaStudentPermission) 모델
+# ---------------------------------------------------------
+class PersonaStudentPermission(db.Model):
+    """
+    특정 페르소나에 접근 가능한 학생을 명시적으로 지정합니다.
+    이 테이블에 행이 존재하면 해당 페르소나는 지정된 학생만 접근 가능합니다.
+    행이 없으면 기존 allow_user 플래그가 적용됩니다.
+    """
+    __tablename__ = 'persona_student_permission'
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    granted_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    granted_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('persona_id', 'student_id', name='_persona_student_uc'),
+    )
 
 # ---------------------------------------------------------
 # [10] 지식 베이스(PersonaKnowledgeBase) 모델

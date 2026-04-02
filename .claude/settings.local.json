@@ -9,7 +9,11 @@
       "Bash(python test_rag_services.py:*)",
       "Bash(python:*)",
       "Bash(pip install:*)",
-      "Bash(venvScriptspython.exe -m pip install:*)"
+      "Bash(venvScriptspython.exe -m pip install:*)",
+      "Bash(ls \"c:\\\\jungho_webhome\\\\sdjgh_student_AI\\(module\\)\" --ignore=venv)",
+      "Bash(venv/Scripts/python app.py)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8081/login)"
     ]
   }
 }

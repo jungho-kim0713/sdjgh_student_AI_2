@@ -270,6 +270,24 @@
                 </div>
                 {% endif %}
 
+                <!-- 학생 배정 섹션 -->
+                <div class="form-section" id="studentAssignmentSection" style="display: none;">
+                    <h3>학생 배정</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin-bottom: 8px;">
+                        학생을 배정하면 배정된 학생만 이 페르소나에 접근할 수 있습니다.
+                        배정된 학생이 없으면 '일반 학생 사용 허용' 설정이 적용됩니다.
+                    </p>
+                    <div id="studentRestrictionBadge" style="display: none; margin-bottom: 10px;">
+                        <span style="background: #e74c3c; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">
+                            ⚠ 제한 모드 — 지정 학생만 접근 가능
+                        </span>
+                    </div>
+                    <button type="button" onclick="openStudentPickerModal()" class="btn-secondary" style="margin-bottom: 10px;">+ 학생 배정</button>
+                    <div class="teacher-list" id="studentList">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                </div>
+
                 <!-- 지식 베이스 관리 섹션 -->
                 <div class="form-section" id="knowledgeBaseSection" style="display: none;">
                     <h3>📚 지식 베이스 관리</h3>
@@ -725,5 +743,132 @@
             padding: 15px;
         }
     }
+
+    /* 학생 배정 모달 */
+    #studentPickerModal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+    #studentPickerModal.open {
+        display: flex;
+    }
+    .student-picker-dialog {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 640px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .student-picker-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        flex-shrink: 0;
+    }
+    .student-picker-header h3 { margin: 0; font-size: 1.1rem; }
+    .student-picker-header .close-btn {
+        background: none; border: none;
+        font-size: 1.6rem; color: #9ca3af;
+        cursor: pointer; line-height: 1; padding: 0 4px;
+    }
+    .student-picker-search {
+        padding: 12px 20px;
+        border-bottom: 1px solid #f3f4f6;
+        flex-shrink: 0;
+    }
+    .student-picker-search input {
+        width: 100%; padding: 8px 12px;
+        border: 1px solid #d1d5db; border-radius: 6px;
+        font-size: 0.95rem; box-sizing: border-box;
+    }
+    .student-picker-list {
+        flex: 1; overflow-y: auto; padding: 8px 0;
+    }
+    .student-picker-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 20px; cursor: pointer;
+        transition: background 0.1s; user-select: none;
+    }
+    .student-picker-item:hover { background: #f3f4f6; }
+    .student-picker-item.selected { background: #eff6ff; }
+    .student-picker-item input[type="checkbox"] {
+        width: 16px; height: 16px; cursor: pointer;
+        flex-shrink: 0; accent-color: #3b82f6;
+    }
+    .student-picker-item .student-name { font-weight: 500; font-size: 0.95rem; }
+    .student-picker-item .student-email { font-size: 0.8rem; color: #6b7280; }
+    .student-picker-footer {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px; border-top: 1px solid #e5e7eb;
+        flex-shrink: 0; background: #f9fafb;
+    }
+    .student-picker-footer .selection-info { font-size: 0.85rem; color: #6b7280; }
+    .student-picker-footer .btn-confirm {
+        background: #3b82f6; color: white; border: none;
+        border-radius: 6px; padding: 8px 20px;
+        font-size: 0.95rem; cursor: pointer; font-weight: 500;
+    }
+    .student-picker-footer .btn-confirm:hover { background: #2563eb; }
+    .student-picker-footer .btn-unassign {
+        background: #ef4444; color: white; border: none;
+        border-radius: 6px; padding: 8px 20px;
+        font-size: 0.95rem; cursor: pointer; font-weight: 500;
+    }
+    .student-picker-footer .btn-unassign:hover { background: #dc2626; }
+    .student-picker-empty {
+        text-align: center; color: #9ca3af;
+        padding: 40px 20px; font-size: 0.9rem;
+    }
+    /* 배정 상태 배지 */
+    .picker-assigned-badge {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+    .picker-assigned-badge.assigned {
+        background: #dcfce7; color: #16a34a;
+    }
+    .picker-assigned-badge.unassigned {
+        background: #f3f4f6; color: #9ca3af;
+    }
 </style>
+
+<!-- 학생 선택 모달 -->
+<div id="studentPickerModal">
+    <div class="student-picker-dialog">
+        <div class="student-picker-header">
+            <h3>학생 배정</h3>
+            <button class="close-btn" onclick="closeStudentPickerModal()">×</button>
+        </div>
+        <div class="student-picker-search">
+            <input type="text" id="studentPickerSearch" placeholder="학생 이름으로 검색..."
+                   oninput="filterStudentPicker()" autocomplete="off">
+        </div>
+        <div class="student-picker-list" id="studentPickerList">
+        </div>
+        <div class="student-picker-footer">
+            <span class="selection-info" id="studentPickerInfo">0명 선택됨</span>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-secondary" onclick="closeStudentPickerModal()" style="padding:8px 16px;">닫기</button>
+                <button class="btn-unassign" onclick="bulkUnassignStudents()">일괄 취소</button>
+                <button class="btn-confirm" onclick="bulkAssignStudents()">일괄 배정</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

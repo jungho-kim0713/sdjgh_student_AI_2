@@ -197,6 +197,7 @@ function renderPersonaList() {
                 <span class="icon">${p.icon || '🤖'}</span>
                 <span class="name">${p.role_name}</span>
                 ${p.use_rag ? '<span class="badge">RAG</span>' : ''}
+                ${p.student_count > 0 ? `<span class="badge" style="background:#e74c3c">${p.student_count}명 배정</span>` : ''}
             </div>
             <div class="key">${p.role_key}</div>
         </div>
@@ -278,6 +279,13 @@ async function loadPersonaDetails(persona) {
 
     // 교사 목록 로드
     loadPersonaTeachers(persona.id);
+
+    // 학생 배정 섹션 표시 및 로드
+    const studentSection = document.getElementById('studentAssignmentSection');
+    if (studentSection) {
+        studentSection.style.display = 'block';
+        loadPersonaStudents(persona.id);
+    }
 
     // 시스템 프롬프트 로드
     loadAllPrompts(persona.id);
@@ -410,6 +418,24 @@ function createNewPersona() {
     document.getElementById('restrictXai').checked = false;
 
     document.getElementById('teacherList').innerHTML = '<p style="color: #999; text-align: center;">새 페르소나를 저장한 후 교사를 추가할 수 있습니다</p>';
+
+    const studentSection = document.getElementById('studentAssignmentSection');
+    if (studentSection) studentSection.style.display = 'none';
+    const studentList = document.getElementById('studentList');
+    if (studentList) studentList.innerHTML = '<p style="color: #999; text-align: center;">새 페르소나를 저장한 후 학생을 배정할 수 있습니다</p>';
+    const badge = document.getElementById('studentRestrictionBadge');
+    if (badge) badge.style.display = 'none';
+    _pickerAll = [];
+    _pickerSelected.clear();
+    // 프롬프트 캐시 초기화
+    currentPrompts = {};
+    const promptTextarea = document.getElementById('systemPrompt');
+    if (promptTextarea) promptTextarea.value = '';
+    const providerSelect = document.getElementById('promptProvider');
+    if (providerSelect) {
+        providerSelect.value = 'default';
+        providerSelect.dataset.prevProvider = 'default';
+    }
 }
 
 /**
@@ -481,6 +507,33 @@ async function savePersona() {
         const result = await response.json();
 
         if (result.success) {
+            const personaId = result.persona_id || selectedPersonaId;
+
+            // 현재 textarea에 작성 중인 프롬프트를 캐시에 반영 (저장 버튼 누르기 직전 상태)
+            const providerEl = document.getElementById('promptProvider');
+            const currentProvider = providerEl?.value;
+            const currentText = document.getElementById('systemPrompt')?.value;
+            if (currentProvider && currentText) {
+                currentPrompts[currentProvider] = currentText;
+            }
+
+            // currentPrompts에 있는 모든 provider 프롬프트를 일괄 저장
+            if (personaId && Object.keys(currentPrompts).length > 0) {
+                for (const [provider, promptText] of Object.entries(currentPrompts)) {
+                    const trimmed = promptText.trim();
+                    if (!trimmed) continue;
+                    try {
+                        await fetch(`/api/admin/persona/${personaId}/prompt`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ provider, system_prompt: trimmed })
+                        });
+                    } catch (e) {
+                        console.error(`프롬프트 저장 실패 (${provider}):`, e);
+                    }
+                }
+            }
+
             alert(selectedPersonaId ? '페르소나가 수정되었습니다.' : '페르소나가 생성되었습니다.');
             await loadPersonas();
 
@@ -623,6 +676,249 @@ async function removeTeacher(teacherId) {
     }
 }
 
+// ─── 학생 배정 모달 ────────────────────────────────────────────
+
+// 모달 상태
+let _pickerAll = [];              // 전체 학생 목록 (is_assigned 포함)
+let _pickerSelected = new Set();  // 체크된 student.id
+let _pickerLastIdx = null;        // Shift 클릭용 마지막 인덱스
+
+/**
+ * 페르소나에 배정된 학생 목록 로드 (섹션 목록 갱신)
+ */
+async function loadPersonaStudents(personaId) {
+    try {
+        const response = await fetch(`/api/admin/persona/${personaId}/students`);
+        const data = await response.json();
+
+        // 제한 모드 배지
+        const badge = document.getElementById('studentRestrictionBadge');
+        if (badge) badge.style.display = data.is_restricted ? 'block' : 'none';
+
+        // 섹션 내 배정된 학생 목록
+        const studentListEl = document.getElementById('studentList');
+        if (data.students && data.students.length > 0) {
+            studentListEl.innerHTML = data.students.map(s => `
+                <div class="teacher-item">
+                    <div>
+                        <strong>${s.username}</strong>
+                        ${s.email ? `<br><small>${s.email}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            studentListEl.innerHTML = '<p style="color: #999; text-align: center;">배정된 학생이 없습니다 (전체 학생에게 공개)</p>';
+        }
+
+        // 모달용 전체 목록 캐싱
+        _pickerAll = data.all_students || [];
+    } catch (error) {
+        console.error('학생 목록 로드 실패:', error);
+    }
+}
+
+/**
+ * 학생 배정 모달 열기
+ */
+function openStudentPickerModal() {
+    if (!selectedPersonaId) {
+        alert('페르소나를 먼저 선택하거나 저장해주세요.');
+        return;
+    }
+    _pickerSelected.clear();
+    _pickerLastIdx = null;
+    document.getElementById('studentPickerSearch').value = '';
+    renderPickerList('');
+    document.getElementById('studentPickerModal').classList.add('open');
+    document.getElementById('studentPickerSearch').focus();
+}
+
+/**
+ * 학생 배정 모달 닫기
+ */
+function closeStudentPickerModal() {
+    document.getElementById('studentPickerModal').classList.remove('open');
+}
+
+/**
+ * 모달 내 학생 목록 렌더링
+ */
+function renderPickerList(query) {
+    const listEl = document.getElementById('studentPickerList');
+    const q = query.toLowerCase();
+    const filtered = _pickerAll.filter(s =>
+        s.username.toLowerCase().includes(q) ||
+        (s.email && s.email.toLowerCase().includes(q))
+    );
+    listEl._filtered = filtered;
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="student-picker-empty">학생이 없습니다</div>';
+        updatePickerInfo();
+        return;
+    }
+
+    listEl.innerHTML = filtered.map((s, idx) => {
+        const isChecked = _pickerSelected.has(s.id);
+        return `
+        <div class="student-picker-item ${isChecked ? 'selected' : ''}"
+             data-id="${s.id}" onclick="handlePickerClick(event, ${idx}, ${s.id})">
+            <input type="checkbox" ${isChecked ? 'checked' : ''}
+                   onclick="event.stopPropagation(); handlePickerClick(event, ${idx}, ${s.id})">
+            <div style="flex:1;">
+                <div class="student-name">${s.username}</div>
+                ${s.email ? `<div class="student-email">${s.email}</div>` : ''}
+            </div>
+            <div class="picker-assigned-badge ${s.is_assigned ? 'assigned' : 'unassigned'}">
+                ${s.is_assigned ? '배정됨' : '미배정'}
+            </div>
+        </div>`;
+    }).join('');
+
+    updatePickerInfo();
+}
+
+/**
+ * 모달 항목 클릭 (체크박스 + Shift 범위선택)
+ */
+function handlePickerClick(event, idx, studentId) {
+    const filtered = document.getElementById('studentPickerList')._filtered || _pickerAll;
+
+    if (event.shiftKey && _pickerLastIdx !== null) {
+        const start = Math.min(_pickerLastIdx, idx);
+        const end   = Math.max(_pickerLastIdx, idx);
+        const shouldSelect = !_pickerSelected.has(studentId);
+        for (let i = start; i <= end; i++) {
+            if (filtered[i]) {
+                if (shouldSelect) _pickerSelected.add(filtered[i].id);
+                else              _pickerSelected.delete(filtered[i].id);
+            }
+        }
+    } else {
+        if (_pickerSelected.has(studentId)) _pickerSelected.delete(studentId);
+        else                                _pickerSelected.add(studentId);
+        _pickerLastIdx = idx;
+    }
+
+    renderPickerList(document.getElementById('studentPickerSearch').value);
+}
+
+/**
+ * 선택 인원 카운트 갱신
+ */
+function updatePickerInfo() {
+    const infoEl = document.getElementById('studentPickerInfo');
+    if (infoEl) infoEl.textContent = `${_pickerSelected.size}명 선택됨`;
+}
+
+/**
+ * 모달 검색 필터
+ */
+function filterStudentPicker() {
+    _pickerLastIdx = null;
+    renderPickerList(document.getElementById('studentPickerSearch').value);
+}
+
+/**
+ * 일괄 배정 — 선택된 학생 중 미배정자만 배정
+ */
+async function bulkAssignStudents() {
+    const targets = Array.from(_pickerSelected).filter(id => {
+        const s = _pickerAll.find(s => s.id === id);
+        return s && !s.is_assigned;
+    });
+    if (targets.length === 0) {
+        alert('배정할 학생이 없습니다.\n미배정 학생을 선택해주세요.');
+        return;
+    }
+
+    let ok = 0, fail = 0;
+    for (const studentId of targets) {
+        try {
+            const res = await fetch(`/api/admin/persona/${selectedPersonaId}/assign-student`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id: studentId })
+            });
+            (await res.json()).success ? ok++ : fail++;
+        } catch { fail++; }
+    }
+
+    // 모달 내 상태 갱신 (닫지 않음)
+    await _refreshPickerData();
+    if (fail > 0) alert(`${ok}명 배정 완료, ${fail}명 실패`);
+}
+
+/**
+ * 일괄 취소 — 선택된 학생 중 배정된 학생만 취소
+ */
+async function bulkUnassignStudents() {
+    const targets = Array.from(_pickerSelected).filter(id => {
+        const s = _pickerAll.find(s => s.id === id);
+        return s && s.is_assigned;
+    });
+    if (targets.length === 0) {
+        alert('취소할 학생이 없습니다.\n배정된 학생을 선택해주세요.');
+        return;
+    }
+
+    let ok = 0, fail = 0;
+    for (const studentId of targets) {
+        try {
+            const res = await fetch(
+                `/api/admin/persona/${selectedPersonaId}/unassign-student/${studentId}`,
+                { method: 'DELETE' }
+            );
+            (await res.json()).success ? ok++ : fail++;
+        } catch { fail++; }
+    }
+
+    await _refreshPickerData();
+    if (fail > 0) alert(`${ok}명 취소 완료, ${fail}명 실패`);
+}
+
+/**
+ * 모달 내 데이터 새로고침 (모달 열린 채로 갱신)
+ */
+async function _refreshPickerData() {
+    try {
+        const response = await fetch(`/api/admin/persona/${selectedPersonaId}/students`);
+        const data = await response.json();
+        _pickerAll = data.all_students || [];
+        _pickerSelected.clear();
+
+        // 섹션 목록도 갱신
+        const badge = document.getElementById('studentRestrictionBadge');
+        if (badge) badge.style.display = data.is_restricted ? 'block' : 'none';
+        const studentListEl = document.getElementById('studentList');
+        if (data.students && data.students.length > 0) {
+            studentListEl.innerHTML = data.students.map(s => `
+                <div class="teacher-item">
+                    <div>
+                        <strong>${s.username}</strong>
+                        ${s.email ? `<br><small>${s.email}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            studentListEl.innerHTML = '<p style="color: #999; text-align: center;">배정된 학생이 없습니다 (전체 학생에게 공개)</p>';
+        }
+
+        renderPickerList(document.getElementById('studentPickerSearch').value);
+        await loadPersonas(); // 카드 배지 갱신
+    } catch (error) {
+        console.error('데이터 갱신 실패:', error);
+    }
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('studentPickerModal');
+    if (modal && e.target === modal) closeStudentPickerModal();
+});
+
+// ────────────────────────────────────────────────────────────
+
 /**
  * 모든 provider 프롬프트 로드
  */
@@ -647,10 +943,21 @@ async function loadAllPrompts(personaId) {
 
 /**
  * Provider 변경 시 해당 프롬프트 표시
+ * 전환 전에 현재 textarea 내용을 currentPrompts에 저장해둔다.
  */
 function loadPromptForProvider() {
-    const provider = document.getElementById('promptProvider').value;
+    const select = document.getElementById('promptProvider');
     const textarea = document.getElementById('systemPrompt');
+
+    // 전환 전: 이전 provider 값을 캐시에 저장 (신규 작성 중인 내용 보존)
+    if (select.dataset.prevProvider) {
+        const prev = select.dataset.prevProvider;
+        const prevVal = textarea.value; // trim 하지 않음 — 저장 시 trim
+        if (prevVal) currentPrompts[prev] = prevVal;
+    }
+
+    const provider = select.value;
+    select.dataset.prevProvider = provider;
     textarea.value = currentPrompts[provider] || '';
 }
 
