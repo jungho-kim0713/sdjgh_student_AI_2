@@ -232,6 +232,32 @@ class PersonaStudentPermission(db.Model):
     )
 
 # ---------------------------------------------------------
+# [10-2] 시스템 프롬프트 스냅샷(PersonaPromptSnapshot) 모델
+# ---------------------------------------------------------
+class PersonaPromptSnapshot(db.Model):
+    """
+    페르소나의 시스템 프롬프트를 슬롯에 저장합니다.
+    페르소나당 5개 슬롯, 각 슬롯에 공급사별 프롬프트 전체를 저장합니다.
+    """
+    __tablename__ = 'persona_prompt_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('persona_definition.id', ondelete='CASCADE'), nullable=False)
+    slot_number = db.Column(db.Integer, nullable=False)  # 1~5
+    memo = db.Column(db.String(50), default='')
+    prompt_default = db.Column(db.Text, default='')
+    prompt_openai = db.Column(db.Text, default='')
+    prompt_anthropic = db.Column(db.Text, default='')
+    prompt_google = db.Column(db.Text, default='')
+    prompt_xai = db.Column(db.Text, default='')
+    saved_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    saved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('persona_id', 'slot_number', name='_persona_snapshot_slot_uc'),
+    )
+
+# ---------------------------------------------------------
 # [10] 지식 베이스(PersonaKnowledgeBase) 모델
 # ---------------------------------------------------------
 class PersonaKnowledgeBase(db.Model):

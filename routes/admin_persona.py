@@ -13,6 +13,7 @@ from models import (
     PersonaSystemPrompt,
     PersonaTeacherPermission,
     PersonaStudentPermission,
+    PersonaPromptSnapshot,
     PersonaKnowledgeBase,
     KnowledgeDocument,
     DocumentChunk,
@@ -1012,6 +1013,137 @@ def update_persona_prompt(persona_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"저장 실패: {str(e)}"}), 500
+
+
+# ================================================================
+# 시스템 프롬프트 스냅샷 API
+# ================================================================
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/prompt-snapshots", methods=["GET"])
+@login_required
+def get_prompt_snapshots(persona_id):
+    """페르소나의 프롬프트 스냅샷 5개 슬롯 목록 반환."""
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    snapshots = PersonaPromptSnapshot.query.filter_by(persona_id=persona_id).all()
+    slot_map = {s.slot_number: s for s in snapshots}
+
+    slots = []
+    for i in range(1, 6):
+        s = slot_map.get(i)
+        slots.append({
+            "slot": i,
+            "memo": s.memo if s else None,
+            "saved_at": s.saved_at.strftime("%Y-%m-%d %H:%M") if s else None,
+            "empty": s is None
+        })
+
+    return jsonify({"slots": slots})
+
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/prompt-snapshots/<int:slot>", methods=["POST"])
+@login_required
+def save_prompt_snapshot(persona_id, slot):
+    """현재 공급사별 프롬프트를 슬롯에 저장."""
+    if slot < 1 or slot > 5:
+        return jsonify({"error": "슬롯 번호는 1~5 사이여야 합니다."}), 400
+
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    # 현재 페르소나의 모든 provider 프롬프트 수집
+    prompts = {p.provider: p.system_prompt for p in
+               PersonaSystemPrompt.query.filter_by(persona_id=persona_id).all()}
+
+    data = request.json or {}
+    memo = (data.get("memo") or "").strip()[:50]
+
+    try:
+        existing = PersonaPromptSnapshot.query.filter_by(
+            persona_id=persona_id, slot_number=slot
+        ).first()
+
+        if existing:
+            existing.memo = memo
+            existing.prompt_default   = prompts.get("default", "")
+            existing.prompt_openai    = prompts.get("openai", "")
+            existing.prompt_anthropic = prompts.get("anthropic", "")
+            existing.prompt_google    = prompts.get("google", "")
+            existing.prompt_xai       = prompts.get("xai", "")
+            existing.saved_at = datetime.datetime.utcnow()
+            existing.saved_by = current_user.id
+        else:
+            snap = PersonaPromptSnapshot(
+                persona_id=persona_id,
+                slot_number=slot,
+                memo=memo,
+                prompt_default=prompts.get("default", ""),
+                prompt_openai=prompts.get("openai", ""),
+                prompt_anthropic=prompts.get("anthropic", ""),
+                prompt_google=prompts.get("google", ""),
+                prompt_xai=prompts.get("xai", ""),
+                saved_by=current_user.id
+            )
+            db.session.add(snap)
+
+        db.session.commit()
+        return jsonify({"success": True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"저장 실패: {str(e)}"}), 500
+
+
+@admin_persona_bp.route("/api/admin/persona/<int:persona_id>/prompt-snapshots/<int:slot>/restore", methods=["POST"])
+@login_required
+def restore_prompt_snapshot(persona_id, slot):
+    """슬롯에서 프롬프트를 복원하여 반환 (DB에 즉시 덮어씀)."""
+    if not can_manage_persona(current_user, persona_id):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    snap = PersonaPromptSnapshot.query.filter_by(
+        persona_id=persona_id, slot_number=slot
+    ).first()
+
+    if not snap:
+        return jsonify({"error": "해당 슬롯에 저장된 내용이 없습니다."}), 404
+
+    provider_map = {
+        "default":   snap.prompt_default,
+        "openai":    snap.prompt_openai,
+        "anthropic": snap.prompt_anthropic,
+        "google":    snap.prompt_google,
+        "xai":       snap.prompt_xai,
+    }
+
+    try:
+        for provider, prompt_text in provider_map.items():
+            existing = PersonaSystemPrompt.query.filter_by(
+                persona_id=persona_id, provider=provider
+            ).first()
+            if existing:
+                existing.system_prompt = prompt_text
+                existing.updated_by = current_user.id
+                existing.updated_at = datetime.datetime.utcnow()
+            elif prompt_text:
+                db.session.add(PersonaSystemPrompt(
+                    persona_id=persona_id,
+                    provider=provider,
+                    system_prompt=prompt_text,
+                    updated_by=current_user.id
+                ))
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "prompts": provider_map
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"복원 실패: {str(e)}"}), 500
 
 
 # ================================================================

@@ -943,16 +943,17 @@ async function loadAllPrompts(personaId) {
 
 /**
  * Provider 변경 시 해당 프롬프트 표시
- * 전환 전에 현재 textarea 내용을 currentPrompts에 저장해둔다.
+ * @param {boolean} fromUser - true: 사용자가 직접 탭을 바꾼 경우 (textarea 캐싱 O)
+ *                             false: 코드에서 자동 호출된 경우 (캐싱 X — 다른 페르소나 데이터 오염 방지)
  */
-function loadPromptForProvider() {
+function loadPromptForProvider(fromUser = false) {
     const select = document.getElementById('promptProvider');
     const textarea = document.getElementById('systemPrompt');
 
-    // 전환 전: 이전 provider 값을 캐시에 저장 (신규 작성 중인 내용 보존)
-    if (select.dataset.prevProvider) {
+    // 사용자가 직접 탭을 바꿀 때만 이전 내용을 캐시에 저장
+    if (fromUser && select.dataset.prevProvider) {
         const prev = select.dataset.prevProvider;
-        const prevVal = textarea.value; // trim 하지 않음 — 저장 시 trim
+        const prevVal = textarea.value;
         if (prevVal) currentPrompts[prev] = prevVal;
     }
 
@@ -999,6 +1000,192 @@ async function saveSystemPrompt() {
     }
 }
 
+
+// ─── 시스템 프롬프트 스냅샷 ────────────────────────────────────
+
+let _snapshotSlots = [];      // 슬롯 목록 캐시
+let _pendingSaveSlot = null;  // 저장 확인 대기 중인 슬롯 번호
+
+/**
+ * 슬롯 목록 로드 (두 모달 공용)
+ */
+async function _loadSnapshotSlots() {
+    try {
+        const res = await fetch(`/api/admin/persona/${selectedPersonaId}/prompt-snapshots`);
+        const data = await res.json();
+        _snapshotSlots = data.slots || [];
+    } catch (e) {
+        console.error('슬롯 목록 로드 실패:', e);
+        _snapshotSlots = [];
+    }
+}
+
+/**
+ * 저장 모달 열기
+ */
+async function openSaveSnapshotModal() {
+    if (!selectedPersonaId) { alert('페르소나를 먼저 선택하세요'); return; }
+    await _loadSnapshotSlots();
+    _pendingSaveSlot = null;
+
+    const listEl = document.getElementById('saveSnapshotSlotList');
+    listEl.innerHTML = _snapshotSlots.map(s => `
+        <div class="snapshot-slot-item" onclick="selectSaveSlot(${s.slot})">
+            <div class="slot-num">${s.slot}</div>
+            <div class="slot-info">
+                ${s.empty
+                    ? '<span class="slot-empty">빈 슬롯</span>'
+                    : `<div class="slot-memo">${s.memo || '(메모 없음)'}</div>
+                       <div class="slot-date">${s.saved_at}</div>`
+                }
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('saveMemoRow').style.display = 'none';
+    document.getElementById('saveSnapshotMemo').value = '';
+    document.getElementById('saveSnapshotModal').classList.add('open');
+}
+
+function closeSaveSnapshotModal() {
+    document.getElementById('saveSnapshotModal').classList.remove('open');
+}
+
+/**
+ * 저장 슬롯 선택 → 메모 입력 행 표시
+ */
+function selectSaveSlot(slot) {
+    _pendingSaveSlot = slot;
+
+    // 선택된 슬롯 강조
+    document.querySelectorAll('#saveSnapshotSlotList .snapshot-slot-item').forEach((el, i) => {
+        el.style.background = (i + 1 === slot) ? '#eff6ff' : '';
+        el.style.borderColor = (i + 1 === slot) ? '#3b82f6' : '#e5e7eb';
+    });
+
+    // 기존 메모 미리 채우기
+    const existing = _snapshotSlots.find(s => s.slot === slot);
+    document.getElementById('saveSnapshotMemo').value = (existing && !existing.empty) ? (existing.memo || '') : '';
+    document.getElementById('saveMemoRow').style.display = 'block';
+    document.getElementById('saveSnapshotMemo').focus();
+}
+
+function cancelSaveSlot() {
+    _pendingSaveSlot = null;
+    document.getElementById('saveMemoRow').style.display = 'none';
+    document.querySelectorAll('#saveSnapshotSlotList .snapshot-slot-item').forEach(el => {
+        el.style.background = '';
+        el.style.borderColor = '#e5e7eb';
+    });
+}
+
+/**
+ * 슬롯 저장 확정
+ */
+async function confirmSaveSlot() {
+    if (!_pendingSaveSlot) return;
+
+    // 현재 textarea의 내용을 currentPrompts에 반영
+    const providerEl = document.getElementById('promptProvider');
+    const textareaVal = document.getElementById('systemPrompt').value;
+    if (providerEl && textareaVal) {
+        currentPrompts[providerEl.value] = textareaVal;
+    }
+
+    const memo = document.getElementById('saveSnapshotMemo').value.trim();
+
+    try {
+        const res = await fetch(
+            `/api/admin/persona/${selectedPersonaId}/prompt-snapshots/${_pendingSaveSlot}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memo })
+            }
+        );
+        const result = await res.json();
+        if (result.success) {
+            closeSaveSnapshotModal();
+        } else {
+            alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        console.error('스냅샷 저장 실패:', e);
+        alert('저장 중 오류가 발생했습니다');
+    }
+}
+
+/**
+ * 불러오기 모달 열기
+ */
+async function openLoadSnapshotModal() {
+    if (!selectedPersonaId) { alert('페르소나를 먼저 선택하세요'); return; }
+    await _loadSnapshotSlots();
+
+    const listEl = document.getElementById('loadSnapshotSlotList');
+    listEl.innerHTML = _snapshotSlots.map(s => `
+        <div class="snapshot-slot-item ${s.empty ? 'disabled' : ''}"
+             onclick="${s.empty ? '' : `restoreSnapshotSlot(${s.slot})`}"
+             style="${s.empty ? 'opacity:0.4;cursor:default;' : 'cursor:pointer;'}">
+            <div class="slot-num">${s.slot}</div>
+            <div class="slot-info">
+                ${s.empty
+                    ? '<span class="slot-empty">빈 슬롯</span>'
+                    : `<div class="slot-memo">${s.memo || '(메모 없음)'}</div>
+                       <div class="slot-date">${s.saved_at}</div>`
+                }
+            </div>
+            ${!s.empty ? '<span style="font-size:0.8rem;color:#3b82f6;flex-shrink:0;">불러오기 →</span>' : ''}
+        </div>
+    `).join('');
+
+    document.getElementById('loadSnapshotModal').classList.add('open');
+}
+
+function closeLoadSnapshotModal() {
+    document.getElementById('loadSnapshotModal').classList.remove('open');
+}
+
+/**
+ * 슬롯 복원
+ */
+async function restoreSnapshotSlot(slot) {
+    if (!confirm(`슬롯 ${slot}의 프롬프트를 불러오시겠습니까?\n현재 작성 중인 내용은 사라집니다.`)) return;
+
+    try {
+        const res = await fetch(
+            `/api/admin/persona/${selectedPersonaId}/prompt-snapshots/${slot}/restore`,
+            { method: 'POST' }
+        );
+        const result = await res.json();
+        if (result.success) {
+            // currentPrompts 갱신
+            currentPrompts = result.prompts || {};
+
+            // 현재 선택된 provider textarea 갱신
+            const providerEl = document.getElementById('promptProvider');
+            if (providerEl) {
+                providerEl.dataset.prevProvider = providerEl.value;
+                document.getElementById('systemPrompt').value = currentPrompts[providerEl.value] || '';
+            }
+
+            closeLoadSnapshotModal();
+        } else {
+            alert('불러오기 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        console.error('스냅샷 복원 실패:', e);
+        alert('불러오기 중 오류가 발생했습니다');
+    }
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('saveSnapshotModal')) closeSaveSnapshotModal();
+    if (e.target === document.getElementById('loadSnapshotModal')) closeLoadSnapshotModal();
+});
+
+// ────────────────────────────────────────────────────────────
 
 // ================================================================
 // RAG 지식 베이스 관리
