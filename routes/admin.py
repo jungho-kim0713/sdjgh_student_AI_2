@@ -1,5 +1,7 @@
 import os
 import datetime
+import random
+import string
 
 from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
@@ -443,4 +445,30 @@ def admin_bulk_delete_users():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Delete failed: {str(e)}"}), 500
+
+
+@admin_bp.route("/api/admin/reset_password", methods=["POST"])
+@login_required
+def admin_reset_password():
+    """관리자 전용: 사용자 비밀번호 초기화 (난수 생성 또는 직접 지정)."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+
+    data = request.json or {}
+    uid = data.get("user_id")
+    new_password = data.get("password", "").strip()
+
+    u = db.session.get(User, uid)
+    if not u:
+        return jsonify({"error": "사용자를 찾을 수 없습니다."}), 404
+    if u.is_admin:
+        return jsonify({"error": "관리자 계정은 초기화할 수 없습니다."}), 400
+
+    if not new_password:
+        chars = string.ascii_lowercase + string.digits + "!@#$%^&*"
+        new_password = ''.join(random.choices(chars, k=8))
+
+    u.set_password(new_password)
+    db.session.commit()
+    return jsonify({"success": True, "new_password": new_password})
 

@@ -706,6 +706,7 @@ window.App.registerModule((ctx) => {
                         <div class="btn-group" style="justify-content: center;">
                             <button class="btn-secondary btn-xs view-history-btn" data-user-id="${user.id}" data-username="${user.username}">기록</button>
                             <button class="btn-danger btn-xs delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" ${user.username === state.currentUsername ? 'disabled' : ''}>삭제</button>
+                            ${!user.is_admin ? `<button class="btn-warning btn-xs reset-password-btn" data-user-id="${user.id}" data-username="${displayName}">🔑</button>` : ''}
                         </div>
                     </td>
                 `;
@@ -845,10 +846,10 @@ window.App.registerModule((ctx) => {
         });
     };
 
-    // 사용자 목록 동작: 승인 토글, 삭제, 기록 보기 (이벤트 위임)
+    // 사용자 목록 동작: 승인 토글, 삭제, 기록 보기, 비밀번호 초기화 (이벤트 위임)
     if (dom.adminUserListBody) {
         dom.adminUserListBody.addEventListener('click', async (e) => {
-            const target = e.target.closest('.toggle-approval-btn, .delete-user-btn, .view-history-btn');
+            const target = e.target.closest('.toggle-approval-btn, .delete-user-btn, .view-history-btn, .reset-password-btn');
             if (!target) return;
 
             const userId = target.dataset.userId;
@@ -900,6 +901,12 @@ window.App.registerModule((ctx) => {
             // 3. 기록 조회
             if (target.classList.contains('view-history-btn')) {
                 loadUserHistory(userId, username);
+                return;
+            }
+
+            // 4. 비밀번호 초기화
+            if (target.classList.contains('reset-password-btn')) {
+                showPasswordResetModal(userId, username);
             }
         });
     }
@@ -983,6 +990,74 @@ window.App.registerModule((ctx) => {
             }
             closeModal();
         });
+    }
+
+    /**
+     * 비밀번호 초기화 모달 표시
+     */
+    function showPasswordResetModal(userId, username) {
+        const existing = document.getElementById('pw-reset-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'pw-reset-modal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        `;
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 28px; width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                <h3 style="margin: 0 0 8px 0; font-size: 1.1rem;">🔑 비밀번호 초기화</h3>
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 0.9rem;">${username} 사용자의 비밀번호를 초기화합니다.</p>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px;">새 비밀번호 (비워두면 자동 생성)</label>
+                    <input id="pw-reset-input" type="text" placeholder="직접 입력하거나 비워두세요"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;">
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button id="pw-reset-cancel" style="padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer;">취소</button>
+                    <button id="pw-reset-confirm" style="padding: 8px 16px; border: none; border-radius: 6px; background: #f59e0b; color: white; font-weight: bold; cursor: pointer;">초기화</button>
+                </div>
+                <div id="pw-reset-result" style="display:none; margin-top: 14px; padding: 10px 14px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-size: 0.9rem;"></div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('pw-reset-cancel').onclick = () => modal.remove();
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+        document.getElementById('pw-reset-confirm').onclick = async () => {
+            const pw = document.getElementById('pw-reset-input').value.trim();
+            const btn = document.getElementById('pw-reset-confirm');
+            btn.disabled = true;
+            btn.textContent = '처리중...';
+
+            try {
+                const res = await fetch('/api/admin/reset_password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(userId), password: pw })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const resultDiv = document.getElementById('pw-reset-result');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `✅ 초기화 완료! 새 비밀번호: <strong style="font-family: monospace; font-size: 1rem;">${data.new_password}</strong>`;
+                    btn.style.display = 'none';
+                    document.getElementById('pw-reset-cancel').textContent = '닫기';
+                } else {
+                    alert(data.error || '초기화 실패');
+                    btn.disabled = false;
+                    btn.textContent = '초기화';
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.textContent = '초기화';
+            }
+        };
     }
 
     /**
