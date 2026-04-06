@@ -28,6 +28,16 @@ def register():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
+        password_confirm = request.form.get("password_confirm")
+
+        if len(password) < 5:
+            flash("비밀번호가 너무 짧습니다. 5자 이상 입력해주세요.", "error")
+            return redirect(url_for("auth.register"))
+
+        if password != password_confirm:
+            flash("비밀번호가 일치하지 않습니다.", "error")
+            return redirect(url_for("auth.register"))
+
         if User.query.filter_by(username=username).first():
             flash("이미 존재하는 아이디입니다.", "error")
             return redirect(url_for("auth.register"))

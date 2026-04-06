@@ -13,7 +13,17 @@
       "Bash(ls \"c:\\\\jungho_webhome\\\\sdjgh_student_AI\\(module\\)\" --ignore=venv)",
       "Bash(venv/Scripts/python app.py)",
       "Bash(echo \"PID: $!\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8081/login)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8081/login)",
+      "Bash(venv/Scripts/python.exe app.py)",
+      "Bash(where py:*)",
+      "Bash(py --version)",
+      "Read(//c/Users/김정호/AppData/Local/Programs/**)",
+      "Read(//c//**)",
+      "Read(//c/Program Files/**)",
+      "Bash(\"/c/Python312/python.exe\" --version)",
+      "Bash(\"C:/Program Files/Python312/python.exe\" -m venv venv --clear)",
+      "Bash(\"/c/Program Files/Python312/python.exe\" -m venv venv --clear)",
+      "Bash(\"/c/Program Files/Python312/python.exe\" --version)"
     ]
   }
 }

@@ -644,7 +644,7 @@ window.App.registerModule((ctx) => {
 
             // 정렬 상태 초기화 (최대 3개 기준)
             if (!ctx.adminSortState) {
-                ctx.adminSortState = [{ key: 'id', dir: 'asc' }];
+                ctx.adminSortState = [{ key: 'username', dir: 'asc' }];
             }
 
             // 다중 정렬 로직 적용
@@ -781,9 +781,9 @@ window.App.registerModule((ctx) => {
                         if (ctx.adminSortState.length > 3) ctx.adminSortState.pop();
                     }
 
-                    // 기본 정렬(ID ASC) 유지 (비어있으면)
+                    // 기본 정렬(username ASC) 유지 (비어있으면)
                     if (ctx.adminSortState.length === 0) {
-                        ctx.adminSortState.push({ key: 'id', dir: 'asc' });
+                        ctx.adminSortState.push({ key: 'username', dir: 'asc' });
                     }
 
                     loadAdminUserList(); // 재렌더링
@@ -812,6 +812,11 @@ window.App.registerModule((ctx) => {
                     indicator.classList.remove('active');
                 }
             });
+
+            // 정렬 재렌더링 후 현재 검색어 재적용
+            if (typeof window.filterAdminUserList === 'function') {
+                window.filterAdminUserList();
+            }
 
         } catch (error) {
             console.error("Failed to load users:", error);

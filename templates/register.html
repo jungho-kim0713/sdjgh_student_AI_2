@@ -28,19 +28,72 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
+        <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm">
             <div class="form-group">
-                <label for="username">아이디</label>
-                <span class="form-hint">('입학년도 4자리_학번 5자리_이름')</span>
+                <label for="username">아이디 <span class="form-hint">예) 2026_10101_설윤아</span></label>
                 <input type="text" id="username" name="username" placeholder="예) 2026_10101_설윤아" required>
             </div>
             <div class="form-group">
-                <label for="password">비밀번호</label>
-                <span class="form-hint">(숫자, 문자 합쳐서 5자리 이상)</span>
+                <label for="password">비밀번호 <span class="form-hint">5글자 이상</span></label>
                 <input type="password" id="password" name="password" required>
+                <span id="pw-length-msg" class="field-error-msg" style="display:none;">비밀번호가 너무 짧습니다</span>
+            </div>
+            <div class="form-group">
+                <label for="password_confirm">비밀번호 확인</label>
+                <input type="password" id="password_confirm" name="password_confirm" required>
+                <span id="pw-match-msg" class="field-error-msg" style="display:none;">비밀번호가 일치하지 않습니다</span>
             </div>
             <button type="submit" class="auth-button">회원가입</button>
         </form>
+
+        <style>
+            .field-error-msg {
+                color: #e53935;
+                font-size: 0.82em;
+                margin-top: 4px;
+                display: block;
+            }
+        </style>
+
+        <script>
+            const pwInput = document.getElementById('password');
+            const pwConfirmInput = document.getElementById('password_confirm');
+            const pwLengthMsg = document.getElementById('pw-length-msg');
+            const pwMatchMsg = document.getElementById('pw-match-msg');
+
+            pwInput.addEventListener('input', function () {
+                if (this.value.length > 0 && this.value.length < 5) {
+                    pwLengthMsg.style.display = 'block';
+                } else {
+                    pwLengthMsg.style.display = 'none';
+                }
+                checkMatch();
+            });
+
+            pwConfirmInput.addEventListener('input', checkMatch);
+
+            function checkMatch() {
+                if (pwConfirmInput.value.length > 0 && pwInput.value !== pwConfirmInput.value) {
+                    pwMatchMsg.style.display = 'block';
+                } else {
+                    pwMatchMsg.style.display = 'none';
+                }
+            }
+
+            document.getElementById('registerForm').addEventListener('submit', function (e) {
+                if (pwInput.value.length < 5) {
+                    e.preventDefault();
+                    pwLengthMsg.style.display = 'block';
+                    pwInput.focus();
+                    return;
+                }
+                if (pwInput.value !== pwConfirmInput.value) {
+                    e.preventDefault();
+                    pwMatchMsg.style.display = 'block';
+                    pwConfirmInput.focus();
+                }
+            });
+        </script>
         <p class="auth-switch">이미 계정이 있으신가요? <a href="{{ url_for('auth.login') }}">로그인</a></p>
     </div>
 </body>
