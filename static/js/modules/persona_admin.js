@@ -192,8 +192,10 @@ function renderPersonaList() {
 
     listElement.innerHTML = personas.map(p => `
         <div class="persona-item ${selectedPersonaId === p.id ? 'active' : ''}"
+             data-id="${p.id}"
              onclick="selectPersona(${p.id})">
             <div>
+                <span class="drag-handle" onclick="event.stopPropagation()">⠿</span>
                 <span class="icon">${p.icon || '🤖'}</span>
                 <span class="name">${p.role_name}</span>
                 ${p.use_rag ? '<span class="badge">RAG</span>' : ''}
@@ -202,6 +204,53 @@ function renderPersonaList() {
             <div class="key">${p.role_key}</div>
         </div>
     `).join('');
+
+    initSortable();
+}
+
+/**
+ * SortableJS 드래그앤드롭 초기화
+ */
+function initSortable() {
+    const listElement = document.getElementById('personaList');
+    if (!listElement || typeof Sortable === 'undefined') return;
+
+    if (listElement._sortable) {
+        listElement._sortable.destroy();
+    }
+
+    listElement._sortable = Sortable.create(listElement, {
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: async () => {
+            const items = listElement.querySelectorAll('.persona-item[data-id]');
+            const order = Array.from(items).map((el, idx) => ({
+                id: parseInt(el.dataset.id),
+                sort_order: idx
+            }));
+            // 로컬 personas 배열도 순서 업데이트
+            const idxMap = {};
+            order.forEach(o => { idxMap[o.id] = o.sort_order; });
+            personas.sort((a, b) => idxMap[a.id] - idxMap[b.id]);
+            await savePersonaOrder(order);
+        }
+    });
+}
+
+/**
+ * 페르소나 순서 서버에 저장
+ */
+async function savePersonaOrder(order) {
+    try {
+        await fetch('/api/admin/persona/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order })
+        });
+    } catch (error) {
+        console.error('순서 저장 실패:', error);
+    }
 }
 
 /**
@@ -230,8 +279,9 @@ async function selectPersona(personaId) {
  * 페르소나 상세 정보 폼에 로드
  */
 async function loadPersonaDetails(persona) {
-    // 빈 상태 숨기기, 폼 표시
+    // 빈 상태 숨기기, 헤더 + 폼 표시
     document.querySelector('.empty-state').style.display = 'none';
+    document.getElementById('personaDetailHeader').style.display = 'block';
     document.getElementById('personaDetailForm').style.display = 'block';
 
     // 모델 드롭다운이 비어있으면 다시 로드
@@ -386,6 +436,7 @@ function createNewPersona() {
 
     // 폼 초기화
     document.querySelector('.empty-state').style.display = 'none';
+    document.getElementById('personaDetailHeader').style.display = 'block';
     document.getElementById('personaDetailForm').style.display = 'block';
 
     document.getElementById('roleKey').value = '';
@@ -394,10 +445,15 @@ function createNewPersona() {
     document.getElementById('icon').value = '🤖';
     document.getElementById('description').value = '';
 
-    document.getElementById('modelOpenai').value = 'gpt-4o-mini';
-    document.getElementById('modelAnthropic').value = 'claude-haiku-4-5-20251001';
-    document.getElementById('modelGoogle').value = 'gemini-3-flash-preview';
-    document.getElementById('modelXai').value = 'grok-4-1-fast-reasoning';
+    const firstOption = sel => sel.options.length > 0 ? sel.options[0].value : '';
+    const openaiSel = document.getElementById('modelOpenai');
+    const anthropicSel = document.getElementById('modelAnthropic');
+    const googleSel = document.getElementById('modelGoogle');
+    const xaiSel = document.getElementById('modelXai');
+    openaiSel.value = firstOption(openaiSel);
+    anthropicSel.value = firstOption(anthropicSel);
+    googleSel.value = firstOption(googleSel);
+    xaiSel.value = firstOption(xaiSel);
     document.getElementById('maxTokens').value = '4096';
 
     document.getElementById('useRag').checked = false;
@@ -592,6 +648,7 @@ function cancelEdit() {
     renderPersonaList();
 
     document.querySelector('.empty-state').style.display = 'flex';
+    document.getElementById('personaDetailHeader').style.display = 'none';
     document.getElementById('personaDetailForm').style.display = 'none';
 }
 

@@ -39,6 +39,9 @@ def seed_personas():
             "general": "💬"
         }
 
+        # 시스템 페르소나로 고정할 role_key 목록
+        system_persona_keys = {"ai_illustrator", "general"}
+
         for role_key, persona_data in AI_PERSONAS.items():
             print(f"\n🔄 처리 중: {role_key} ({persona_data['role_name']})")
 
@@ -55,11 +58,11 @@ def seed_personas():
                 role_name=persona_data["role_name"],
                 description=persona_data.get("description", ""),
                 icon=persona_icons.get(role_key, "🤖"),
-                is_system=True,  # 시스템 기본 페르소나
+                is_system=role_key in system_persona_keys,  # 지정된 페르소나만 시스템
                 is_active=True,
 
                 # AI 모델 기본값
-                model_openai="gpt-4o-mini",
+                model_openai="gpt-4.1-mini",
                 model_anthropic="claude-haiku-4-5-20251001",
                 model_google="gemini-2.0-flash",
                 max_tokens=4096,

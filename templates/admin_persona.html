@@ -24,19 +24,36 @@
 
         <!-- 우측: 페르소나 상세 설정 -->
         <div class="panel-right" id="detailPanel">
-            <div class="empty-state">
-                <p>👈 좌측에서 페르소나를 선택하거나 새로 만들어주세요.</p>
-            </div>
 
-            <!-- 페르소나 상세 폼 (처음에는 숨김) -->
-            <div id="personaDetailForm" style="display: none;">
-                <div class="form-section">
-                    <h3>기본 정보</h3>
-                    <div class="form-group">
+            <!-- 고정 헤더: 식별자 + 액션 버튼 (스크롤 밖에 위치) -->
+            <div id="personaDetailHeader" style="display: none;">
+                <div class="detail-sticky-header">
+                    <div class="sticky-role-key">
                         <label>식별자 (role_key)</label>
                         <input type="text" id="roleKey" placeholder="예: math_tutor" {% if is_teacher %}readonly
                             style="background-color: #f0f0f0; cursor: not-allowed;" {% endif %}>
-                        <small>영문 소문자, 숫자, 언더스코어만 가능{% if is_teacher %} (교사는 수정 불가){% endif %}</small>
+                    </div>
+                    <div class="sticky-actions">
+                        <button onclick="savePersona()" class="btn-primary">💾 저장</button>
+                        <button onclick="deletePersona()" class="btn-danger">🗑️ 삭제</button>
+                        <button onclick="cancelEdit()" class="btn-secondary">취소</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 스크롤 영역 -->
+            <div class="panel-right-body">
+                <div class="empty-state">
+                    <p>👈 좌측에서 페르소나를 선택하거나 새로 만들어주세요.</p>
+                </div>
+
+                <!-- 페르소나 상세 폼 (처음에는 숨김) -->
+                <div id="personaDetailForm" style="display: none;">
+
+                <div class="form-section">
+                    <h3>기본 정보</h3>
+                    <div class="form-group">
+                        <small style="color:#999;">영문 소문자, 숫자, 언더스코어만 가능{% if is_teacher %} (교사는 수정 불가){% endif %}</small>
                     </div>
                     <div class="form-group">
                         <label>표시 이름</label>
@@ -384,16 +401,13 @@
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button onclick="savePersona()" class="btn-primary">💾 저장</button>
-                    <button onclick="deletePersona()" class="btn-danger">🗑️ 삭제</button>
-                    <button onclick="cancelEdit()" class="btn-secondary">취소</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                </div><!-- /personaDetailForm -->
+            </div><!-- /panel-right-body -->
+        </div><!-- /panel-right -->
+    </div><!-- /two-panel-layout -->
+</div><!-- /persona-admin-container -->
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="/static/js/modules/persona_admin.js?v={{ version }}"></script>
 
 <style>
@@ -504,8 +518,16 @@
         background: white;
         border-radius: 10px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 20px;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-right-body {
+        flex: 1;
         overflow-y: auto;
+        padding: 20px;
     }
 
     .empty-state {
@@ -513,6 +535,7 @@
         align-items: center;
         justify-content: center;
         height: 100%;
+        padding-top: 20px;
         color: #999;
         font-size: 1.1em;
     }
@@ -594,12 +617,57 @@
         border-bottom: none;
     }
 
-    .form-actions {
+    /* 고정 헤더: 식별자 + 버튼 (flex column의 첫 번째 행 — 스크롤 안 됨) */
+    .detail-sticky-header {
+        background: white;
+        border-bottom: 2px solid #e0e0e0;
+        padding: 16px 20px 12px 20px;
         display: flex;
-        gap: 10px;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 2px solid #eee;
+        align-items: flex-end;
+        gap: 16px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+
+    .sticky-role-key {
+        flex: 1;
+        min-width: 160px;
+    }
+
+    .sticky-role-key label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+        color: #555;
+        font-size: 13px;
+    }
+
+    .sticky-role-key input {
+        width: 100%;
+        padding: 7px 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    .sticky-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    /* 드래그 핸들 */
+    .persona-item .drag-handle {
+        cursor: grab;
+        color: #bbb;
+        margin-right: 6px;
+        font-size: 1rem;
+        user-select: none;
+    }
+
+    .persona-item.sortable-ghost {
+        opacity: 0.4;
+        background: #e3f2fd;
     }
 
     .btn-primary,
@@ -758,9 +826,16 @@
             gap: 10px;
         }
 
-        .panel-left,
-        .panel-right {
+        .panel-left {
             padding: 15px;
+        }
+
+        .panel-right-body {
+            padding: 15px;
+        }
+
+        .detail-sticky-header {
+            padding: 12px 15px 10px 15px;
         }
     }
 

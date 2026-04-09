@@ -147,6 +147,7 @@ with app.app_context():
         ensure_column("persona_config", "model_xai", "model_xai VARCHAR(100) DEFAULT 'grok-4-1-fast-reasoning'")
         ensure_column("persona_definition", "restrict_xai", "restrict_xai BOOLEAN DEFAULT FALSE")
         ensure_column("persona_definition", "model_xai", "model_xai VARCHAR(100) DEFAULT 'grok-4-1-fast-reasoning'")
+        ensure_column("persona_definition", "sort_order", "sort_order INTEGER DEFAULT 0")
 
         # 새 컬럼 기본값 보정(기존 레코드).
         with db.engine.begin() as conn:
@@ -160,6 +161,13 @@ with app.app_context():
             conn.execute(text("UPDATE persona_config SET model_xai='grok-4-1-fast-reasoning' WHERE model_xai IS NULL"))
             conn.execute(text("UPDATE persona_definition SET restrict_xai=FALSE WHERE restrict_xai IS NULL"))
             conn.execute(text("UPDATE persona_definition SET model_xai='grok-4-1-fast-reasoning' WHERE model_xai IS NULL"))
+            # sort_order가 0인 기존 레코드를 id 순서로 초기화
+            conn.execute(text("UPDATE persona_definition SET sort_order=id WHERE sort_order=0 OR sort_order IS NULL"))
+            # ai_illustrator, general 외 나머지 기본 페르소나의 is_system 해제
+            conn.execute(text(
+                "UPDATE persona_definition SET is_system=FALSE "
+                "WHERE role_key NOT IN ('ai_illustrator', 'general') AND is_system=TRUE"
+            ))
         # 서비스 상태 기본값 시딩
         if not SystemConfig.query.filter_by(key="service_status").first():
             db.session.add(SystemConfig(key="service_status", value="active"))

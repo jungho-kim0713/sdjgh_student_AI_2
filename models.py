@@ -138,6 +138,7 @@ class PersonaDefinition(db.Model):
     icon = db.Column(db.String(50), default='🤖')                     # 아이콘
     is_system = db.Column(db.Boolean, default=False)                  # 시스템 기본 페르소나
     is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)                     # 목록 표시 순서
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

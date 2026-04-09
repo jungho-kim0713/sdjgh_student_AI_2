@@ -253,7 +253,7 @@ def get_persona_list():
     print(f"[DEBUG] manageable_ids: {manageable_ids}")
 
     # 쿼리 구성 (관리자는 전체, 교사는 필터링)
-    query = PersonaDefinition.query.order_by(PersonaDefinition.id.asc())
+    query = PersonaDefinition.query.order_by(PersonaDefinition.sort_order.asc(), PersonaDefinition.id.asc())
     if manageable_ids is not None:  # None = 관리자(전체 접근)
         query = query.filter(PersonaDefinition.id.in_(manageable_ids))
 
@@ -291,13 +291,41 @@ def get_persona_list():
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "teacher_count": teacher_count,
             "knowledge_base_count": kb_count,
-            "student_count": student_count
+            "student_count": student_count,
+            "sort_order": p.sort_order
         })
 
     return jsonify({
         "personas": persona_list,
         "available_models": get_enabled_models_merged()
     })
+
+
+@admin_persona_bp.route("/api/admin/persona/reorder", methods=["POST"])
+@login_required
+def reorder_personas():
+    """
+    페르소나 목록 순서 저장
+
+    Body: {"order": [{"id": 1, "sort_order": 0}, ...]}
+    """
+    if not is_persona_manager(current_user):
+        return jsonify({"error": "권한이 없습니다."}), 403
+
+    data = request.get_json()
+    if not data or "order" not in data:
+        return jsonify({"error": "order 필드가 필요합니다."}), 400
+
+    try:
+        for item in data["order"]:
+            persona = db.session.get(PersonaDefinition, item["id"])
+            if persona:
+                persona.sort_order = item["sort_order"]
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_persona_bp.route("/api/admin/persona/<int:persona_id>", methods=["GET"])

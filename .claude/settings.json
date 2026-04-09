@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(venv/Scripts/python.exe --version)",
+      "Bash(venv/Scripts/python.exe -c \"import flask; print\\('Flask OK'\\)\")",
+      "Bash(venv/Scripts/python.exe -c \"from app import app; print\\('App loaded OK'\\)\")",
+      "Bash(venv/Scripts/python.exe -m flask run --host=0.0.0.0 --port=5000 --debug)"
     ]
   }
 }
