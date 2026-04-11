@@ -66,7 +66,7 @@ services:
     build: .
     container_name: ai_platform_worker
     restart: always
-    command: celery -A app.celery worker --loglevel=info --concurrency=2
+    command: celery -A app.celery worker --loglevel=info --pool=gevent --concurrency=4
     env_file:
       - .env
     environment:
