@@ -171,6 +171,12 @@ window.App.registerModule((ctx) => {
                                 ctx.sessions.fetchHistory(selectedModel);
                             }
 
+                            // 이미지 생성 백그라운드 태스크 시작됨 → 폴링 시작
+                            if (data.image_pending && data.task_id) {
+                                contentDiv.innerHTML = "🎨 이미지 생성 중...";
+                                pollImageTask(data.task_id, contentDiv, data.session_id);
+                            }
+
                             // 스트리밍 종료 처리
                             if (data.done) {
                                 // 마크다운 렌더링 호출
@@ -201,6 +207,35 @@ window.App.registerModule((ctx) => {
             console.error('API Error:', error);
             contentDiv.innerHTML = `<p style="color: red;">🚫 오류가 발생했습니다: ${error.message}</p>`;
         }
+    }
+
+    // 이미지 생성 태스크 완료 폴링 (2초 간격, 최대 120초)
+    async function pollImageTask(taskId, contentDiv, sessionId) {
+        const maxAttempts = 60;
+        for (let i = 0; i < maxAttempts; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                const res = await fetch(`/api/image_task_status/${taskId}`);
+                const data = await res.json();
+                if (data.status === 'done') {
+                    const rawHtml = window.marked.parse(data.image_html);
+                    contentDiv.innerHTML = ctx.messages.processCodeBlocksInHtml(rawHtml);
+                    if (sessionId && !state.currentSessionId) {
+                        state.currentSessionId = sessionId;
+                        ctx.sessions.fetchHistory(selectedModel);
+                    }
+                    return;
+                } else if (data.status === 'error') {
+                    contentDiv.innerHTML = `<p style="color: red;">🚫 이미지 생성 실패: ${data.error}</p>`;
+                    return;
+                }
+                // pending 상태면 계속 폴링
+                contentDiv.innerHTML = `🎨 이미지 생성 중... (${i + 1}/${maxAttempts})`;
+            } catch (e) {
+                console.error('pollImageTask error:', e);
+            }
+        }
+        contentDiv.innerHTML = `<p style="color: red;">🚫 이미지 생성 시간 초과</p>`;
     }
 
     // 폼 전송: 사용자 메시지 렌더링 → 파일 업로드 → 서버 전송.

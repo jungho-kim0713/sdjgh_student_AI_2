@@ -84,6 +84,12 @@ else:
 
 # SQLAlchemy 추적/시크릿키 설정
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_size": 8,         # 워커(8)당 상시 유지 연결 수 (총 ~80개)
+    "max_overflow": 8,      # 초과 시 추가 연결 (총 최대 ~160개, PostgreSQL max_connections=200 이하)
+    "pool_pre_ping": True,  # 사용 전 연결 유효성 확인 (DB 재시작 후 에러 방지)
+    "pool_recycle": 3600,   # 1시간마다 연결 갱신 (좀비 연결 방지)
+}
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-dev-secret-key")
 
 # 업로드 경로 구성 및 기본 폴더 생성

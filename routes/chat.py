@@ -1,10 +1,6 @@
 import os
-import datetime
-import base64
 import traceback
 
-import requests
-import google.generativeai as genai
 from flask import Blueprint, jsonify, request, render_template, url_for, current_app, Response, stream_with_context
 from flask_login import login_required, current_user
 import json
@@ -21,15 +17,14 @@ from models import (
     PersonaTeacherPermission,
 )
 from services.ai_service import (
-    generate_ai_response,
     generate_ai_response_stream,
     DEFAULT_MODELS,
     DEFAULT_MODEL,
     DEFAULT_MAX_TOKENS,
     AVAILABLE_MODELS,
-    get_openai_client,
 )
 from extensions import db
+from tasks import generate_image_async
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -184,7 +179,8 @@ def get_persona_visibility():
             allowed.append({
                 "role_key": p.role_key,
                 "role_name": p.role_name,
-                "icon": p.icon,
+                "icon": p.icon or "🤖",
+                "description": p.description or "",
                 "use_rag": p.use_rag
             })
 
@@ -309,216 +305,36 @@ def chat():
             # 시스템 프롬프트 조회
             system_prompt = get_system_prompt_from_db(persona.id, provider)
 
-            # 프롬프트 최적화(텍스트 → 이미지 프롬프트)
-            prompt_optimizer = generate_ai_response(
-                model_id=prompt_model_id,
-                system_prompt=system_prompt or "Convert to English prompt",
-                messages=[{"role": "user", "content": user_message}],
-                max_tokens=200,
-                upload_folder=current_app.config["UPLOAD_FOLDER"],
-            )
-            final_prompt = prompt_optimizer.strip()
-
-            # 프롬프트 최적화가 실패했으면 원본 메시지 사용
-            if final_prompt.startswith("⚠️") or "차단" in final_prompt or "Error" in final_prompt:
-                final_prompt = user_message
-
-            generated_image_filename = None
-
-            if provider == "google":
-                if not os.getenv("GOOGLE_API_KEY"):
-                    raise ValueError("Google API Key Missing")
-                # Imagen 4.0 (Ultra) 선택 시 REST 호출
-                if selected_model_id == "imagen-4.0-generate-001":
-                    try:
-                        api_url = (
-                            "https://generativelanguage.googleapis.com/v1beta/models/"
-                            f"imagen-4.0-generate-001:predict?key={os.getenv('GOOGLE_API_KEY')}"
-                        )
-                        headers = {"Content-Type": "application/json"}
-                        payload = {
-                            "instances": [{"prompt": final_prompt}],
-                            "parameters": {"sampleCount": 1, "aspectRatio": "1:1"},
-                        }
-                        response = requests.post(api_url, headers=headers, json=payload)
-                        if response.status_code != 200:
-                            raise Exception(
-                                f"Google API Error ({response.status_code}): {response.text}"
-                            )
-                        result = response.json()
-                        if "predictions" in result and len(result["predictions"]) > 0:
-                            # Base64 이미지 디코딩 후 저장
-                            b64_data = result["predictions"][0]["bytesBase64Encoded"]
-                            img_data = base64.b64decode(b64_data)
-                            generated_image_filename = (
-                                f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_imagen.png"
-                            )
-                            save_path = os.path.join(
-                                current_app.config["UPLOAD_FOLDER"],
-                                generated_image_filename,
-                            )
-                            with open(save_path, "wb") as f:
-                                f.write(img_data)
-                        else:
-                            raise Exception("이미지 데이터가 응답에 없습니다.")
-                    except Exception as e:
-                        print(f"Imagen REST API Error: {e}")
-                        return jsonify({"error": f"Google 이미지 생성 실패(API): {str(e)}"}), 500
-                else:
-                    # Gemini 이미지 모델 사용
-                    try:
-                        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-                        safety_settings = [
-                            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                        ]
-                        image_model = genai.GenerativeModel(selected_model_id)
-                        response = image_model.generate_content(final_prompt, safety_settings=safety_settings)
-                        parts = response.candidates[0].content.parts if response.candidates else []
-                        img_data = None
-                        for part in parts:
-                            if hasattr(part, "inline_data") and part.inline_data:
-                                img_data = part.inline_data.data
-                                break
-                            if isinstance(part, dict) and part.get("inline_data"):
-                                img_data = base64.b64decode(part["inline_data"]["data"])
-                                break
-                        if not img_data:
-                            raise Exception("이미지 데이터가 응답에 없습니다.")
-                        generated_image_filename = (
-                            f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_gemini.png"
-                        )
-                        save_path = os.path.join(
-                            current_app.config["UPLOAD_FOLDER"],
-                            generated_image_filename,
-                        )
-                        with open(save_path, "wb") as f:
-                            f.write(img_data)
-                    except Exception as e:
-                        print(f"Gemini Image Error: {e}")
-                        return jsonify({"error": f"Google 이미지 생성 실패: {str(e)}"}), 500
-
-            elif provider == "openai":
-                import traceback
-                # DALL-E 3 호출
-                openai_client = get_openai_client()
-                if not openai_client:
-                    raise ValueError("OpenAI API Key Missing")
-                
-                print(f"=== [Debug] DALL-E 3 Prompt ===\n{final_prompt}\n==============================")
-                
-                try:
-                    response = openai_client.images.generate(
-                        model="dall-e-3",
-                        prompt=final_prompt,
-                        size="1024x1024",
-                        quality="standard",
-                        n=1,
-                    )
-                    image_url = response.data[0].url
-                    img_data = requests.get(image_url).content
-                except Exception as inner_e:
-                    print(f"=== [Debug] DALL-E 3 API Error ===")
-                    traceback.print_exc()
-                    raise inner_e
-                generated_image_filename = (
-                    f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_dalle.png"
-                )
-                save_path = os.path.join(
-                    current_app.config["UPLOAD_FOLDER"],
-                    generated_image_filename,
-                )
-                with open(save_path, "wb") as f:
-                    f.write(img_data)
-                    
-            elif provider == "xai":
-                import traceback
-                from services.ai_service import get_xai_client
-                xai_client = get_xai_client()
-                if not xai_client:
-                    raise ValueError("xAI API Key Missing")
-
-                print(f"=== [Debug] Grok Imagine Prompt ===\n{final_prompt}\n==============================")
-                try:
-                    # xAI의 이미지/비디오 생성 엔드포인트에 맞춰 호출 필요. 현재는 openai 호환 포맷으로 가정.
-                    # 추후 공식 문서 확인 후 URL이나 파라미터 조정 필요 가능.
-                    response = xai_client.images.generate(
-                        model=selected_model_id, # "grok-imagine-image" 등
-                        prompt=final_prompt,
-                        n=1,
-                    )
-                    image_url = response.data[0].url
-                    img_data = requests.get(image_url).content
-                except Exception as inner_e:
-                    print(f"=== [Debug] Grok Image API Error ===")
-                    traceback.print_exc()
-                    raise inner_e
-                
-                generated_image_filename = (
-                    f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_grok.png"
-                )
-                save_path = os.path.join(
-                    current_app.config["UPLOAD_FOLDER"],
-                    generated_image_filename,
-                )
-                with open(save_path, "wb") as f:
-                    f.write(img_data)
-
-            else:
-                # Claude는 이미지 생성 미지원
+            if provider == "anthropic":
                 def generate_unsupported():
                     chunk = "Claude(Anthropic)는 아직 이미지 생성을 지원하지 않습니다. Google이나 GPT를 선택해주세요."
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
                     yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
-                
                 return Response(stream_with_context(generate_unsupported()), mimetype="text/event-stream")
 
-            if generated_image_filename:
-                # 이미지 파일 메타데이터 저장
-                rel_path = f"uploads/{generated_image_filename}"
-                new_file = ChatFile(
-                    session_id=session_id,
-                    user_id=current_user.id,
-                    filename=generated_image_filename,
-                    storage_path=rel_path,
-                    file_type="image/png",
-                    file_size=os.path.getsize(save_path),
-                    uploaded_by="ai",
-                )
-                db.session.add(new_file)
-                
-                # 사용자에게 이미지 결과 HTML 반환
-                response_html = (
-                    "🎨 **생성된 이미지**\n\n"
-                    f"(Prompt: {final_prompt})\n\n"
-                    f"<img src='/static/{rel_path}' style='max-width:100%; border-radius:10px; margin-top:10px;' "
-                    "onclick='window.open(this.src)'>"
-                )
-                db.session.add(
-                    Message(
-                        session_id=session_id,
-                        user_id=current_user.id,
-                        is_user=False,
-                        content=response_html,
-                        provider=provider,
-                    )
-                )
-                db.session.commit()
-                def generate_image_stream():
-                    yield f"data: {json.dumps({'chunk': response_html})}\n\n"
-                    yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
-                
-                return Response(stream_with_context(generate_image_stream()), mimetype="text/event-stream")
+            # Celery 백그라운드 태스크로 이미지 생성 위임 (워커 블로킹 방지)
+            task = generate_image_async.delay(
+                session_id=session_id,
+                user_id=current_user.id,
+                provider=provider,
+                selected_model_id=selected_model_id,
+                prompt_model_id=prompt_model_id,
+                system_prompt=system_prompt,
+                user_message=user_message,
+                upload_folder=current_app.config["UPLOAD_FOLDER"],
+            )
+
+            # 즉시 task_id 반환 → 프론트가 폴링해서 완료 확인
+            def generate_task_queued():
+                yield f"data: {json.dumps({'task_id': task.id, 'session_id': session_id, 'image_pending': True})}\n\n"
+                yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+
+            return Response(stream_with_context(generate_task_queued()), mimetype="text/event-stream")
 
         except Exception as e:
-            # 이미지 생성 예외 처리
             print(f"Image Gen Error: {e}")
-            
             def generate_error_stream():
                 yield f"data: {json.dumps({'error': f'이미지 생성 실패: {str(e)}'})}\n\n"
-            
             return Response(stream_with_context(generate_error_stream()), mimetype="text/event-stream")
 
     image_paths_for_ai = []
@@ -735,6 +551,27 @@ def chat():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({"error": f"AI 응답 오류 ({provider}): {str(e)}"}), 500
+
+
+@chat_bp.route("/api/image_task_status/<task_id>")
+@login_required
+def image_task_status(task_id):
+    """이미지 생성 Celery 태스크 상태 조회 (프론트 폴링용)"""
+    from tasks import generate_image_async
+    task = generate_image_async.AsyncResult(task_id)
+
+    if task.state == "PENDING" or task.state == "STARTED":
+        return jsonify({"status": "pending"})
+    elif task.state == "SUCCESS":
+        result = task.result or {}
+        if result.get("success"):
+            return jsonify({"status": "done", "image_html": result["image_html"], "session_id": result["session_id"]})
+        else:
+            return jsonify({"status": "error", "error": result.get("error", "알 수 없는 오류")})
+    elif task.state == "FAILURE":
+        return jsonify({"status": "error", "error": str(task.result)})
+    else:
+        return jsonify({"status": task.state.lower()})
 
 
 @chat_bp.route("/api/get_chat_history")

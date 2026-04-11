@@ -6,7 +6,9 @@ Celery 백그라운드 작업 시스템
 """
 
 import os
+import base64
 import datetime
+import requests as http_requests
 from celery import Celery
 from flask import Flask
 
@@ -334,6 +336,147 @@ def reprocess_failed_documents():
         db.session.rollback()
         print(f"❌ 재처리 실패: {e}")
         raise
+
+
+@celery.task(bind=True, max_retries=2)
+def generate_image_async(self, session_id, user_id, provider, selected_model_id,
+                          prompt_model_id, system_prompt, user_message, upload_folder):
+    """
+    이미지 생성 백그라운드 작업
+
+    Flask 워커를 블로킹하지 않고 이미지를 생성합니다.
+    완료 후 DB에 메시지/파일 저장까지 처리합니다.
+
+    Returns:
+        {"success": True, "image_html": "...", "session_id": ...}
+    """
+    from extensions import db
+    from models import Message, ChatFile
+    from services.ai_service import generate_ai_response
+
+    try:
+        # 1. 프롬프트 최적화 (텍스트 → 이미지 프롬프트)
+        final_prompt = generate_ai_response(
+            model_id=prompt_model_id,
+            system_prompt=system_prompt or "Convert to English image generation prompt",
+            messages=[{"role": "user", "content": user_message}],
+            max_tokens=200,
+            upload_folder=upload_folder,
+        ).strip()
+
+        if final_prompt.startswith("⚠️") or "차단" in final_prompt or "Error" in final_prompt:
+            final_prompt = user_message
+
+        generated_image_filename = None
+        img_data = None
+
+        # 2. 제공자별 이미지 생성
+        if provider == "google":
+            import google.generativeai as genai
+            if not os.getenv("GOOGLE_API_KEY"):
+                raise ValueError("Google API Key Missing")
+
+            if selected_model_id == "imagen-4.0-generate-001":
+                api_url = (
+                    "https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"imagen-4.0-generate-001:predict?key={os.getenv('GOOGLE_API_KEY')}"
+                )
+                response = http_requests.post(api_url, headers={"Content-Type": "application/json"}, json={
+                    "instances": [{"prompt": final_prompt}],
+                    "parameters": {"sampleCount": 1, "aspectRatio": "1:1"},
+                })
+                if response.status_code != 200:
+                    raise Exception(f"Google API Error ({response.status_code}): {response.text}")
+                result = response.json()
+                if "predictions" not in result or not result["predictions"]:
+                    raise Exception("이미지 데이터가 응답에 없습니다.")
+                img_data = base64.b64decode(result["predictions"][0]["bytesBase64Encoded"])
+                generated_image_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_imagen.png"
+            else:
+                genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+                safety_settings = [
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                ]
+                image_model = genai.GenerativeModel(selected_model_id)
+                response = image_model.generate_content(final_prompt, safety_settings=safety_settings)
+                parts = response.candidates[0].content.parts if response.candidates else []
+                for part in parts:
+                    if hasattr(part, "inline_data") and part.inline_data:
+                        img_data = part.inline_data.data
+                        break
+                    if isinstance(part, dict) and part.get("inline_data"):
+                        img_data = base64.b64decode(part["inline_data"]["data"])
+                        break
+                if not img_data:
+                    raise Exception("이미지 데이터가 응답에 없습니다.")
+                generated_image_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_gemini.png"
+
+        elif provider == "openai":
+            from services.ai_service import get_openai_client
+            openai_client = get_openai_client()
+            if not openai_client:
+                raise ValueError("OpenAI API Key Missing")
+            response = openai_client.images.generate(
+                model="dall-e-3", prompt=final_prompt, size="1024x1024", quality="standard", n=1,
+            )
+            img_data = http_requests.get(response.data[0].url).content
+            generated_image_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_dalle.png"
+
+        elif provider == "xai":
+            from services.ai_service import get_xai_client
+            xai_client = get_xai_client()
+            if not xai_client:
+                raise ValueError("xAI API Key Missing")
+            response = xai_client.images.generate(model=selected_model_id, prompt=final_prompt, n=1)
+            img_data = http_requests.get(response.data[0].url).content
+            generated_image_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_grok.png"
+
+        else:
+            raise ValueError(f"지원하지 않는 provider: {provider}")
+
+        # 3. 파일 저장
+        save_path = os.path.join(upload_folder, generated_image_filename)
+        with open(save_path, "wb") as f:
+            f.write(img_data)
+
+        # 4. DB 저장 (파일 메타데이터 + 메시지)
+        rel_path = f"uploads/{generated_image_filename}"
+        response_html = (
+            "🎨 **생성된 이미지**\n\n"
+            f"(Prompt: {final_prompt})\n\n"
+            f"<img src='/static/{rel_path}' style='max-width:100%; border-radius:10px; margin-top:10px;' "
+            "onclick='window.open(this.src)'>"
+        )
+
+        new_file = ChatFile(
+            session_id=session_id,
+            user_id=user_id,
+            filename=generated_image_filename,
+            storage_path=rel_path,
+            file_type="image/png",
+            file_size=os.path.getsize(save_path),
+            uploaded_by="ai",
+        )
+        db.session.add(new_file)
+        db.session.add(Message(
+            session_id=session_id,
+            user_id=user_id,
+            is_user=False,
+            content=response_html,
+            provider=provider,
+        ))
+        db.session.commit()
+
+        return {"success": True, "image_html": response_html, "session_id": session_id}
+
+    except Exception as e:
+        print(f"Image generation task error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=5)
+        return {"success": False, "error": str(e)}
 
 
 # Celery Beat 스케줄 (주기적 작업)

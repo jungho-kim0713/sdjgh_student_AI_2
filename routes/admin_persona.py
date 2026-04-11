@@ -106,13 +106,20 @@ def get_manageable_persona_ids(user):
     return []  # 학생은 관리 권한 없음
 
 
-def can_manage_persona(user, persona_id):
+def _get_teacher_permission_map(user_id):
+    """교사의 권한 목록을 한 번에 조회해 {persona_id: permission} 딕셔너리로 반환."""
+    rows = PersonaTeacherPermission.query.filter_by(teacher_id=user_id).all()
+    return {r.persona_id: r for r in rows}
+
+
+def can_manage_persona(user, persona_id, _permission_map=None):
     """
     특정 페르소나 관리 권한 체크
 
     Args:
         user: 현재 사용자
         persona_id: 페르소나 ID
+        _permission_map: 미리 조회한 {persona_id: permission} 딕셔너리 (루프 호출 시 N+1 방지)
 
     Returns:
         bool: 관리 권한 여부
@@ -121,16 +128,17 @@ def can_manage_persona(user, persona_id):
         return True
 
     if user.role == 'teacher':
-        permission = PersonaTeacherPermission.query.filter_by(
-            persona_id=persona_id,
-            teacher_id=user.id
-        ).first()
-        return permission is not None
+        if _permission_map is not None:
+            return persona_id in _permission_map
+        # 단건 호출 시에만 개별 쿼리
+        return PersonaTeacherPermission.query.filter_by(
+            persona_id=persona_id, teacher_id=user.id
+        ).first() is not None
 
     return False
 
 
-def has_persona_permission(user, persona_id, permission_type='can_edit_prompt'):
+def has_persona_permission(user, persona_id, permission_type='can_edit_prompt', _permission_map=None):
     """
     특정 페르소나의 세부 권한 체크
 
@@ -138,6 +146,7 @@ def has_persona_permission(user, persona_id, permission_type='can_edit_prompt'):
         user: 현재 사용자
         persona_id: 페르소나 ID
         permission_type: 'can_edit_prompt' | 'can_manage_knowledge' | 'can_view_analytics'
+        _permission_map: 미리 조회한 {persona_id: permission} 딕셔너리 (루프 호출 시 N+1 방지)
 
     Returns:
         bool: 권한 여부
@@ -146,10 +155,12 @@ def has_persona_permission(user, persona_id, permission_type='can_edit_prompt'):
         return True
 
     if user.role == 'teacher':
-        permission = PersonaTeacherPermission.query.filter_by(
-            persona_id=persona_id,
-            teacher_id=user.id
-        ).first()
+        if _permission_map is not None:
+            permission = _permission_map.get(persona_id)
+        else:
+            permission = PersonaTeacherPermission.query.filter_by(
+                persona_id=persona_id, teacher_id=user.id
+            ).first()
 
         if permission:
             return getattr(permission, permission_type, False)
@@ -260,24 +271,31 @@ def get_persona_list():
     personas = query.all()
     print(f"[DEBUG] 조회된 페르소나 개수: {len(personas)}")
 
+    persona_ids = [p.id for p in personas]
+
+    # 루프 N+1 방지: 교사 수 / 지식베이스 수 / 학생 수를 한 번에 집계
+    from sqlalchemy import func
+    teacher_counts = {
+        row[0]: row[1]
+        for row in db.session.query(PersonaTeacherPermission.persona_id, func.count())
+            .filter(PersonaTeacherPermission.persona_id.in_(persona_ids))
+            .group_by(PersonaTeacherPermission.persona_id).all()
+    }
+    kb_counts = {
+        row[0]: row[1]
+        for row in db.session.query(PersonaKnowledgeBase.persona_id, func.count())
+            .filter(PersonaKnowledgeBase.persona_id.in_(persona_ids), PersonaKnowledgeBase.is_active == True)
+            .group_by(PersonaKnowledgeBase.persona_id).all()
+    }
+    student_counts = {
+        row[0]: row[1]
+        for row in db.session.query(PersonaStudentPermission.persona_id, func.count())
+            .filter(PersonaStudentPermission.persona_id.in_(persona_ids))
+            .group_by(PersonaStudentPermission.persona_id).all()
+    }
+
     persona_list = []
     for p in personas:
-        # 교사 수 계산
-        teacher_count = PersonaTeacherPermission.query.filter_by(
-            persona_id=p.id
-        ).count()
-
-        # 지식 베이스 통계
-        kb_count = PersonaKnowledgeBase.query.filter_by(
-            persona_id=p.id,
-            is_active=True
-        ).count()
-
-        # 학생 배정 수
-        student_count = PersonaStudentPermission.query.filter_by(
-            persona_id=p.id
-        ).count()
-
         persona_list.append({
             "id": p.id,
             "role_key": p.role_key,
@@ -289,9 +307,9 @@ def get_persona_list():
             "use_rag": p.use_rag,
             "retrieval_strategy": p.retrieval_strategy,
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "teacher_count": teacher_count,
-            "knowledge_base_count": kb_count,
-            "student_count": student_count,
+            "teacher_count": teacher_counts.get(p.id, 0),
+            "knowledge_base_count": kb_counts.get(p.id, 0),
+            "student_count": student_counts.get(p.id, 0),
             "sort_order": p.sort_order
         })
 
