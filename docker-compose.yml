@@ -15,7 +15,7 @@ services:
     container_name: ai_platform_web
     restart: always
     # 로컬 개발: 간단한 설정, 코드 변경 시 자동 재시작
-    command: gunicorn --bind 0.0.0.0:8080 --worker-class gevent --workers 8 --worker-connections 1000 --timeout 120 --keepalive 5 --access-logfile - --error-logfile - app:app
+    command: gunicorn --bind 0.0.0.0:8080 --worker-class gevent --workers 8 --worker-connections 1000 --timeout 120 --keep-alive 5 --access-logfile - --error-logfile - app:app
     ports:
       - "8081:8080"  # 외부(8081) -> 내부(8080) 연결
     env_file:
