@@ -7,7 +7,7 @@
 
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, cache
 from models import (
     PersonaDefinition,
     PersonaSystemPrompt,
@@ -340,6 +340,7 @@ def reorder_personas():
             if persona:
                 persona.sort_order = item["sort_order"]
         db.session.commit()
+        cache.delete('active_personas')
         return jsonify({"success": True})
     except Exception as e:
         db.session.rollback()
@@ -502,6 +503,7 @@ def create_persona():
 
         db.session.add(persona)
         db.session.commit()
+        cache.delete('active_personas')
 
         # 지식 베이스 생성 (RAG 사용 시)
         if data.get("use_rag", False):
@@ -646,6 +648,7 @@ def update_persona(persona_id):
 
         persona.updated_at = datetime.datetime.utcnow()
         db.session.commit()
+        cache.delete('active_personas')
 
         return jsonify({"success": True})
 
@@ -678,6 +681,7 @@ def delete_persona(persona_id):
         role_name = persona.role_name
         db.session.delete(persona)
         db.session.commit()
+        cache.delete('active_personas')
 
         return jsonify({
             "success": True,

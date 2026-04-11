@@ -2,6 +2,7 @@ import os
 import base64
 import mimetypes
 import requests
+from concurrent.futures import ThreadPoolExecutor
 import google.generativeai as genai
 import openai
 import anthropic
@@ -66,6 +67,30 @@ def init_ai_clients():
 # 앱 시작 시 초기화 실행
 init_ai_clients()
 
+
+def _preload_images(messages, upload_folder):
+    """메시지 목록의 모든 이미지를 병렬로 읽어 {img_path: (b64_data, mime)} dict 반환."""
+    paths = []
+    for msg in messages:
+        for img_path in msg.get("image_paths", []):
+            relative = img_path.replace('uploads/', '', 1)
+            full = os.path.join(upload_folder, relative)
+            paths.append((img_path, full))
+    if not paths:
+        return {}
+
+    def _load(item):
+        orig_path, full_path = item
+        with open(full_path, "rb") as f:
+            return orig_path, base64.b64encode(f.read()).decode("utf-8"), mimetypes.guess_type(full_path)[0] or "image/jpeg"
+
+    result = {}
+    with ThreadPoolExecutor(max_workers=len(paths)) as executor:
+        for orig_path, b64, mime in executor.map(_load, paths):
+            result[orig_path] = (b64, mime)
+    return result
+
+
 # ---------------------------------------------------------
 # [3] 통합 AI 응답 생성 함수 (핵심)
 # ---------------------------------------------------------
@@ -85,31 +110,26 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
 
     provider = model_info["provider"]
 
+    # 이미지가 포함된 경우 병렬 프리로드 (Anthropic/OpenAI 공통)
+    img_cache = _preload_images(messages, upload_folder) if upload_folder else {}
+
     # --- A. Anthropic (Claude) 처리 ---
     if provider == "anthropic":
         if not anthropic_client: raise ValueError("Anthropic API Key가 없습니다.")
-        
+
         anthropic_messages = []
         for msg in messages:
             content_list = []
-            
-            # 이미지 처리
+
+            # 이미지 처리 (프리로드 캐시 사용)
             img_paths = msg.get("image_paths", [])
             for img_path in img_paths:
-                try:
-                    # 상대 경로를 절대 경로로 변환
-                    relative_path = img_path.replace('uploads/', '', 1) 
-                    full_path = os.path.join(upload_folder, relative_path)
-                    
-                    with open(full_path, "rb") as f:
-                        img_data = base64.b64encode(f.read()).decode("utf-8")
-                        media_type = mimetypes.guess_type(full_path)[0] or "image/jpeg"
-                        content_list.append({
-                            "type": "image", 
-                            "source": {"type": "base64", "media_type": media_type, "data": img_data}
-                        })
-                except Exception as e:
-                    print(f"Anthropic Image Load Warning: {e}")
+                if img_path in img_cache:
+                    img_data, media_type = img_cache[img_path]
+                    content_list.append({
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": media_type, "data": img_data}
+                    })
 
             # 텍스트 처리
             msg_content = msg.get("content")
@@ -138,20 +158,15 @@ def generate_ai_response(model_id, system_prompt, messages, max_tokens, upload_f
             if isinstance(msg_content, str) and msg_content:
                 content_list.append({"type": "text", "text": msg_content})
 
-            # 이미지 처리
+            # 이미지 처리 (프리로드 캐시 사용)
             img_paths = msg.get("image_paths", [])
             for img_path in img_paths:
-                try:
-                    relative_path = img_path.replace('uploads/', '', 1)
-                    full_path = os.path.join(upload_folder, relative_path)
-                    with open(full_path, "rb") as f:
-                        img_b64 = base64.b64encode(f.read()).decode("utf-8")
-                        mime = mimetypes.guess_type(full_path)[0] or "image/jpeg"
-                        content_list.append({
-                            "type": "image_url", 
-                            "image_url": {"url": f"data:{mime};base64,{img_b64}"}
-                        })
-                except: pass
+                if img_path in img_cache:
+                    img_b64, mime = img_cache[img_path]
+                    content_list.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{img_b64}"}
+                    })
             
             if content_list:
                 openai_messages.append({"role": msg["role"], "content": content_list})
@@ -242,36 +257,33 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
     provider = model_info["provider"]
 
+    # 이미지가 포함된 경우 병렬 프리로드
+    img_cache = _preload_images(messages, upload_folder) if upload_folder else {}
+
     # --- A. Anthropic (Claude) 스트리밍 ---
     if provider == "anthropic":
         if not anthropic_client:
             yield "Anthropic API Key가 없습니다."
             return
-        
+
         anthropic_messages = []
         for msg in messages:
             content_list = []
-            
-            # 텍스트 처리 
+
+            # 텍스트 처리
             msg_content = msg.get("content")
             if isinstance(msg_content, str) and msg_content.strip():
                 content_list.append({"type": "text", "text": msg_content})
-                
-            # 이미지 처리 (스트리밍 시에도 동일 규격)
+
+            # 이미지 처리 (프리로드 캐시 사용)
             img_paths = msg.get("image_paths", [])
             for img_path in img_paths:
-                try:
-                    relative_path = img_path.replace('uploads/', '', 1) 
-                    full_path = os.path.join(upload_folder, relative_path)
-                    with open(full_path, "rb") as f:
-                        img_data = base64.b64encode(f.read()).decode("utf-8")
-                        media_type = mimetypes.guess_type(full_path)[0] or "image/jpeg"
-                        content_list.append({
-                            "type": "image", 
-                            "source": {"type": "base64", "media_type": media_type, "data": img_data}
-                        })
-                except Exception as e:
-                    print(f"Anthropic Image Load Warning: {e}")
+                if img_path in img_cache:
+                    img_data, media_type = img_cache[img_path]
+                    content_list.append({
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": media_type, "data": img_data}
+                    })
             
             if content_list:
                 anthropic_messages.append({"role": msg["role"], "content": content_list})
@@ -305,21 +317,16 @@ def generate_ai_response_stream(model_id, system_prompt, messages, max_tokens, u
 
             img_paths = msg.get("image_paths", [])
             for img_path in img_paths:
-                try:
-                    relative_path = img_path.replace('uploads/', '', 1)
-                    full_path = os.path.join(upload_folder, relative_path)
-                    with open(full_path, "rb") as f:
-                        img_b64 = base64.b64encode(f.read()).decode("utf-8")
-                        mime = mimetypes.guess_type(full_path)[0] or "image/jpeg"
-                        content_list.append({
-                            "type": "image_url", 
-                            "image_url": {"url": f"data:{mime};base64,{img_b64}"}
-                        })
-                except: pass
-            
+                if img_path in img_cache:
+                    img_b64, mime = img_cache[img_path]
+                    content_list.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{img_b64}"}
+                    })
+
             if content_list:
                 openai_messages.append({"role": msg["role"], "content": content_list})
-            
+
         try:
             stream = openai_client.chat.completions.create(
                 model=model_id,

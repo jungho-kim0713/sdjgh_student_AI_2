@@ -154,15 +154,12 @@ def process_document_async(self, document_id: int):
         # 빠르고 저렴한 모델 사용 (Gemini 2.5 Flash 우선, 없으면 gpt-4.1-mini)
         summary_model_id = "gemini-2.5-flash" if os.getenv("GOOGLE_API_KEY") else ("gpt-4.1-mini" if os.getenv("OPENAI_API_KEY") else "grok-4-1-fast-reasoning")
         
-        import time
-        for i, chunk_text in enumerate(chunks):
-            # API 제한 시간 등을 고려한 약간의 딜레이
-            if i > 0 and i % 10 == 0:
-                time.sleep(1)
-                
-            user_prompt = f"[전체 문서 맥락 (앞부분)]\n{document_context}\n\n[현재 청크]\n{chunk_text}"
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _summarize_one(idx_chunk):
+            i, chunk_content = idx_chunk
+            user_prompt = f"[전체 문서 맥락 (앞부분)]\n{document_context}\n\n[현재 청크]\n{chunk_content}"
             try:
-                # 임시 업로드 폴더 빈 값 전달
                 summary = generate_ai_response(
                     model_id=summary_model_id,
                     system_prompt=system_prompt,
@@ -170,11 +167,14 @@ def process_document_async(self, document_id: int):
                     max_tokens=150,
                     upload_folder=""
                 )
-                chunk_summaries.append(summary.strip())
+                return summary.strip()
             except Exception as e:
                 print(f"     ⚠️ 청크 {i} 요약 실패, 원본 일부 대체: {e}")
-                # 실패 시 청크 앞부분을 요약으로 대체
-                chunk_summaries.append(chunk_text[:150])
+                return chunk_content[:150]
+
+        # 동시 5개 요청으로 병렬 처리 (API rate limit 고려)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            chunk_summaries = list(executor.map(_summarize_one, enumerate(chunks)))
 
         # 4. 임베딩 생성 (배치) - 원본 텍스트가 아닌 '요약본 + 원본 텍스트'를 함께 임베딩
         print(f"  ├─ 임베딩 생성 중... (OpenAI API 호출)")

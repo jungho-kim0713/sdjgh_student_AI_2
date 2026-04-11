@@ -19,7 +19,7 @@ from sqlalchemy import inspect, text
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 
-from extensions import db, login_manager
+from extensions import db, login_manager, cache
 from models import User, SystemConfig, PersonaConfig, PersonaDefinition
 from prompts import AI_PERSONAS
 
@@ -105,6 +105,13 @@ db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 login_manager.login_message = ""
+
+# Cache 설정 (Redis DB 1 사용, Celery(DB 0)와 분리)
+_redis_base = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0").rsplit("/", 1)[0]
+app.config["CACHE_TYPE"] = "RedisCache"
+app.config["CACHE_REDIS_URL"] = f"{_redis_base}/1"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 60
+cache.init_app(app)
 
 # Celery 초기화 (RAG 백그라운드 작업용)
 from tasks import init_celery

@@ -1,5 +1,6 @@
 import os
 import traceback
+import types
 
 from flask import Blueprint, jsonify, request, render_template, url_for, current_app, Response, stream_with_context
 from flask_login import login_required, current_user
@@ -23,8 +24,37 @@ from services.ai_service import (
     DEFAULT_MAX_TOKENS,
     AVAILABLE_MODELS,
 )
-from extensions import db
+from extensions import db, cache
 from tasks import generate_image_async
+
+# ======================================================
+# 캐시 헬퍼 (Redis, TTL 60초)
+# ======================================================
+_PERSONA_CACHE_KEY = 'active_personas'
+
+def _persona_to_dict(p):
+    return {
+        'id': p.id, 'role_key': p.role_key, 'role_name': p.role_name,
+        'description': p.description, 'icon': p.icon, 'is_system': p.is_system,
+        'is_active': p.is_active, 'sort_order': p.sort_order,
+        'model_openai': p.model_openai, 'model_anthropic': p.model_anthropic,
+        'model_google': p.model_google, 'model_xai': p.model_xai,
+        'max_tokens': p.max_tokens, 'allow_user': p.allow_user,
+        'allow_teacher': p.allow_teacher, 'restrict_google': p.restrict_google,
+        'restrict_anthropic': p.restrict_anthropic, 'restrict_openai': p.restrict_openai,
+        'restrict_xai': p.restrict_xai, 'use_rag': p.use_rag,
+    }
+
+def get_active_personas_cached():
+    """활성 페르소나 목록 (60초 Redis 캐시). SimpleNamespace 리스트 반환."""
+    data = cache.get(_PERSONA_CACHE_KEY)
+    if data is None:
+        personas = PersonaDefinition.query.filter_by(is_active=True).order_by(
+            PersonaDefinition.sort_order.asc(), PersonaDefinition.id.asc()
+        ).all()
+        data = [_persona_to_dict(p) for p in personas]
+        cache.set(_PERSONA_CACHE_KEY, data, timeout=60)
+    return [types.SimpleNamespace(**d) for d in data]
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -71,11 +101,10 @@ def index():
         is_teacher_manager = True
 
     # 페르소나 목록을 서버에서 미리 렌더링 (초기 로딩 시 빈 드롭다운 깜빡임 방지)
-    query = PersonaDefinition.query.filter_by(is_active=True).order_by(PersonaDefinition.sort_order.asc(), PersonaDefinition.id.asc())
+    all_active = get_active_personas_cached()
     if current_user.is_admin or getattr(current_user, 'role', '') == 'admin':
-        initial_personas = query.all()
+        initial_personas = all_active
     else:
-        all_active = query.all()
         # 학생 배정 사전 조회 (N+1 방지)
         student_restricted_ids = {
             r[0] for r in db.session.query(PersonaStudentPermission.persona_id).distinct().all()
@@ -128,21 +157,20 @@ def get_persona_visibility():
     - 관리자: 전체 활성화된 페르소나 반환
     - 일반 사용자: allow_user/allow_teacher 설정에 따라 필터링
     """
+    all_cached = get_active_personas_cached()
+
     if current_user.is_admin:
         # 관리자: 모든 활성화된 페르소나
-        personas = PersonaDefinition.query.filter_by(is_active=True).all()
         return jsonify({
             "personas": [
                 {"role_key": p.role_key, "role_name": p.role_name, "icon": p.icon, "use_rag": p.use_rag}
-                for p in personas
+                for p in all_cached
             ]
         })
 
     # 사용자 역할에 맞는 페르소나만 선별
     user_role = getattr(current_user, "role", "user") or "user"
-    personas = PersonaDefinition.query.filter_by(is_active=True).order_by(
-        PersonaDefinition.sort_order.asc(), PersonaDefinition.id.asc()
-    ).all()
+    personas = all_cached
 
     # 배정 정보 사전 조회 (N+1 방지)
     student_restricted_ids = {
@@ -227,9 +255,13 @@ def chat():
     - 권한: 로그인 사용자
     - 기능: 서비스 점검 체크 → 페르소나/권한 검증 → 세션 생성 → 메시지 저장 → AI 응답 생성
     """
-    # 서비스 점검 모드면 즉시 차단
-    status_config = SystemConfig.query.filter_by(key="service_status").first()
-    if status_config and status_config.value == "inactive":
+    # 서비스 점검 모드면 즉시 차단 (30초 캐시)
+    _svc_status = cache.get('service_status')
+    if _svc_status is None:
+        _cfg = SystemConfig.query.filter_by(key="service_status").first()
+        _svc_status = _cfg.value if _cfg else "active"
+        cache.set('service_status', _svc_status, timeout=30)
+    if _svc_status == "inactive":
         return jsonify({"response": "서비스 점검 중입니다."})
 
     # 요청 데이터 추출
@@ -724,19 +756,16 @@ def get_available_personas():
     try:
         user = current_user
 
-        # 기본 쿼리: 활성화된 페르소나만
-        query = PersonaDefinition.query.filter_by(is_active=True).order_by(PersonaDefinition.id.asc())
+        # 캐시에서 활성화된 페르소나 조회 후 Python에서 필터링
+        _all = get_active_personas_cached()
 
         # 권한에 따라 필터링
         if user.is_admin or user.role == 'admin':
-            # 관리자는 모든 페르소나 접근 가능
-            personas = query.all()
+            personas = _all
         elif user.role == 'teacher':
-            # 교사는 allow_teacher=True인 페르소나만
-            personas = query.filter_by(allow_teacher=True).all()
+            personas = [p for p in _all if p.allow_teacher]
         else:
-            # 학생은 allow_user=True인 페르소나만
-            personas = query.filter_by(allow_user=True).all()
+            personas = [p for p in _all if p.allow_user]
 
         # 응답 형식
         persona_list = [

@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime, timezone
 
-from extensions import db
+from extensions import db, cache
 from models import SystemConfig
 
 status_bp = Blueprint("status", __name__)
@@ -40,6 +40,7 @@ def toggle_status():
         new_val = "active" if st.value == "inactive" else "inactive"
         st.value = new_val
     db.session.commit()
+    cache.delete('service_status')
     return jsonify({"status": new_val})
 
 
