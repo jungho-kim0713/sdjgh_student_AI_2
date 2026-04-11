@@ -23,7 +23,8 @@
       "Bash(\"/c/Python312/python.exe\" --version)",
       "Bash(\"C:/Program Files/Python312/python.exe\" -m venv venv --clear)",
       "Bash(\"/c/Program Files/Python312/python.exe\" -m venv venv --clear)",
-      "Bash(\"/c/Program Files/Python312/python.exe\" --version)"
+      "Bash(\"/c/Program Files/Python312/python.exe\" --version)",
+      "Read(//mnt/**)"
     ]
   }
 }

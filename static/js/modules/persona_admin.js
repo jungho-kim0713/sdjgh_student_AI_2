@@ -368,12 +368,17 @@ async function loadPersonaTeachers(personaId) {
                         <strong>${t.username}</strong>
                         ${t.email ? `<br><small>${t.email}</small>` : ''}
                     </div>
-                    <button onclick="removeTeacher(${t.id})" class="btn-small">제거</button>
                 </div>
             `).join('');
         } else {
             teacherListElement.innerHTML = '<p style="color: #999; text-align: center;">할당된 교사가 없습니다</p>';
         }
+
+        // 모달용 전체 목록 캐싱
+        _teacherPickerAll = [
+            ...(data.teachers || []).map(t => ({ ...t, is_assigned: true })),
+            ...(data.available_teachers || []).map(t => ({ ...t, is_assigned: false }))
+        ];
     } catch (error) {
         console.error('교사 목록 로드 실패:', error);
     }
@@ -652,86 +657,217 @@ function cancelEdit() {
     document.getElementById('personaDetailForm').style.display = 'none';
 }
 
+// ─── 교사 배정 모달 ────────────────────────────────────────────
+
+// 모달 상태
+let _teacherPickerAll = [];              // 전체 교사 목록 (is_assigned 포함)
+let _teacherPickerSelected = new Set();  // 체크된 teacher.id
+let _teacherPickerLastIdx = null;        // Shift 클릭용 마지막 인덱스
+
 /**
- * 교사 추가
+ * 교사 배정 모달 열기
  */
-async function addTeacher() {
+function openTeacherPickerModal() {
     if (!selectedPersonaId) {
         alert('페르소나를 먼저 선택하거나 저장해주세요.');
         return;
     }
-
-    if (allTeachers.length === 0) {
-        alert('추가 가능한 교사가 없습니다.');
-        return;
-    }
-
-    // 간단한 프롬프트로 교사 선택
-    const teacherOptions = allTeachers.map(t => `${t.id}: ${t.username} (${t.email || 'No email'})`).join('\n');
-    const teacherIdStr = prompt(`교사 ID를 입력하세요:\n\n${teacherOptions}`);
-
-    if (!teacherIdStr) return;
-
-    const teacherId = parseInt(teacherIdStr);
-    if (isNaN(teacherId)) {
-        alert('유효한 교사 ID를 입력해주세요.');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/persona/${selectedPersonaId}/grant-teacher`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                teacher_id: teacherId,
-                can_edit_prompt: true,
-                can_manage_knowledge: true,
-                can_view_analytics: true
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert('교사 권한이 부여되었습니다.');
-            await loadPersonaTeachers(selectedPersonaId);
-        } else {
-            alert('권한 부여 실패: ' + (result.error || '알 수 없는 오류'));
-        }
-    } catch (error) {
-        console.error('교사 추가 실패:', error);
-        alert('교사 추가 중 오류가 발생했습니다.');
-    }
+    _teacherPickerSelected.clear();
+    _teacherPickerLastIdx = null;
+    document.getElementById('teacherPickerSearch').value = '';
+    renderTeacherPickerList('');
+    document.getElementById('teacherPickerModal').classList.add('open');
+    document.getElementById('teacherPickerSearch').focus();
 }
 
 /**
- * 교사 제거
+ * 교사 배정 모달 닫기
  */
-async function removeTeacher(teacherId) {
-    if (!selectedPersonaId) return;
+function closeTeacherPickerModal() {
+    document.getElementById('teacherPickerModal').classList.remove('open');
+}
 
-    if (!confirm('이 교사의 권한을 제거하시겠습니까?')) {
+/**
+ * 모달 내 교사 목록 렌더링
+ */
+function renderTeacherPickerList(query) {
+    const listEl = document.getElementById('teacherPickerList');
+    const q = query.toLowerCase();
+    const filtered = _teacherPickerAll.filter(t =>
+        t.username.toLowerCase().includes(q) ||
+        (t.email && t.email.toLowerCase().includes(q))
+    );
+    listEl._filtered = filtered;
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="student-picker-empty">교사가 없습니다</div>';
+        updateTeacherPickerInfo();
         return;
     }
 
-    try {
-        const response = await fetch(`/api/admin/persona/${selectedPersonaId}/revoke-teacher/${teacherId}`, {
-            method: 'DELETE'
-        });
+    listEl.innerHTML = filtered.map((t, idx) => {
+        const isChecked = _teacherPickerSelected.has(t.id);
+        return `
+        <div class="student-picker-item ${isChecked ? 'selected' : ''}"
+             data-id="${t.id}" onclick="handleTeacherPickerClick(event, ${idx}, ${t.id})">
+            <input type="checkbox" ${isChecked ? 'checked' : ''}
+                   onclick="event.stopPropagation(); handleTeacherPickerClick(event, ${idx}, ${t.id})">
+            <div style="flex:1;">
+                <div class="student-name">${t.username}</div>
+                ${t.email ? `<div class="student-email">${t.email}</div>` : ''}
+            </div>
+            <div class="picker-assigned-badge ${t.is_assigned ? 'assigned' : 'unassigned'}">
+                ${t.is_assigned ? '배정됨' : '미배정'}
+            </div>
+        </div>`;
+    }).join('');
 
-        const result = await response.json();
+    updateTeacherPickerInfo();
+}
 
-        if (result.success) {
-            alert('교사 권한이 제거되었습니다.');
-            await loadPersonaTeachers(selectedPersonaId);
-        } else {
-            alert('권한 제거 실패: ' + (result.error || '알 수 없는 오류'));
+/**
+ * 모달 항목 클릭 (체크박스 + Shift 범위선택)
+ */
+function handleTeacherPickerClick(event, idx, teacherId) {
+    const filtered = document.getElementById('teacherPickerList')._filtered || _teacherPickerAll;
+
+    if (event.shiftKey && _teacherPickerLastIdx !== null) {
+        const start = Math.min(_teacherPickerLastIdx, idx);
+        const end   = Math.max(_teacherPickerLastIdx, idx);
+        const shouldSelect = !_teacherPickerSelected.has(teacherId);
+        for (let i = start; i <= end; i++) {
+            if (filtered[i]) {
+                if (shouldSelect) _teacherPickerSelected.add(filtered[i].id);
+                else              _teacherPickerSelected.delete(filtered[i].id);
+            }
         }
+    } else {
+        if (_teacherPickerSelected.has(teacherId)) _teacherPickerSelected.delete(teacherId);
+        else                                        _teacherPickerSelected.add(teacherId);
+        _teacherPickerLastIdx = idx;
+    }
+
+    renderTeacherPickerList(document.getElementById('teacherPickerSearch').value);
+}
+
+/**
+ * 선택 인원 카운트 갱신
+ */
+function updateTeacherPickerInfo() {
+    const infoEl = document.getElementById('teacherPickerInfo');
+    if (infoEl) infoEl.textContent = `${_teacherPickerSelected.size}명 선택됨`;
+}
+
+/**
+ * 모달 검색 필터
+ */
+function filterTeacherPicker() {
+    _teacherPickerLastIdx = null;
+    renderTeacherPickerList(document.getElementById('teacherPickerSearch').value);
+}
+
+/**
+ * 일괄 배정 — 선택된 교사 중 미배정자만 배정
+ */
+async function bulkAssignTeachers() {
+    const targets = Array.from(_teacherPickerSelected).filter(id => {
+        const t = _teacherPickerAll.find(t => t.id === id);
+        return t && !t.is_assigned;
+    });
+    if (targets.length === 0) {
+        alert('배정할 교사가 없습니다.\n미배정 교사를 선택해주세요.');
+        return;
+    }
+
+    let ok = 0, fail = 0;
+    for (const teacherId of targets) {
+        try {
+            const res = await fetch(`/api/admin/persona/${selectedPersonaId}/grant-teacher`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    teacher_id: teacherId,
+                    can_edit_prompt: true,
+                    can_manage_knowledge: true,
+                    can_view_analytics: true
+                })
+            });
+            (await res.json()).success ? ok++ : fail++;
+        } catch { fail++; }
+    }
+
+    await _refreshTeacherPickerData();
+    if (fail > 0) alert(`${ok}명 배정 완료, ${fail}명 실패`);
+}
+
+/**
+ * 일괄 취소 — 선택된 교사 중 배정된 교사만 취소
+ */
+async function bulkUnassignTeachers() {
+    const targets = Array.from(_teacherPickerSelected).filter(id => {
+        const t = _teacherPickerAll.find(t => t.id === id);
+        return t && t.is_assigned;
+    });
+    if (targets.length === 0) {
+        alert('취소할 교사가 없습니다.\n배정된 교사를 선택해주세요.');
+        return;
+    }
+
+    let ok = 0, fail = 0;
+    for (const teacherId of targets) {
+        try {
+            const res = await fetch(
+                `/api/admin/persona/${selectedPersonaId}/revoke-teacher/${teacherId}`,
+                { method: 'DELETE' }
+            );
+            (await res.json()).success ? ok++ : fail++;
+        } catch { fail++; }
+    }
+
+    await _refreshTeacherPickerData();
+    if (fail > 0) alert(`${ok}명 취소 완료, ${fail}명 실패`);
+}
+
+/**
+ * 모달 내 데이터 새로고침 (모달 열린 채로 갱신)
+ */
+async function _refreshTeacherPickerData() {
+    try {
+        const response = await fetch(`/api/admin/persona/${selectedPersonaId}/teachers`);
+        const data = await response.json();
+
+        _teacherPickerAll = [
+            ...(data.teachers || []).map(t => ({ ...t, is_assigned: true })),
+            ...(data.available_teachers || []).map(t => ({ ...t, is_assigned: false }))
+        ];
+        _teacherPickerSelected.clear();
+
+        // 섹션 목록도 갱신
+        const teacherListEl = document.getElementById('teacherList');
+        if (data.teachers && data.teachers.length > 0) {
+            teacherListEl.innerHTML = data.teachers.map(t => `
+                <div class="teacher-item">
+                    <div>
+                        <strong>${t.username}</strong>
+                        ${t.email ? `<br><small>${t.email}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            teacherListEl.innerHTML = '<p style="color: #999; text-align: center;">할당된 교사가 없습니다</p>';
+        }
+
+        renderTeacherPickerList(document.getElementById('teacherPickerSearch').value);
     } catch (error) {
-        console.error('교사 제거 실패:', error);
-        alert('교사 제거 중 오류가 발생했습니다.');
+        console.error('교사 데이터 갱신 실패:', error);
     }
 }
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('teacherPickerModal');
+    if (modal && e.target === modal) closeTeacherPickerModal();
+});
 
 // ─── 학생 배정 모달 ────────────────────────────────────────────
 

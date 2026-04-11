@@ -106,10 +106,14 @@ login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 login_manager.login_message = ""
 
-# Cache 설정 (Redis DB 1 사용, Celery(DB 0)와 분리)
-_redis_base = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0").rsplit("/", 1)[0]
-app.config["CACHE_TYPE"] = "RedisCache"
-app.config["CACHE_REDIS_URL"] = f"{_redis_base}/1"
+# Cache 설정 (CELERY_BROKER_URL이 설정된 경우에만 Redis 사용, 미설정 시 로컬 SimpleCache)
+_celery_broker = os.environ.get("CELERY_BROKER_URL")
+if _celery_broker:
+    _redis_base = _celery_broker.rsplit("/", 1)[0]
+    app.config["CACHE_TYPE"] = "RedisCache"
+    app.config["CACHE_REDIS_URL"] = f"{_redis_base}/1"
+else:
+    app.config["CACHE_TYPE"] = "SimpleCache"
 app.config["CACHE_DEFAULT_TIMEOUT"] = 60
 cache.init_app(app)
 

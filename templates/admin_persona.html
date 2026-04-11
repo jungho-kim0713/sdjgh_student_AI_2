@@ -303,7 +303,7 @@
                     <div class="teacher-list" id="teacherList">
                         <!-- JavaScript로 동적 생성 -->
                     </div>
-                    <button onclick="addTeacher()" class="btn-secondary" style="margin-top: 10px;">+ 교사 추가</button>
+                    <button onclick="openTeacherPickerModal()" class="btn-secondary" style="margin-top: 10px;">+ 교사 추가</button>
                 </div>
                 {% endif %}
 
@@ -840,7 +840,7 @@
     }
 
     /* 학생 배정 모달 */
-    #studentPickerModal {
+    #studentPickerModal, #teacherPickerModal {
         display: none;
         position: fixed;
         top: 0; left: 0;
@@ -850,7 +850,7 @@
         align-items: center;
         justify-content: center;
     }
-    #studentPickerModal.open {
+    #studentPickerModal.open, #teacherPickerModal.open {
         display: flex;
     }
     .student-picker-dialog {
@@ -1027,6 +1027,30 @@
         </div>
     </div>
 </div>
+<!-- 교사 선택 모달 -->
+<div id="teacherPickerModal">
+    <div class="student-picker-dialog">
+        <div class="student-picker-header">
+            <h3>교사 배정</h3>
+            <button class="close-btn" onclick="closeTeacherPickerModal()">×</button>
+        </div>
+        <div class="student-picker-search">
+            <input type="text" id="teacherPickerSearch" placeholder="교사 이름으로 검색..."
+                   oninput="filterTeacherPicker()" autocomplete="off">
+        </div>
+        <div class="student-picker-list" id="teacherPickerList">
+        </div>
+        <div class="student-picker-footer">
+            <span class="selection-info" id="teacherPickerInfo">0명 선택됨</span>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-secondary" onclick="closeTeacherPickerModal()" style="padding:8px 16px;">닫기</button>
+                <button class="btn-unassign" onclick="bulkUnassignTeachers()">일괄 취소</button>
+                <button class="btn-confirm" onclick="bulkAssignTeachers()">일괄 배정</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 슬롯 저장 모달 -->
 <div id="saveSnapshotModal" class="snapshot-modal-overlay">
     <div class="snapshot-dialog">

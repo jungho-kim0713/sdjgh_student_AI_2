@@ -6,7 +6,13 @@
       "Bash(venv/Scripts/python.exe --version)",
       "Bash(venv/Scripts/python.exe -c \"import flask; print\\('Flask OK'\\)\")",
       "Bash(venv/Scripts/python.exe -c \"from app import app; print\\('App loaded OK'\\)\")",
-      "Bash(venv/Scripts/python.exe -m flask run --host=0.0.0.0 --port=5000 --debug)"
+      "Bash(venv/Scripts/python.exe -m flask run --host=0.0.0.0 --port=5000 --debug)",
+      "Bash(venv\\\\Scripts\\\\python.exe -c \"import flask, flask_sqlalchemy, flask_login, flask_caching, celery, redis, anthropic; print\\('OK'\\)\")",
+      "Bash(\"venv/Scripts/python.exe\" -c \"import flask, flask_sqlalchemy, flask_login, flask_caching, celery, redis, anthropic; print\\('OK'\\)\")",
+      "Bash(docker --version)",
+      "Bash(wsl --status)",
+      "Bash(sc query:*)",
+      "Bash(Get-Service -Name \"redis*\")"
     ]
   }
 }

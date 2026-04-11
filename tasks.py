@@ -16,11 +16,18 @@ from services.file_service import extract_text_from_file
 from services.chunking_service import chunk_text
 from services.embedding_service import generate_embeddings_batch
 
-# Celery 앱 초기화
+# Celery 앱 초기화 (CELERY_BROKER_URL 미설정 시 로컬 메모리 브로커 사용)
+_celery_broker = os.getenv('CELERY_BROKER_URL')
+if _celery_broker:
+    _celery_backend = os.getenv('CELERY_RESULT_BACKEND', _celery_broker)
+else:
+    _celery_broker = 'memory://'
+    _celery_backend = 'cache+memory://'
+
 celery = Celery(
     'tasks',
-    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+    broker=_celery_broker,
+    backend=_celery_backend
 )
 
 # Celery 설정
