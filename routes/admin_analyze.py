@@ -375,28 +375,24 @@ def _sse(event_type: str, text: str) -> str:
 # 분석 API (SSE 스트리밍)
 # ---------------------------------------------------------------------------
 
-def _stream_analysis(prompt: str, model_id: str) -> Response:
-    """공통 스트리밍 분석 헬퍼 — 선택된 모델로 프롬프트를 실행하고 SSE로 반환."""
-    def generate():
-        try:
-            for chunk in generate_ai_response_stream(
-                model_id=model_id,
-                system_prompt="당신은 교육 데이터 분석 전문가입니다.",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=ANALYSIS_MAX_TOKENS,
-                upload_folder="",   # 분석에는 이미지 없음
-            ):
-                # ai_service는 오류 문자열도 yield하므로 그대로 전달
-                yield _sse("chunk", chunk)
-            yield _sse("done", "")
-        except Exception as e:
-            yield _sse("error", str(e))
+def _analysis_chunks(prompt: str, model_id: str):
+    """공통 분석 청크 생성기 — 선택된 모델로 프롬프트를 실행하고 SSE 이벤트 문자열을 yield한다.
 
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/event-stream",
-        headers={"X-Accel-Buffering": "no"},
-    )
+    Response 객체가 아닌 generator를 반환하므로 외부 generator에서 yield from으로 안전하게 사용할 수 있다.
+    """
+    try:
+        for chunk in generate_ai_response_stream(
+            model_id=model_id,
+            system_prompt="당신은 교육 데이터 분석 전문가입니다.",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=ANALYSIS_MAX_TOKENS,
+            upload_folder="",   # 분석에는 이미지 없음
+        ):
+            # ai_service는 오류 문자열도 yield하므로 그대로 전달
+            yield _sse("chunk", chunk)
+        yield _sse("done", "")
+    except Exception as e:
+        yield _sse("error", str(e))
 
 
 @admin_analyze_bp.route("/api/admin/analyze/class", methods=["POST"])
@@ -451,7 +447,7 @@ def analyze_class():
 {conv_text}
 """
 
-            yield from _stream_analysis(prompt, model_id)
+            yield from _analysis_chunks(prompt, model_id)
 
         except Exception as e:
             yield _sse("error", str(e))
@@ -524,7 +520,7 @@ def analyze_student():
 {conv_text}
 """
 
-            yield from _stream_analysis(prompt, model_id)
+            yield from _analysis_chunks(prompt, model_id)
 
         except Exception as e:
             yield _sse("error", str(e))
