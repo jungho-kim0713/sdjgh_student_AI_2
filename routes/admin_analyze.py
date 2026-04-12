@@ -6,6 +6,7 @@
 
 Routes:
     GET  /admin/analyze                       - 분석 페이지 렌더링
+    GET  /api/admin/analyze/models            - 분석에 사용 가능한 모델 목록
     GET  /api/admin/analyze/personas          - 접근 가능한 페르소나 목록
     GET  /api/admin/analyze/students          - 전체 접근 가능 학생 목록
     GET  /api/admin/analyze/students/<id>     - 특정 페르소나의 학생 목록
@@ -27,14 +28,22 @@ from flask_login import current_user, login_required
 
 from extensions import db
 from models import (ChatSession, LearningAlert, Message, PersonaDefinition,
-                    PersonaStudentPermission, PersonaTeacherPermission, User)
-from services.ai_service import get_anthropic_client
+                    PersonaStudentPermission, PersonaTeacherPermission,
+                    SystemConfig, User)
+from services.ai_service import generate_ai_response_stream
 
 admin_analyze_bp = Blueprint("admin_analyze", __name__)
 
-# 분석 시 사용하는 Claude 모델 및 토큰 상한
-ANALYSIS_MODEL = "claude-sonnet-4-6"
-ANALYSIS_MAX_TOKENS = 4096
+# 분석 출력 토큰 상한 (공급사 공통)
+ANALYSIS_MAX_TOKENS = 16000
+
+# 공급사별 표시 이름
+PROVIDER_LABELS = {
+    "anthropic": "Anthropic (Claude)",
+    "openai":    "OpenAI (GPT)",
+    "google":    "Google (Gemini)",
+    "xai":       "xAI (Grok)",
+}
 
 # 과도한 토큰 소비 방지를 위한 메시지 수 상한
 MAX_MESSAGES_CLASS = 1500   # 클래스 분석: 전체 학생 메시지 합산
@@ -85,6 +94,46 @@ def _get_accessible_personas():
                     PersonaDefinition.is_active == True)
             .order_by(PersonaDefinition.sort_order)
             .all())
+
+
+# ---------------------------------------------------------------------------
+# 분석 가능 모델 목록 API
+# ---------------------------------------------------------------------------
+
+@admin_analyze_bp.route("/api/admin/analyze/models")
+@login_required
+def get_analysis_models():
+    """활성화된 공급사+모델 목록을 반환한다 (분석 모델 선택용)."""
+    if not _can_access_analytics():
+        return jsonify({"error": "Denied"}), 403
+
+    providers = ["anthropic", "openai", "google", "xai"]
+    result = []
+
+    for provider in providers:
+        # 공급사 활성화 여부 확인
+        status_conf = SystemConfig.query.filter_by(
+            key=f"provider_status_{provider}").first()
+        if status_conf and status_conf.value == "restricted":
+            continue
+
+        # 해당 공급사의 활성화된 모델 목록
+        model_conf = SystemConfig.query.filter_by(
+            key=f"enabled_models_{provider}").first()
+        try:
+            models = json.loads(model_conf.value) if model_conf else []
+        except (json.JSONDecodeError, AttributeError):
+            models = []
+
+        label_prefix = PROVIDER_LABELS.get(provider, provider)
+        for model_id in models:
+            result.append({
+                "model_id":  model_id,
+                "provider":  provider,
+                "label":     f"{model_id}  [{label_prefix}]",
+            })
+
+    return jsonify(result)
 
 
 # ---------------------------------------------------------------------------
@@ -326,6 +375,30 @@ def _sse(event_type: str, text: str) -> str:
 # 분석 API (SSE 스트리밍)
 # ---------------------------------------------------------------------------
 
+def _stream_analysis(prompt: str, model_id: str) -> Response:
+    """공통 스트리밍 분석 헬퍼 — 선택된 모델로 프롬프트를 실행하고 SSE로 반환."""
+    def generate():
+        try:
+            for chunk in generate_ai_response_stream(
+                model_id=model_id,
+                system_prompt="당신은 교육 데이터 분석 전문가입니다.",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=ANALYSIS_MAX_TOKENS,
+                upload_folder="",   # 분석에는 이미지 없음
+            ):
+                # ai_service는 오류 문자열도 yield하므로 그대로 전달
+                yield _sse("chunk", chunk)
+            yield _sse("done", "")
+        except Exception as e:
+            yield _sse("error", str(e))
+
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/event-stream",
+        headers={"X-Accel-Buffering": "no"},
+    )
+
+
 @admin_analyze_bp.route("/api/admin/analyze/class", methods=["POST"])
 @login_required
 def analyze_class():
@@ -335,6 +408,8 @@ def analyze_class():
 
     data = request.get_json() or {}
     persona_id = data.get("persona_id")
+    model_id   = data.get("model_id", "claude-sonnet-4-6")
+
     if not persona_id:
         return jsonify({"error": "persona_id required"}), 400
     if not _can_access_persona(int(persona_id)):
@@ -357,7 +432,7 @@ def analyze_class():
             note = f" (최대 {MAX_MESSAGES_CLASS}건 기준)" if total >= MAX_MESSAGES_CLASS else ""
             yield _sse("status", f"총 {total}개 메시지를 분석하는 중...{note}")
 
-            prompt = f"""당신은 교육 데이터 분석 전문가입니다. 아래는 '{persona.role_name}' AI와 나눈 학생들의 실제 대화 기록입니다.
+            prompt = f"""아래는 '{persona.role_name}' AI와 나눈 학생들의 실제 대화 기록입니다.
 
 이 대화들을 분석하여 다음 항목을 교사에게 보고해주세요:
 
@@ -376,20 +451,7 @@ def analyze_class():
 {conv_text}
 """
 
-            client = get_anthropic_client()
-            if not client:
-                yield _sse("error", "Anthropic API 키가 설정되지 않았습니다.")
-                return
-
-            with client.messages.stream(
-                model=ANALYSIS_MODEL,
-                max_tokens=ANALYSIS_MAX_TOKENS,
-                messages=[{"role": "user", "content": prompt}],
-            ) as stream:
-                for chunk in stream.text_stream:
-                    yield _sse("chunk", chunk)
-
-            yield _sse("done", "")
+            yield from _stream_analysis(prompt, model_id)
 
         except Exception as e:
             yield _sse("error", str(e))
@@ -410,7 +472,8 @@ def analyze_student():
 
     data = request.get_json() or {}
     student_id = data.get("student_id")
-    persona_id = data.get("persona_id")  # optional
+    persona_id = data.get("persona_id")   # optional
+    model_id   = data.get("model_id", "claude-sonnet-4-6")
 
     if not student_id:
         return jsonify({"error": "student_id required"}), 400
@@ -439,7 +502,7 @@ def analyze_student():
             note = f" (최대 {MAX_MESSAGES_STUDENT}건 기준)" if total >= MAX_MESSAGES_STUDENT else ""
             yield _sse("status", f"총 {total}개 메시지를 분석하는 중... [{scope}]{note}")
 
-            prompt = f"""당신은 교육 데이터 분석 전문가입니다. 아래는 '{student.display_name}' 학생이 AI와 나눈 실제 대화 기록입니다.
+            prompt = f"""아래는 '{student.display_name}' 학생이 AI와 나눈 실제 대화 기록입니다.
 
 이 대화들을 분석하여 다음 항목을 교사에게 보고해주세요:
 
@@ -461,20 +524,7 @@ def analyze_student():
 {conv_text}
 """
 
-            client = get_anthropic_client()
-            if not client:
-                yield _sse("error", "Anthropic API 키가 설정되지 않았습니다.")
-                return
-
-            with client.messages.stream(
-                model=ANALYSIS_MODEL,
-                max_tokens=ANALYSIS_MAX_TOKENS,
-                messages=[{"role": "user", "content": prompt}],
-            ) as stream:
-                for chunk in stream.text_stream:
-                    yield _sse("chunk", chunk)
-
-            yield _sse("done", "")
+            yield from _stream_analysis(prompt, model_id)
 
         except Exception as e:
             yield _sse("error", str(e))

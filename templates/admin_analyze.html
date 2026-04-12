@@ -12,6 +12,16 @@
         </button>
     </div>
 
+    <!-- 분석 모델 선택 (전역 공통) -->
+    <div class="card" style="margin-bottom:16px; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <label class="az-label" style="margin:0; white-space:nowrap;">분석 모델</label>
+            <select id="analysis-model-select" class="az-select" style="max-width:360px;">
+                <option value="">모델 불러오는 중...</option>
+            </select>
+        </div>
+    </div>
+
     <!-- 탭 네비게이션 -->
     <div class="az-tab-nav">
         <button class="az-tab-btn active" id="tab-btn-class" onclick="switchTab('class')">
@@ -323,10 +333,25 @@ function switchTab(tab) {
 
 // ---- 페이지 로드 시 초기화 ----
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadPersonas();
-    await loadAllStudents();
+    await Promise.all([loadAnalysisModels(), loadPersonas(), loadAllStudents()]);
     await refreshUnreadBadge();
 });
+
+async function loadAnalysisModels() {
+    try {
+        const res    = await fetch('/api/admin/analyze/models');
+        const models = await res.json();
+        const sel    = document.getElementById('analysis-model-select');
+        sel.innerHTML = '';
+        if (!models.length) {
+            sel.innerHTML = '<option value="">활성화된 모델이 없습니다</option>';
+            return;
+        }
+        models.forEach(m => sel.add(new Option(m.label, m.model_id)));
+    } catch (e) {
+        console.error('모델 목록 로드 실패:', e);
+    }
+}
 
 async function loadPersonas() {
     try {
@@ -458,9 +483,10 @@ function startClassAnalysis() {
     const personaName = document.getElementById('class-persona-select')
         .options[document.getElementById('class-persona-select').selectedIndex].text;
 
+    const modelId = document.getElementById('analysis-model-select').value;
     runAnalysis({
         url: '/api/admin/analyze/class',
-        body: { persona_id: parseInt(personaId) },
+        body: { persona_id: parseInt(personaId), model_id: modelId },
         statusEl:    document.getElementById('class-status'),
         resultEl:    document.getElementById('class-result'),
         labelEl:     document.getElementById('class-result-label'),
@@ -485,9 +511,10 @@ function startStudentAnalysis() {
               .options[document.getElementById('student-persona-select').selectedIndex].text
         : '전체';
 
+    const modelId = document.getElementById('analysis-model-select').value;
     runAnalysis({
         url: '/api/admin/analyze/student',
-        body: { student_id: parseInt(studentId), persona_id: personaId ? parseInt(personaId) : null },
+        body: { student_id: parseInt(studentId), persona_id: personaId ? parseInt(personaId) : null, model_id: modelId },
         statusEl:    document.getElementById('student-status'),
         resultEl:    document.getElementById('student-result'),
         labelEl:     document.getElementById('student-result-label'),
