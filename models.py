@@ -329,3 +329,28 @@ class DocumentChunk(db.Model):
     embedding = db.Column(Vector(1536))  # pgvector 전용 타입
     chunk_metadata = db.Column(db.JSON)  # 페이지 번호 등 추가 정보
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+# ---------------------------------------------------------
+# [13] 조기 개입 알림(LearningAlert) 모델
+# ---------------------------------------------------------
+class LearningAlert(db.Model):
+    """
+    학생의 혼란 신호(반복 질문, 이해 어려움 키워드)를 감지해 교사에게 알림을 제공합니다.
+
+    alert_type:
+        'keyword'    - "모르겠다", "이해가 안 된다" 등 혼란 키워드 감지
+        'repetition' - 유사한 질문을 3회 이상 반복
+    """
+    __tablename__ = 'learning_alert'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    role_key = db.Column(db.String(50), nullable=False)       # 페르소나 식별자
+    alert_type = db.Column(db.String(20), nullable=False)     # 'keyword' | 'repetition'
+    detail = db.Column(db.String(200))                        # 감지 요약 (키워드명 또는 반복 횟수)
+    trigger_content = db.Column(db.Text)                      # 알림을 유발한 메시지 발췌
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, index=True)
+    is_read = db.Column(db.Boolean, default=False, index=True)

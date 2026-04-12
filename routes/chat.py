@@ -313,6 +313,13 @@ def chat():
             )
             db.session.commit()
 
+            # 조기 개입 알림 감지 (채팅 흐름에 영향 없도록 예외 무시)
+            try:
+                from services.alert_service import check_and_create_alerts
+                check_and_create_alerts(current_user.id, session_id, role_key, user_message)
+            except Exception:
+                pass
+
             # 페르소나 설정에서 선택된 모델을 사용한다.
             selected_model_id = DEFAULT_MODEL
             if provider == "openai":
@@ -532,6 +539,13 @@ def chat():
             )
         )
         db.session.commit()
+
+        # 조기 개입 알림 감지 (채팅 흐름에 영향 없도록 예외 무시)
+        try:
+            from services.alert_service import check_and_create_alerts
+            check_and_create_alerts(current_user.id, session_id, role_key, user_message)
+        except Exception:
+            pass
 
         # AI 응답을 DB에 저장 (스트리밍 완료 후 저장을 위해, 이 블록은 스트리밍 제너레이터 내에서 처리하거나 프론트/비동기로 위임해야 합니다)
         # HTTP 스트리밍(SSE) 응답 생성

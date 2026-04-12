@@ -10,6 +10,7 @@ from routes.files import files_bp
 from routes.admin import admin_bp
 from routes.admin_users import admin_users_bp
 from routes.admin_persona import admin_persona_bp
+from routes.admin_analyze import admin_analyze_bp
 from routes.status import status_bp
 
 
@@ -25,4 +26,5 @@ def register_blueprints(app):
     app.register_blueprint(admin_users_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(admin_persona_bp)
+    app.register_blueprint(admin_analyze_bp)
     app.register_blueprint(status_bp)

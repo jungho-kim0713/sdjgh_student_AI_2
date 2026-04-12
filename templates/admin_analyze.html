@@ -1,0 +1,593 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="admin-container" style="padding: 24px; max-width: 960px; margin: 0 auto;">
+
+    <!-- 헤더 -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <h2 style="margin:0; font-size:1.4rem;">📊 학습 분석</h2>
+        <button onclick="location.href='/'" class="btn-secondary" style="padding:7px 16px; font-size:0.9rem;">
+            ← 홈으로
+        </button>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="az-tab-nav">
+        <button class="az-tab-btn active" id="tab-btn-class" onclick="switchTab('class')">
+            🏫 클래스 분석
+        </button>
+        <button class="az-tab-btn" id="tab-btn-student" onclick="switchTab('student')">
+            👤 학생 분석
+        </button>
+        <button class="az-tab-btn" id="tab-btn-alerts" onclick="switchTab('alerts')">
+            🔔 조기 개입 알림<span id="unread-badge" class="az-badge" style="display:none;"></span>
+        </button>
+    </div>
+
+    <!-- ===== 클래스 분석 탭 ===== -->
+    <div id="tab-class" class="az-tab-content">
+        <div class="card">
+            <h3 style="margin-top:0;">클래스(페르소나) 전체 분석</h3>
+            <p style="color:#718096; margin-bottom:16px; font-size:0.93rem;">
+                페르소나를 선택하면 해당 클래스의 모든 학생 대화를 AI가 분석합니다.<br>
+                학생들이 흥미를 보이는 주제와 어려워하는 개념을 파악할 수 있습니다.
+            </p>
+            <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <label class="az-label">페르소나 선택</label>
+                    <select id="class-persona-select" class="az-select">
+                        <option value="">-- 페르소나를 선택하세요 --</option>
+                    </select>
+                </div>
+                <button id="class-analyze-btn" class="btn-primary" onclick="startClassAnalysis()"
+                        style="padding:9px 22px; white-space:nowrap;">
+                    분석 시작
+                </button>
+            </div>
+        </div>
+
+        <div id="class-result-area" style="display:none; margin-top:16px;">
+            <div id="class-status" class="az-status"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0 6px;">
+                <span id="class-result-label" style="font-size:0.85rem; color:#718096;"></span>
+                <button onclick="copyResult('class-result')" class="az-copy-btn" id="class-copy-btn"
+                        style="display:none;">📋 복사</button>
+            </div>
+            <div id="class-result" class="az-result"></div>
+        </div>
+    </div>
+
+    <!-- ===== 조기 개입 알림 탭 ===== -->
+    <div id="tab-alerts" class="az-tab-content" style="display:none;">
+        <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+                        <input type="checkbox" id="alert-unread-only" onchange="loadAlerts()">
+                        미확인만 보기
+                    </label>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="loadAlerts()" class="btn-secondary" style="padding:6px 14px; font-size:0.88rem;">
+                        새로고침
+                    </button>
+                    <button onclick="markAllRead()" class="btn-primary" style="padding:6px 14px; font-size:0.88rem; background:#9b59b6;">
+                        전체 읽음 처리
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="alerts-list"></div>
+    </div>
+
+    <!-- ===== 학생 분석 탭 ===== -->
+    <div id="tab-student" class="az-tab-content" style="display:none;">
+        <div class="card">
+            <h3 style="margin-top:0;">학생 개별 분석</h3>
+            <p style="color:#718096; margin-bottom:16px; font-size:0.93rem;">
+                학생을 선택하면 해당 학생의 전체 대화를 AI가 분석합니다.<br>
+                페르소나를 함께 선택하면 해당 페르소나와의 대화만 분석합니다.
+            </p>
+            <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:180px;">
+                    <label class="az-label">페르소나 필터 <span style="font-weight:400; color:#a0aec0;">(선택사항)</span></label>
+                    <select id="student-persona-select" class="az-select" onchange="onStudentPersonaChange()">
+                        <option value="">-- 전체 --</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width:180px;">
+                    <label class="az-label">학생 선택</label>
+                    <select id="student-select" class="az-select">
+                        <option value="">-- 학생을 선택하세요 --</option>
+                    </select>
+                </div>
+                <button id="student-analyze-btn" class="btn-primary" onclick="startStudentAnalysis()"
+                        style="padding:9px 22px; white-space:nowrap;">
+                    분석 시작
+                </button>
+            </div>
+        </div>
+
+        <div id="student-result-area" style="display:none; margin-top:16px;">
+            <div id="student-status" class="az-status"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0 6px;">
+                <span id="student-result-label" style="font-size:0.85rem; color:#718096;"></span>
+                <button onclick="copyResult('student-result')" class="az-copy-btn" id="student-copy-btn"
+                        style="display:none;">📋 복사</button>
+            </div>
+            <div id="student-result" class="az-result"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== 페이지 전용 스타일 ===== -->
+<style>
+.az-tab-nav {
+    display: flex;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 20px;
+}
+.az-tab-btn {
+    padding: 10px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.97rem;
+    color: #718096;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+.az-tab-btn.active {
+    color: #2d3748;
+    border-bottom-color: #3498db;
+    font-weight: 600;
+}
+.az-tab-btn:hover:not(.active) {
+    color: #4a5568;
+}
+.az-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 6px;
+}
+.az-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.93rem;
+    background: white;
+    color: #2d3748;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.az-select:focus {
+    border-color: #3498db;
+}
+.az-status {
+    padding: 10px 16px;
+    background: #ebf8ff;
+    border-left: 4px solid #3498db;
+    border-radius: 4px;
+    color: #2c5282;
+    font-size: 0.92rem;
+    display: none;
+}
+.az-status.error {
+    background: #fff5f5;
+    border-left-color: #e53e3e;
+    color: #c53030;
+}
+.az-result {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    min-height: 120px;
+    line-height: 1.75;
+    font-size: 0.95rem;
+    color: #2d3748;
+}
+/* marked.js 렌더링 스타일 */
+.az-result h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 20px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1a202c;
+}
+.az-result h3 {
+    font-size: 0.97rem;
+    font-weight: 600;
+    margin: 14px 0 6px;
+    color: #2d3748;
+}
+.az-result ul, .az-result ol {
+    padding-left: 22px;
+    margin: 6px 0 10px;
+}
+.az-result li {
+    margin-bottom: 4px;
+}
+.az-result p {
+    margin: 6px 0;
+}
+.az-result strong {
+    color: #1a202c;
+}
+.az-result hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 16px 0;
+}
+.az-copy-btn {
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    color: #4a5568;
+    transition: background 0.15s;
+}
+.az-copy-btn:hover {
+    background: #f7fafc;
+}
+/* 알림 배지 */
+.az-badge {
+    display: inline-block;
+    background: #e53e3e;
+    color: white;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    margin-left: 5px;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+/* 알림 카드 */
+.az-alert-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    transition: opacity 0.2s;
+}
+.az-alert-card.unread {
+    border-left-color: #9b59b6;
+    background: #fdf8ff;
+}
+.az-alert-card.type-keyword  { border-left-color: #e53e3e; }
+.az-alert-card.type-keyword.unread { background: #fff5f5; }
+.az-alert-card.type-repetition { border-left-color: #d69e2e; }
+.az-alert-card.type-repetition.unread { background: #fffff0; }
+.az-alert-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+}
+.az-alert-tag {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.az-alert-tag.keyword    { background: #fed7d7; color: #c53030; }
+.az-alert-tag.repetition { background: #fefcbf; color: #975a16; }
+.az-alert-trigger {
+    font-size: 0.88rem;
+    color: #4a5568;
+    background: #f7fafc;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+/* 분석 진행 중 깜빡임 커서 */
+.az-result.streaming::after {
+    content: "▋";
+    animation: az-blink 0.7s step-end infinite;
+    color: #3498db;
+}
+@keyframes az-blink {
+    50% { opacity: 0; }
+}
+</style>
+
+<!-- marked.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+// ---- 탭 전환 ----
+function switchTab(tab) {
+    document.querySelectorAll('.az-tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.az-tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    document.getElementById('tab-btn-' + tab).classList.add('active');
+    if (tab === 'alerts') loadAlerts();
+}
+
+// ---- 페이지 로드 시 초기화 ----
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadPersonas();
+    await loadAllStudents();
+    await refreshUnreadBadge();
+});
+
+async function loadPersonas() {
+    try {
+        const res = await fetch('/api/admin/analyze/personas');
+        const personas = await res.json();
+        const classSelect  = document.getElementById('class-persona-select');
+        const studentPersonaSelect = document.getElementById('student-persona-select');
+        personas.forEach(p => {
+            const opt = new Option(`${p.icon} ${p.role_name}`, p.id);
+            classSelect.add(opt.cloneNode(true));
+            studentPersonaSelect.add(opt);
+        });
+    } catch (e) {
+        console.error('페르소나 목록 로드 실패:', e);
+    }
+}
+
+async function loadAllStudents() {
+    try {
+        const res = await fetch('/api/admin/analyze/students');
+        const students = await res.json();
+        populateStudentSelect(students);
+    } catch (e) {
+        console.error('학생 목록 로드 실패:', e);
+    }
+}
+
+async function onStudentPersonaChange() {
+    const personaId = document.getElementById('student-persona-select').value;
+    if (!personaId) {
+        await loadAllStudents();
+        return;
+    }
+    try {
+        const res = await fetch(`/api/admin/analyze/students/${personaId}`);
+        const students = await res.json();
+        populateStudentSelect(students);
+    } catch (e) {
+        console.error('학생 목록 로드 실패:', e);
+    }
+}
+
+function populateStudentSelect(students) {
+    const sel = document.getElementById('student-select');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
+    students.forEach(s => {
+        const opt = new Option(s.display_name, s.id);
+        sel.add(opt);
+    });
+    if (prev) sel.value = prev; // 선택값 유지 시도
+}
+
+// ---- SSE 스트리밍 공통 처리 ----
+async function runAnalysis({ url, body, statusEl, resultEl, labelEl, analyzeBtn, copyBtn, labelText }) {
+    resultEl.innerHTML = '';
+    resultEl.classList.add('streaming');
+    statusEl.className = 'az-status';
+    statusEl.style.display = 'block';
+    statusEl.textContent = '분석을 시작합니다...';
+    labelEl.textContent = '';
+    copyBtn.style.display = 'none';
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '분석 중...';
+
+    const resultArea = resultEl.closest('[id$="-result-area"]') || resultEl.parentElement.parentElement;
+    resultArea.style.display = 'block';
+
+    let accumulated = '';
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // 불완전한 마지막 줄 보존
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                let evt;
+                try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+                if (evt.type === 'status') {
+                    statusEl.textContent = evt.text;
+                } else if (evt.type === 'chunk') {
+                    accumulated += evt.text;
+                    resultEl.innerHTML = marked.parse(accumulated);
+                } else if (evt.type === 'done') {
+                    statusEl.style.display = 'none';
+                    resultEl.classList.remove('streaming');
+                    labelEl.textContent = labelText;
+                    copyBtn.style.display = 'inline-block';
+                } else if (evt.type === 'error') {
+                    statusEl.textContent = '오류: ' + evt.text;
+                    statusEl.className = 'az-status error';
+                    resultEl.classList.remove('streaming');
+                }
+            }
+        }
+    } catch (e) {
+        statusEl.textContent = '요청 중 오류가 발생했습니다: ' + e.message;
+        statusEl.className = 'az-status error';
+        resultEl.classList.remove('streaming');
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '분석 시작';
+    }
+}
+
+// ---- 클래스 분석 ----
+function startClassAnalysis() {
+    const personaId = document.getElementById('class-persona-select').value;
+    if (!personaId) {
+        alert('페르소나를 선택해 주세요.');
+        return;
+    }
+    const personaName = document.getElementById('class-persona-select')
+        .options[document.getElementById('class-persona-select').selectedIndex].text;
+
+    runAnalysis({
+        url: '/api/admin/analyze/class',
+        body: { persona_id: parseInt(personaId) },
+        statusEl:    document.getElementById('class-status'),
+        resultEl:    document.getElementById('class-result'),
+        labelEl:     document.getElementById('class-result-label'),
+        analyzeBtn:  document.getElementById('class-analyze-btn'),
+        copyBtn:     document.getElementById('class-copy-btn'),
+        labelText:   `분석 대상: ${personaName}`,
+    });
+}
+
+// ---- 학생 분석 ----
+function startStudentAnalysis() {
+    const studentId = document.getElementById('student-select').value;
+    if (!studentId) {
+        alert('학생을 선택해 주세요.');
+        return;
+    }
+    const studentName = document.getElementById('student-select')
+        .options[document.getElementById('student-select').selectedIndex].text;
+    const personaId = document.getElementById('student-persona-select').value || null;
+    const personaName = personaId
+        ? document.getElementById('student-persona-select')
+              .options[document.getElementById('student-persona-select').selectedIndex].text
+        : '전체';
+
+    runAnalysis({
+        url: '/api/admin/analyze/student',
+        body: { student_id: parseInt(studentId), persona_id: personaId ? parseInt(personaId) : null },
+        statusEl:    document.getElementById('student-status'),
+        resultEl:    document.getElementById('student-result'),
+        labelEl:     document.getElementById('student-result-label'),
+        analyzeBtn:  document.getElementById('student-analyze-btn'),
+        copyBtn:     document.getElementById('student-copy-btn'),
+        labelText:   `분석 대상: ${studentName} / 페르소나: ${personaName}`,
+    });
+}
+
+// ---- 알림 배지 새로고침 ----
+async function refreshUnreadBadge() {
+    try {
+        const res = await fetch('/api/admin/analyze/alerts/unread-count');
+        const { count } = await res.json();
+        const badge = document.getElementById('unread-badge');
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (e) { /* 무시 */ }
+}
+
+// ---- 알림 목록 로드 ----
+async function loadAlerts() {
+    const unreadOnly = document.getElementById('alert-unread-only').checked;
+    const container  = document.getElementById('alerts-list');
+    container.innerHTML = '<p style="color:#718096; font-size:0.9rem;">불러오는 중...</p>';
+
+    try {
+        const res    = await fetch(`/api/admin/analyze/alerts?unread_only=${unreadOnly}`);
+        const alerts = await res.json();
+
+        if (!alerts.length) {
+            container.innerHTML = '<p style="color:#718096; text-align:center; padding:40px 0;">알림이 없습니다.</p>';
+            return;
+        }
+
+        container.innerHTML = alerts.map(a => {
+            const typeLabel = a.alert_type === 'keyword' ? '혼란 키워드' : '반복 질문';
+            const typeClass = a.alert_type;
+            const unreadClass = a.is_read ? '' : 'unread';
+            const readBtn = a.is_read
+                ? `<span style="font-size:0.78rem; color:#a0aec0;">읽음</span>`
+                : `<button onclick="markRead(${a.id}, this)" class="btn-secondary"
+                          style="padding:3px 10px; font-size:0.78rem;">읽음 처리</button>`;
+
+            return `<div class="az-alert-card type-${typeClass} ${unreadClass}" id="alert-card-${a.id}">
+                <div class="az-alert-meta">
+                    <span class="az-alert-tag ${typeClass}">${typeLabel}</span>
+                    <strong>${a.student_name}</strong>
+                    <span style="color:#718096;">${a.persona_name}</span>
+                    <span style="color:#a0aec0; margin-left:auto;">${a.created_at}</span>
+                    ${readBtn}
+                </div>
+                <div style="font-size:0.83rem; color:#718096; margin-bottom:4px;">
+                    ${a.detail} &nbsp;·&nbsp; 대화: ${a.session_title || '—'}
+                </div>
+                <div class="az-alert-trigger">${escapeHtml(a.trigger_content || '')}</div>
+            </div>`;
+        }).join('');
+
+    } catch (e) {
+        container.innerHTML = `<p style="color:#c53030;">알림을 불러오는 중 오류가 발생했습니다: ${e.message}</p>`;
+    }
+}
+
+async function markRead(alertId, btn) {
+    try {
+        await fetch(`/api/admin/analyze/alerts/${alertId}/read`, { method: 'POST' });
+        const card = document.getElementById(`alert-card-${alertId}`);
+        card.classList.remove('unread');
+        btn.outerHTML = `<span style="font-size:0.78rem; color:#a0aec0;">읽음</span>`;
+        refreshUnreadBadge();
+    } catch (e) { alert('처리 중 오류가 발생했습니다.'); }
+}
+
+async function markAllRead() {
+    if (!confirm('전체 알림을 읽음 처리할까요?')) return;
+    try {
+        await fetch('/api/admin/analyze/alerts/read-all', { method: 'POST' });
+        await loadAlerts();
+        refreshUnreadBadge();
+    } catch (e) { alert('처리 중 오류가 발생했습니다.'); }
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- 결과 복사 ----
+function copyResult(elementId) {
+    const el = document.getElementById(elementId);
+    const text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = el.parentElement.querySelector('.az-copy-btn');
+        const orig = btn.textContent;
+        btn.textContent = '✅ 복사됨';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+}
+</script>
+{% endblock %}
