@@ -1,6 +1,7 @@
 {% extends "index.html" %}
 
 {% block content %}
+<div style="flex:1; overflow-y:auto; min-height:0;">
 <div class="admin-container" style="padding: 24px; max-width: 960px; margin: 0 auto;">
 
     <!-- 헤더 -->
@@ -590,4 +591,6 @@ function copyResult(elementId) {
     });
 }
 </script>
+</div><!-- /.admin-container -->
+</div><!-- /scroll wrapper -->
 {% endblock %}
