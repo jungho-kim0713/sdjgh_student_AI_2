@@ -1,0 +1,24 @@
+{
+  "name": "서대전여고 수업용 AI",
+  "short_name": "수업 AI",
+  "description": "서대전여자고등학교 AI 학습 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#EC4899",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/static/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

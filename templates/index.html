@@ -13,6 +13,13 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ version }}">
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#EC4899">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="수업 AI">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
 </head>
 
 <body>
@@ -545,6 +552,14 @@
     <script src="{{ url_for('static', filename='js/modules/persona_visibility.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/modules/status_admin.js') }}?v={{ version }}"></script>
     <script src="{{ url_for('static', filename='js/app_entry.js') }}?v={{ version }}"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+            .catch(err => console.warn('SW 등록 실패:', err));
+        });
+      }
+    </script>
 </body>
 
 </html>

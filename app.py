@@ -16,7 +16,7 @@ except ImportError:
 
 import certifi
 from sqlalchemy import inspect, text
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from dotenv import load_dotenv
 
 from extensions import db, login_manager, cache
@@ -44,6 +44,23 @@ app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 # OAuth 초기화
 init_oauth(app)
+
+
+@app.route('/service-worker.js')
+def service_worker():
+    """서비스 워커를 루트 스코프(/)에서 서빙한다."""
+    resp = send_from_directory('static', 'service-worker.js',
+                               mimetype='application/javascript')
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
+@app.route('/manifest.json')
+def pwa_manifest():
+    """PWA manifest를 루트에서 서빙한다."""
+    return send_from_directory('static', 'manifest.json',
+                               mimetype='application/manifest+json')
 
 
 @app.after_request
