@@ -36,7 +36,7 @@
     display: flex;
     justify-content: flex-start;
     margin-bottom: 1.5rem;
-    animation: fade-in-up 0.4s ease-out forwards;
+    animation: fade-in-up 0.38s var(--ease-spring) forwards;
 }
 /* 사용자 메시지는 우측 정렬 */
 .message-wrapper.user {
@@ -45,20 +45,24 @@
 /* 메시지 버블 기본 스타일 */
 .ai-message, .user-message {
     max-width: 75%;
-    padding: 1rem;
-    border-radius: 1.5rem;
+    padding: 0.875rem 1.1rem;
+    border-radius: var(--radius-xl);
 }
-/* AI 메시지 버블: 회색 배경 */
+/* AI 메시지 버블: 미묘한 그라데이션 + 깊이감 */
 .ai-message {
-    background-color: #F3F4F6;
+    background: linear-gradient(145deg, #F8F9FB 0%, #F1F3F6 100%);
     color: #1F2937;
-    border-bottom-left-radius: 0.5rem;
+    border-bottom-left-radius: var(--radius-sm);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 }
-/* 사용자 메시지 버블: 더스티 로즈 & 베이비 핑크 */
+/* 사용자 메시지 버블: 핑크 그라데이션 + 깊이감 */
 .user-message {
-    background-color: #FCE4EC;
-    color: #333333;
-    border-bottom-right-radius: 0.5rem;
+    background: linear-gradient(145deg, #FDE8F4 0%, #FBCFE8 100%);
+    color: #2D1B26;
+    border-bottom-right-radius: var(--radius-sm);
+    border: 1px solid rgba(236, 72, 153, 0.12);
+    box-shadow: var(--shadow-pink-sm);
 }
 /* 발신자 이름 */
 .message-sender {
@@ -75,15 +79,20 @@
     max-width: 200px; max-height: 200px; border-radius: 10px;
     margin-top: 5px; margin-bottom: 5px;
 }
-/* 스크롤바 스타일(웹킷) */
-.chat-window::-webkit-scrollbar, .chat-history::-webkit-scrollbar { width: 8px; }
-/* 스크롤바 트랙 */
-.chat-window::-webkit-scrollbar-track, .chat-history::-webkit-scrollbar-track { background: #f1f5f9; }
-.chat-window::-webkit-scrollbar-thumb, .chat-history::-webkit-scrollbar-thumb {
-    background: #cbd5e1; border-radius: 10px;
+/* 스크롤바 스타일 — 얇고 세련된 톤 */
+.chat-window::-webkit-scrollbar,
+.chat-history::-webkit-scrollbar { width: 4px; }
+.chat-window::-webkit-scrollbar-track,
+.chat-history::-webkit-scrollbar-track { background: transparent; }
+.chat-window::-webkit-scrollbar-thumb,
+.chat-history::-webkit-scrollbar-thumb {
+    background: rgba(236, 72, 153, 0.2);
+    border-radius: var(--radius-full);
 }
-/* 스크롤바 thumb hover */
-.chat-window::-webkit-scrollbar-thumb:hover, .chat-history::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.chat-window::-webkit-scrollbar-thumb:hover,
+.chat-history::-webkit-scrollbar-thumb:hover {
+    background: rgba(236, 72, 153, 0.4);
+}
 
 /* Markdown Content Styling
    AI 응답 렌더링 스타일.
@@ -198,22 +207,25 @@
 /* 포커스 시 불필요한 그림자 제거 */
 .chat-form:focus-within { box-shadow: none; }
 
-/* 입력창 래퍼(버튼 포함) */
+/* 입력창 래퍼(버튼 포함) — 글래스모피즘 */
 .textarea-wrapper {
     flex: 1;
     position: relative;
-    background-color: #F3F4F6;
-    border-radius: 1.5rem;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    /* [Season 5] 보이스 인코더 버튼 위치 잡기를 위해 flex 사용 */
+    background: rgba(248, 249, 251, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    transition: all var(--t-base);
     display: flex;
     align-items: center;
+    box-shadow: var(--shadow-xs);
 }
-/* 포커스 시 외곽선 강조 */
+/* 포커스 시 핑크 글로우 */
 .textarea-wrapper:focus-within {
-    box-shadow: 0 0 0 2px #F472B6;
-    border-color: #F472B6;
+    background: rgba(255, 255, 255, 0.98);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.12), var(--shadow-sm);
 }
 
 /* 텍스트 입력 */
@@ -309,23 +321,27 @@
     min-height: 300px;
 }
 
-/* 전송 버튼: 주요 액션 */
+/* 전송 버튼: 그라데이션 + 스프링 애니메이션 */
 .send-button {
     padding: 0.75rem;
     border: none;
-    border-radius: 9999px;
-    background-color: #EC4899;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #F472B6 100%);
     color: white;
     cursor: pointer;
-    transition: transform 0.2s, background-color 0.2s;
+    transition: transform var(--t-spring), box-shadow var(--t-base);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
     margin-bottom: 3px;
+    box-shadow: var(--shadow-pink-sm);
 }
-/* hover: 확대/강조 */
 .send-button:hover {
-    background-color: #DB2777;
-    transform: scale(1.1);
+    transform: scale(1.12) translateY(-1px);
+    box-shadow: var(--shadow-pink);
+}
+.send-button:active {
+    transform: scale(0.96);
+    box-shadow: none;
 }
 /* 파일 첨부 버튼: 보조 액션 */
 .file-upload-button {
@@ -344,10 +360,10 @@
 .file-upload-button:hover {
     background-color: #E5E7EB;
 }
-/* 메시지 등장 애니메이션 */
+/* 메시지 등장 애니메이션 (스프링 커브) */
 @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
 }
 
 /* [Season 5] 스마트 복사 버튼 (Smart Copy Button)
@@ -359,22 +375,24 @@
 
 /* 복사 버튼 공통 스타일 */
 .copy-msg-btn {
-    position: -webkit-sticky; /* 사파리 호환 */
-    position: sticky;         /* 핵심: 스크롤 따라오기 */
-    top: 10px;                /* 화면 상단에서 10px 위치에 고정 */
+    position: -webkit-sticky;
+    position: sticky;
+    top: 10px;
     width: 28px;
     height: 28px;
-    background-color: white;
-    border: 1px solid #E5E7EB;
-    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6B7280;
-    opacity: 0;    /* 평소엔 숨김 */
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    color: var(--color-text-muted);
+    opacity: 0;
+    transition: all var(--t-base);
+    box-shadow: var(--shadow-sm);
     z-index: 10;
 }
 
