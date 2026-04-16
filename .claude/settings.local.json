@@ -26,7 +26,9 @@
       "Bash(\"/c/Program Files/Python312/python.exe\" --version)",
       "Read(//mnt/**)",
       "Bash(grep -E \"\\\\.html$\")",
-      "Bash(find \"f:/Kim_Jungho/jungho_webapp/sdjgh_student_AI\\(module\\)/routes\" -name \"*.py\" -exec basename {} \\\\;)"
+      "Bash(find \"f:/Kim_Jungho/jungho_webapp/sdjgh_student_AI\\(module\\)/routes\" -name \"*.py\" -exec basename {} \\\\;)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

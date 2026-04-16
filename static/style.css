@@ -1049,7 +1049,7 @@ textarea::placeholder {
 
 .header-left {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     flex-direction: column;
 }
 
