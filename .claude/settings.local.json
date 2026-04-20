@@ -29,7 +29,9 @@
       "Bash(find \"f:/Kim_Jungho/jungho_webapp/sdjgh_student_AI\\(module\\)/routes\" -name \"*.py\" -exec basename {} \\\\;)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Read(//f/Kim_Jungho/jungho_webapp/**)"
+      "Read(//f/Kim_Jungho/jungho_webapp/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
