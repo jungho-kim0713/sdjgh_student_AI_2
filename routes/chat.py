@@ -244,6 +244,41 @@ def get_persona_provider_restrictions():
         "restrict_openai": persona.restrict_openai,
         "restrict_xai": persona.restrict_xai,
     }
+
+    # 페르소나별 허용 모델 목록 + 한글 이름 추가 (학생 모델 선택 드롭다운용)
+    allowed_by_provider = {}
+    model_names = {}
+
+    if persona.allowed_models_config:
+        try:
+            cfg = json.loads(persona.allowed_models_config)
+            for prov in ['openai', 'anthropic', 'google', 'xai']:
+                # 전역 활성화 모델과 교차 검증 (비활성화된 모델 자동 제거)
+                enabled_conf = SystemConfig.query.filter_by(
+                    key=f"enabled_models_{prov}").first()
+                global_enabled = json.loads(enabled_conf.value) if enabled_conf else []
+                lst = cfg.get(prov, [])
+                if global_enabled:
+                    lst = [m for m in lst if m in global_enabled]
+                allowed_by_provider[prov] = lst
+                for m_id in lst:
+                    if m_id in AVAILABLE_MODELS:
+                        model_names[m_id] = AVAILABLE_MODELS[m_id].get('name', m_id)
+        except (ValueError, TypeError):
+            pass
+
+    # allowed_models_config 없음 → 단일 필드에서 폴백 (기존 페르소나 하위호환)
+    if not allowed_by_provider:
+        for prov, field in [('openai', 'model_openai'), ('anthropic', 'model_anthropic'),
+                            ('google', 'model_google'), ('xai', 'model_xai')]:
+            m = getattr(persona, field)
+            allowed_by_provider[prov] = [m] if m else []
+            if m and m in AVAILABLE_MODELS:
+                model_names[m] = AVAILABLE_MODELS[m].get('name', m)
+
+    data['allowed_models'] = allowed_by_provider
+    data['model_names'] = model_names
+
     return jsonify(data)
 
 
@@ -270,6 +305,7 @@ def chat():
     provider = data.get("provider", "anthropic")
     user_message = data.get("message")
     file_ids = data.get("file_ids", [])
+    requested_model_id = data.get("model_id")  # 학생이 선택한 모델 ID (선택사항)
 
     # 이미지 생성 페르소나: 별도 플로우로 처리
     if role_key == "ai_illustrator":
@@ -437,27 +473,32 @@ def chat():
     # 시스템 프롬프트 조회
     system_prompt = get_system_prompt_from_db(persona.id, provider)
 
-    # 페르소나 설정에 따라 모델 선택
-    selected_model_id = DEFAULT_MODEL
-    if provider == "openai":
-        selected_model_id = persona.model_openai
-    elif provider == "google":
-        selected_model_id = persona.model_google
-    elif provider == "anthropic":
-        selected_model_id = persona.model_anthropic
-    elif provider == "xai":
-        selected_model_id = persona.model_xai
+    # 페르소나 설정에 따라 모델 선택 (allowed_models_config 기반 3단계 필터링)
+    _allowed_list = []
+    if persona.allowed_models_config:
+        try:
+            _cfg = json.loads(persona.allowed_models_config)
+            _allowed_list = _cfg.get(provider, [])
+        except (ValueError, TypeError):
+            pass
 
-    # 모델이 유효하지 않으면 기본값으로 폴백
+    if not _allowed_list:
+        # 폴백: 단일 필드 (기존 페르소나 하위호환)
+        _single = getattr(persona, f'model_{provider}', None)
+        if _single:
+            _allowed_list = [_single]
+
+    # 학생이 요청한 model_id 검증 (허용 목록에 있어야만 사용)
+    if requested_model_id and requested_model_id in _allowed_list:
+        selected_model_id = requested_model_id
+    elif _allowed_list:
+        selected_model_id = _allowed_list[0]
+    else:
+        selected_model_id = DEFAULT_MODELS.get(provider, DEFAULT_MODEL)
+
+    # 전역 AVAILABLE_MODELS 유효성 확인
     if selected_model_id not in AVAILABLE_MODELS:
-        if provider == "openai":
-            selected_model_id = DEFAULT_MODELS["openai"]
-        elif provider == "google":
-            selected_model_id = DEFAULT_MODELS["google"]
-        elif provider == "xai":
-            selected_model_id = DEFAULT_MODELS.get("xai", "grok-4-1-fast-reasoning")
-        else:
-            selected_model_id = DEFAULT_MODELS["anthropic"]
+        selected_model_id = DEFAULT_MODELS.get(provider, DEFAULT_MODEL)
 
     selected_max_tokens = persona.max_tokens
 

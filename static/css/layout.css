@@ -183,6 +183,8 @@
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 10;
 }
 /* 좌측 그룹(메뉴/로고/셀렉터) */
 .header-left-group {
@@ -190,11 +192,11 @@
 }
 /* 좌측 정렬 영역 */
 .header-left {
-    display: flex; align-items: flex-start; flex-direction: column;
+    display: flex; align-items: flex-start; flex-direction: column; gap: 8px;
 }
 /* 학교 로고 이미지 */
 .logo {
-    height: 28px; margin-bottom: 8px;
+    height: 36px; margin-bottom: 0;
     object-fit: contain;
     object-position: left center;
     width: auto;
@@ -207,16 +209,17 @@
     font-size: 0.875rem;
     font-family: inherit;
     color: var(--color-text-sub);
-    padding: 0.5rem 0.75rem;
-    background: linear-gradient(135deg, var(--color-bg-subtle) 0%, var(--color-bg-muted) 100%);
+    padding: 0 0.75rem;
+    height: 36px;
+    background: white; /* 기본: 흰색 */
     cursor: pointer;
-    transition: border-color var(--t-base), box-shadow var(--t-base);
+    transition: border-color var(--t-base), background-color var(--t-base);
     box-shadow: var(--shadow-xs);
 }
 .model-selector:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.12);
+    background: white;
 }
 
 /* 메인 타이틀(그라데이션 텍스트) */
@@ -232,50 +235,46 @@
     margin: 0;
 }
 
-/* 우측 컨트롤 영역(공급사/상태) */
+/* 우측 컨트롤 영역: 세로 2줄 구조 */
 .header-right {
-    min-width: 110px; display: flex; justify-content: flex-end; align-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* 자식이 너비를 꽉 채움 */
+    gap: 8px; /* 좌측 logo margin-bottom(8px)과 일치 */
 }
 
-/* 공급사 드롭다운 래퍼 */
-.provider-dropdown {
-    position: relative;
-    display: inline-block;
-    margin-right: 15px;
-}
-
-/* 공급사 트리거 버튼 */
-.provider-trigger {
+/* 1줄: 공급사 드롭박스 + 상태 버튼 (우측 정렬) */
+.header-right-top {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: white;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* 학생 모델 선택 드롭다운 (2번째 줄 — 전체 너비, 페르소나 셀렉터와 동일 높이) */
+#model-id-wrapper {
+    display: none;
+    width: auto;
+}
+.model-id-selector {
+    font-size: 0.875rem;
+    padding: 0 0.75rem;
+    height: 36px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    background: white;
+    color: var(--color-text-sub);
     cursor: pointer;
-    transition: all var(--t-base);
-    box-shadow: var(--shadow-xs);
     font-family: inherit;
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--t-base), background-color var(--t-base);
 }
-.provider-trigger:hover {
-    background: var(--color-bg-subtle);
-    border-color: var(--color-primary-light);
-    box-shadow: var(--shadow-sm);
-}
-
-/* 메인 아이콘 이미지 */
-.provider-icon-main {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    border-radius: 4px;
+.model-id-selector:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: white;
 }
 
-/* 드롭다운 화살표 */
-.dropdown-arrow {
-    color: #6B7280;
-}
 
 /* 공급사 메뉴 패널 */
 .provider-menu {
@@ -343,15 +342,16 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* 서비스 상태 버튼 */
+/* 서비스 상태 버튼 — 공급사 트리거와 동일 높이 */
 .status-button {
-    border: none; cursor: pointer; padding: 8px 15px; border-radius: 20px;
-    display: flex; align-items: center; color: white; font-weight: bold; transition: background-color 0.3s;
+    border: none; cursor: pointer; padding: 0 12px; height: 36px; border-radius: 20px;
+    display: flex; align-items: center; color: white; font-weight: bold;
+    font-size: 0.8em; transition: background-color 0.3s; white-space: nowrap;
 }
 /* 상태 점 */
 .status-button::before {
-    content: ''; display: inline-block; width: 10px; height: 10px;
-    border-radius: 50%; margin-right: 8px; background-color: white;
+    content: ''; display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; margin-right: 5px; background-color: white;
 }
 /* active: 사용 가능 */
 .status-button.active { background-color: #28a745; }

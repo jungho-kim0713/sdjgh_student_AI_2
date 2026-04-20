@@ -149,6 +149,10 @@ class PersonaDefinition(db.Model):
     model_google = db.Column(db.String(100), default='gemini-2.0-flash')
     model_xai = db.Column(db.String(100), default='grok-4-1-fast-reasoning')
     max_tokens = db.Column(db.Integer, default=4096)
+    # 페르소나별 허용 모델 목록 + 노출 순서 (2단계 필터링)
+    # JSON: {"openai": ["gpt-4o-mini", "gpt-4o"], "anthropic": [...], "google": [...], "xai": [...]}
+    # null = 하위호환 모드 (위 model_* 단일 필드 사용)
+    allowed_models_config = db.Column(db.Text, nullable=True)
 
     # 권한 설정
     allow_user = db.Column(db.Boolean, default=True)

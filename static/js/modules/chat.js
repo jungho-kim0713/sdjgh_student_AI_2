@@ -116,6 +116,7 @@ window.App.registerModule((ctx) => {
                     message: message,
                     model: selectedModel,
                     provider: state.currentProvider,
+                    model_id: state.currentModelId || null,
                     image: image,
                     file_ids: fileIds
                 }),

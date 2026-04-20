@@ -196,3 +196,87 @@ CELERY_BROKER_URL   ← 로컬 UI 테스트 시 주석 처리
 - `static/manifest.json`, `static/service-worker.js` 추가
 - `app.py`에 `/manifest.json`, `/service-worker.js` 루트 라우트 추가 (서비스 워커 scope `/` 필수)
 - `templates/index.html` `<head>`에 manifest 링크 및 SW 등록 스크립트 추가
+
+## 10. 알려진 버그 및 해결 기록
+
+### [2026-04-17] 공급사 드롭다운이 채팅창 뒤로 나타나는 문제 (해결)
+
+**증상**
+- 공급사 선택 드롭다운이 채팅창 뒤에 렌더링됨
+- GPT·Grok 항목이 클릭되지 않음 (채팅창에 가려져 클릭 이벤트 차단)
+
+**근본 원인**
+`backdrop-filter: blur(10px)`을 `.header`에 추가하면 **새로운 스태킹 컨텍스트(stacking context)** 가 생성된다.
+`z-index` 없이 스태킹 컨텍스트가 생성되면, DOM 순서상 뒤에 오는 `.chat-window`가 `.header` 전체(드롭다운 포함)를 덮어버린다.
+결과적으로 드롭다운(`z-index: 1000`)이 `.header` 컨텍스트 내부에 갇혀 채팅창 뒤로 밀린다.
+
+**버그가 자동으로 사라진 이유**
+`service-worker.js`의 `/static/` 캐시 우선 전략으로 인해, 배포 직후 브라우저가 구버전 CSS를 제공하다가 시간이 지나 캐시가 갱신되면서 CSS 불일치가 해소됐다.
+즉, 버그가 사라진 것이 아니라 캐시 상태에 따라 재현 여부가 달랐던 것 — **실제 버그는 코드에 남아 있었음**.
+
+**수정 내용** (`static/css/layout.css`)
+```css
+.header {
+    /* backdrop-filter가 스태킹 컨텍스트를 생성하므로, z-index를 명시해야
+       .chat-window보다 위에 렌더링됨 */
+    position: relative;
+    z-index: 10;
+}
+```
+
+**재발 방지**
+CSS·JS 정적 파일을 변경할 때마다 `static/service-worker.js`의 `CACHE_NAME` 버전 번호를 올린다.
+예: `sdjgh-ai-v2` → `sdjgh-ai-v3`
+서비스 워커 activate 핸들러가 이전 버전 캐시를 자동 삭제하여 구 CSS가 남아 있는 문제를 방지한다.
+
+---
+
+## 11. 헤더 UI 개선 기록
+
+### [2026-04-20] 드롭박스 UI 통일성 작업
+
+**목표**: 헤더 우측의 세 컨트롤 — 페르소나 셀렉터(`.model-selector`), 공급사 트리거(`.provider-trigger`), 모델 셀렉터(`.model-id-selector`) — 의 시각적 통일성 확보.
+
+#### 레이아웃 구조 변경 (2줄 구조)
+
+헤더 우측을 세로 2줄로 재구성:
+```
+1줄: [공급사 드롭박스 — 좌] ............... [사용 가능 버튼 — 우]
+2줄: [모델 선택 드롭박스 — 전체 너비]
+```
+
+- `templates/index.html`: 공급사 트리거 + 상태 버튼을 `.header-right-top` div로 묶고, 모델 셀렉터는 그 아래 독립 배치
+- `.header-right`: `flex-direction: column`, `align-items: stretch`, `gap: 8px`
+- `.header-right-top`: `justify-content: space-between` (공급사 좌측, 상태버튼 우측)
+
+#### 행 높이 일치
+
+좌측(로고 + 페르소나 셀렉터)과 우측(공급사+상태버튼 + 모델 셀렉터)의 행별 높이를 맞춤:
+- 공급사 트리거 아이콘: 24px → 20px, padding: `6px 12px` → `3px 8px` (로고 28px에 근접)
+- 행 간격: 4px → 8px (로고 `margin-bottom: 8px`와 일치)
+- 모델 셀렉터 padding: `4px 8px` → `0.5rem 0.75rem`, font-size: `0.78em` → `0.875rem` (페르소나 셀렉터와 일치)
+
+#### 디자인 통일 (border-radius, 테두리, 배경)
+
+세 요소를 동일한 스타일로 통일 (`static/css/layout.css`):
+
+| 속성 | 변경 전 | 변경 후 |
+|------|--------|--------|
+| 모서리 곡률 | 공급사: `radius-full`(9999px), 나머지: `radius-md` | **셋 모두 `radius-md`(12px)** |
+| 기본 배경 | 페르소나/모델: 그라데이션, 공급사: 흰색 | **셋 모두 흰색** |
+| 클릭/포커스 배경 | 공급사만 연회색 | **셋 모두 연회색 (`--color-bg-subtle`)** |
+| 포커스 테두리 | 페르소나: 두꺼운 핑크 링(`box-shadow: 0 0 0 3px`), 공급사: 없음 | **셋 모두 얇은 핑크 테두리 (`border-color: var(--color-primary)` 만)** |
+
+```css
+/* 통일된 포커스 스타일 예시 */
+.model-selector:focus,
+.model-id-selector:focus,
+.provider-trigger:focus {
+    outline: none;
+    border-color: var(--color-primary);   /* 얇은 핑크 테두리 */
+    background: var(--color-bg-subtle);   /* 연회색 배경 */
+    /* box-shadow 없음 — 두꺼운 링 제거 */
+}
+```
+
+**캐시 버전**: CSS 변경마다 서비스 워커 캐시 버전 올림 (`v1` → `v2` → `v3` → `v4`).

@@ -10,9 +10,13 @@ let allTeachers = [];
 let currentPrompts = {}; // provider별 프롬프트 캐시
 let pollingInterval = null; // 문서 상태 polling용 interval
 
+// 허용 모델 설정 UI 캐시
+let _enabledModelsCache = {};   // { openai: ['id1',...], ... } — 공급사별 활성화 모델 ID 목록
+let _availableModelsCache = {}; // { 'id1': {name:'...', provider:'...'}, ... } — 모델 메타데이터
+
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', async () => {
-    await populateModelDropdowns(); // 모델 드롭다운 먼저 초기화
+    await populateModelCheckboxes(); // 모델 체크박스 UI 초기화
     await loadPersonas();
     await loadTeachers();
 });
@@ -51,130 +55,92 @@ async function loadTeachers() {
 }
 
 /**
- * 모델 드롭다운을 동적으로 채우기
- * 관리자 패널에서 활성화된 모델만 표시
+ * 허용 모델 체크박스 UI 초기화
+ * 관리자가 활성화한 모델을 체크박스로 표시 + 선택된 순서 목록 제공
  */
-async function populateModelDropdowns() {
+async function populateModelCheckboxes() {
     try {
-        // 활성화된 모델 리스트 조회
-        const response = await fetch('/api/admin/enabled_models');
-        const enabledModels = await response.json();
-
-        // OpenAI 드롭다운
-        const openaiSelect = document.getElementById('modelOpenai');
-        if (openaiSelect && enabledModels.openai && enabledModels.openai.length > 0) {
-            openaiSelect.innerHTML = '';
-            enabledModels.openai.forEach(modelId => {
-                const option = document.createElement('option');
-                option.value = modelId;
-                option.textContent = modelId;
-                openaiSelect.appendChild(option);
-            });
-        }
-
-        // Anthropic 드롭다운
-        const anthropicSelect = document.getElementById('modelAnthropic');
-        if (anthropicSelect && enabledModels.anthropic && enabledModels.anthropic.length > 0) {
-            anthropicSelect.innerHTML = '';
-            enabledModels.anthropic.forEach(modelId => {
-                const option = document.createElement('option');
-                option.value = modelId;
-                option.textContent = modelId;
-                anthropicSelect.appendChild(option);
-            });
-        }
-
-        // Google 드롭다운
-        const googleSelect = document.getElementById('modelGoogle');
-        if (googleSelect && enabledModels.google && enabledModels.google.length > 0) {
-            googleSelect.innerHTML = '';
-            enabledModels.google.forEach(modelId => {
-                const option = document.createElement('option');
-                option.value = modelId;
-                option.textContent = modelId;
-                googleSelect.appendChild(option);
-            });
-        }
-
-        // xAI 드롭다운
-        const xaiSelect = document.getElementById('modelXai');
-        if (xaiSelect && enabledModels.xai && enabledModels.xai.length > 0) {
-            xaiSelect.innerHTML = '';
-            enabledModels.xai.forEach(modelId => {
-                const option = document.createElement('option');
-                option.value = modelId;
-                option.textContent = modelId;
-                xaiSelect.appendChild(option);
-            });
-        }
-
-        console.log('✅ 모델 드롭다운 초기화 완료:', enabledModels);
-
+        const [enabledRes, mergedRes] = await Promise.all([
+            fetch('/api/admin/enabled_models'),
+            fetch('/api/admin/persona/available_models')
+        ]);
+        _enabledModelsCache = await enabledRes.json();
+        try { _availableModelsCache = await mergedRes.json(); } catch(_) {}
     } catch (error) {
-        console.error('모델 드롭다운 초기화 실패:', error);
-        // 에러 발생 시 기본값 설정
-        setDefaultModelDropdowns();
+        console.error('모델 목록 로드 실패:', error);
+        _enabledModelsCache = { openai: ['gpt-4o-mini'], anthropic: ['claude-haiku-4-5-20251001'],
+                                google: ['gemini-2.0-flash'], xai: ['grok-4-1-fast-reasoning'] };
     }
+
+    for (const provider of ['openai', 'anthropic', 'google', 'xai']) {
+        const checklistEl = document.getElementById(`modelChecklist-${provider}`);
+        if (!checklistEl) continue;
+        const ids = _enabledModelsCache[provider] || [];
+        if (ids.length === 0) {
+            checklistEl.innerHTML = '<span style="color:#aaa;font-size:0.82em">관리자가 활성화한 모델 없음</span>';
+            continue;
+        }
+        checklistEl.innerHTML = ids.map(id => {
+            const name = _availableModelsCache[id]?.name || id;
+            return `<label>
+                <input type="checkbox" name="model-${provider}" value="${id}">
+                ${id}<span style="color:#888;font-size:0.78em;margin-left:3px">(${name})</span>
+            </label>`;
+        }).join('');
+
+        checklistEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.addEventListener('change', () => _syncOrderList(provider));
+        });
+    }
+    console.log('✅ 모델 체크박스 초기화 완료');
 }
 
 /**
- * 에러 발생 시 기본 모델 드롭다운 설정
+ * 체크박스 변경 시 순서 목록 동기화 (기존 순서 최대한 유지)
  */
-function setDefaultModelDropdowns() {
-    console.warn('⚠️ 기본 모델 드롭다운 사용');
+function _syncOrderList(provider) {
+    const checklistEl = document.getElementById(`modelChecklist-${provider}`);
+    const orderListEl = document.getElementById(`sortableAllowed-${provider}`);
+    if (!checklistEl || !orderListEl) return;
 
-    const defaultModels = {
-        openai: ['gpt-4o-mini', 'gpt-4o'],
-        anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929'],
-        google: ['gemini-3-flash-preview', 'gemini-2.5-flash'],
-        xai: ['grok-4-1-fast-reasoning']
-    };
+    const checked = Array.from(checklistEl.querySelectorAll('input:checked')).map(c => c.value);
+    const existing = Array.from(orderListEl.querySelectorAll('li')).map(li => li.dataset.id);
+    const newOrder = [
+        ...existing.filter(id => checked.includes(id)),
+        ...checked.filter(id => !existing.includes(id))
+    ];
+    _renderOrderList(provider, newOrder);
+}
 
-    // OpenAI
-    const openaiSelect = document.getElementById('modelOpenai');
-    if (openaiSelect) {
-        openaiSelect.innerHTML = '';
-        defaultModels.openai.forEach(modelId => {
-            const option = document.createElement('option');
-            option.value = modelId;
-            option.textContent = modelId;
-            openaiSelect.appendChild(option);
-        });
-    }
+/**
+ * 순서 목록 렌더링 + SortableJS 초기화
+ */
+function _renderOrderList(provider, ids) {
+    const orderListEl = document.getElementById(`sortableAllowed-${provider}`);
+    if (!orderListEl) return;
+    orderListEl.innerHTML = ids.map((id, idx) => {
+        const name = _availableModelsCache[id]?.name || id;
+        return `<li data-id="${id}">
+            <span class="model-drag-handle">⠿</span>
+            <span>${id}</span>
+            <span class="model-name-hint">${name}</span>
+            ${idx === 0 ? '<span class="default-badge">기본값</span>' : ''}
+        </li>`;
+    }).join('');
 
-    // Anthropic
-    const anthropicSelect = document.getElementById('modelAnthropic');
-    if (anthropicSelect) {
-        anthropicSelect.innerHTML = '';
-        defaultModels.anthropic.forEach(modelId => {
-            const option = document.createElement('option');
-            option.value = modelId;
-            option.textContent = modelId;
-            anthropicSelect.appendChild(option);
-        });
-    }
-
-    // Google
-    const googleSelect = document.getElementById('modelGoogle');
-    if (googleSelect) {
-        googleSelect.innerHTML = '';
-        defaultModels.google.forEach(modelId => {
-            const option = document.createElement('option');
-            option.value = modelId;
-            option.textContent = modelId;
-            googleSelect.appendChild(option);
-        });
-    }
-
-    // xAI
-    const xaiSelect = document.getElementById('modelXai');
-    if (xaiSelect) {
-        xaiSelect.innerHTML = '';
-        defaultModels.xai.forEach(modelId => {
-            const option = document.createElement('option');
-            option.value = modelId;
-            option.textContent = modelId;
-            xaiSelect.appendChild(option);
+    if (typeof Sortable !== 'undefined') {
+        if (orderListEl._sortable) orderListEl._sortable.destroy();
+        orderListEl._sortable = Sortable.create(orderListEl, {
+            handle: '.model-drag-handle', animation: 150,
+            onEnd: () => {
+                // 드래그 완료 후 "기본값" 배지 갱신
+                orderListEl.querySelectorAll('li').forEach((li, i) => {
+                    const badge = li.querySelector('.default-badge');
+                    if (i === 0 && !badge)
+                        li.insertAdjacentHTML('beforeend', '<span class="default-badge">기본값</span>');
+                    else if (i > 0 && badge) badge.remove();
+                });
+            }
         });
     }
 }
@@ -284,10 +250,10 @@ async function loadPersonaDetails(persona) {
     document.getElementById('personaDetailHeader').style.display = 'block';
     document.getElementById('personaDetailForm').style.display = 'block';
 
-    // 모델 드롭다운이 비어있으면 다시 로드
-    const openaiSelect = document.getElementById('modelOpenai');
-    if (!openaiSelect || openaiSelect.options.length === 0) {
-        await populateModelDropdowns();
+    // 모델 체크박스 UI가 비어있으면 다시 로드
+    const firstChecklist = document.getElementById('modelChecklist-openai');
+    if (!firstChecklist || firstChecklist.children.length === 0) {
+        await populateModelCheckboxes();
     }
 
     // 기본 정보
@@ -297,11 +263,24 @@ async function loadPersonaDetails(persona) {
     document.getElementById('icon').value = persona.icon || '🤖';
     document.getElementById('description').value = persona.description || '';
 
-    // AI 모델 설정 (드롭다운이 준비된 후 값 설정)
-    document.getElementById('modelOpenai').value = persona.model_openai || 'gpt-4o-mini';
-    document.getElementById('modelAnthropic').value = persona.model_anthropic || 'claude-haiku-4-5-20251001';
-    document.getElementById('modelGoogle').value = persona.model_google || 'gemini-3-flash-preview';
-    document.getElementById('modelXai').value = persona.model_xai || 'grok-4-1-fast-reasoning';
+    // AI 모델 허용 목록 복원 (allowed_models_config 우선, 없으면 단일 필드 폴백)
+    const allowedCfg = persona.allowed_models_config || null;
+    for (const provider of ['openai', 'anthropic', 'google', 'xai']) {
+        let lst = allowedCfg?.[provider] ?? [];
+        if (lst.length === 0) {
+            const fieldMap = { openai: 'model_openai', anthropic: 'model_anthropic',
+                               google: 'model_google', xai: 'model_xai' };
+            const single = persona[fieldMap[provider]];
+            if (single) lst = [single];
+        }
+        // 체크박스 복원
+        const checklistEl = document.getElementById(`modelChecklist-${provider}`);
+        if (checklistEl) checklistEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.checked = lst.includes(cb.value);
+        });
+        // 순서 목록 렌더링
+        _renderOrderList(provider, lst);
+    }
     document.getElementById('maxTokens').value = persona.max_tokens || 4096;
 
     // RAG 설정
@@ -450,15 +429,13 @@ function createNewPersona() {
     document.getElementById('icon').value = '🤖';
     document.getElementById('description').value = '';
 
-    const firstOption = sel => sel.options.length > 0 ? sel.options[0].value : '';
-    const openaiSel = document.getElementById('modelOpenai');
-    const anthropicSel = document.getElementById('modelAnthropic');
-    const googleSel = document.getElementById('modelGoogle');
-    const xaiSel = document.getElementById('modelXai');
-    openaiSel.value = firstOption(openaiSel);
-    anthropicSel.value = firstOption(anthropicSel);
-    googleSel.value = firstOption(googleSel);
-    xaiSel.value = firstOption(xaiSel);
+    // 모델 체크박스 전체 해제 + 순서 목록 초기화
+    for (const p of ['openai', 'anthropic', 'google', 'xai']) {
+        document.getElementById(`modelChecklist-${p}`)
+            ?.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = false; });
+        const ol = document.getElementById(`sortableAllowed-${p}`);
+        if (ol) { if (ol._sortable) ol._sortable.destroy(); ol.innerHTML = ''; }
+    }
     document.getElementById('maxTokens').value = '4096';
 
     document.getElementById('useRag').checked = false;
@@ -523,10 +500,22 @@ async function savePersona() {
         icon: document.getElementById('icon').value,
         description: document.getElementById('description').value,
 
-        model_openai: document.getElementById('modelOpenai').value,
-        model_anthropic: document.getElementById('modelAnthropic').value,
-        model_google: document.getElementById('modelGoogle').value,
-        model_xai: document.getElementById('modelXai').value,
+        // 허용 모델 목록 수집 (순서 목록에서 읽음)
+        ...(() => {
+            const allowedConfig = {};
+            for (const p of ['openai', 'anthropic', 'google', 'xai']) {
+                const ol = document.getElementById(`sortableAllowed-${p}`);
+                allowedConfig[p] = ol ? Array.from(ol.querySelectorAll('li')).map(li => li.dataset.id) : [];
+            }
+            return {
+                allowed_models_config: allowedConfig,
+                // 하위호환: 첫 항목을 단일 필드에도 전달
+                model_openai:    (allowedConfig.openai    || [])[0] || '',
+                model_anthropic: (allowedConfig.anthropic || [])[0] || '',
+                model_google:    (allowedConfig.google    || [])[0] || '',
+                model_xai:       (allowedConfig.xai       || [])[0] || '',
+            };
+        })(),
         max_tokens: parseInt(document.getElementById('maxTokens').value),
 
         use_rag: document.getElementById('useRag').checked,

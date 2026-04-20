@@ -77,9 +77,22 @@ def get_enabled_models_merged():
                 
     if not enabled_models_merged:
         return AVAILABLE_MODELS
-        
+
     return enabled_models_merged
 
+
+def _build_allowed_models_config(data):
+    """요청 dict에서 allowed_models_config JSON 문자열 생성.
+    allowed_models_config 키가 있으면 그걸 사용하고,
+    없으면 model_openai 등 단일 필드에서 단일 아이템 목록 생성."""
+    if 'allowed_models_config' in data:
+        cfg = data['allowed_models_config']
+        return json.dumps(cfg) if isinstance(cfg, dict) else cfg
+    result = {}
+    for p in ['openai', 'anthropic', 'google', 'xai']:
+        m = data.get(f'model_{p}')
+        result[p] = [m] if m else []
+    return json.dumps(result)
 
 
 # =============================================================================
@@ -319,6 +332,13 @@ def get_persona_list():
     })
 
 
+@admin_persona_bp.route("/api/admin/persona/available_models", methods=["GET"])
+@login_required
+def get_available_models_for_persona():
+    """관리자가 활성화한 모델 목록 반환 (페르소나 편집 UI에서 사용)."""
+    return jsonify(get_enabled_models_merged())
+
+
 @admin_persona_bp.route("/api/admin/persona/reorder", methods=["POST"])
 @login_required
 def reorder_personas():
@@ -410,6 +430,8 @@ def get_persona_detail(persona_id):
         "model_google": persona.model_google,
         "model_xai": persona.model_xai,
         "max_tokens": persona.max_tokens,
+        "allowed_models_config": json.loads(persona.allowed_models_config)
+            if persona.allowed_models_config else None,
         # 권한 설정
         "allow_user": persona.allow_user,
         "allow_teacher": persona.allow_teacher,
@@ -498,7 +520,8 @@ def create_persona():
             rag_top_k=data.get("rag_top_k", 3),
             rag_max_k=data.get("rag_max_k", 7),
             rag_similarity_threshold=data.get("rag_similarity_threshold", 0.5),
-            rag_gap_threshold=data.get("rag_gap_threshold", 0.1)
+            rag_gap_threshold=data.get("rag_gap_threshold", 0.1),
+            allowed_models_config=_build_allowed_models_config(data)
         )
 
         db.session.add(persona)
@@ -587,6 +610,21 @@ def update_persona(persona_id):
             persona.model_xai = data["model_xai"]
         if "max_tokens" in data:
             persona.max_tokens = data["max_tokens"]
+
+        # allowed_models_config 처리 (페르소나별 허용 모델 목록 + 순서)
+        if 'allowed_models_config' in data:
+            cfg = data['allowed_models_config']
+            persona.allowed_models_config = json.dumps(cfg) if isinstance(cfg, dict) else cfg
+        # 동기화: 첫 번째 항목 → 단일 필드에도 반영 (하위호환)
+        if persona.allowed_models_config:
+            try:
+                cfg_dict = json.loads(persona.allowed_models_config)
+                for prov in ['openai', 'anthropic', 'google', 'xai']:
+                    lst = cfg_dict.get(prov, [])
+                    if lst:
+                        setattr(persona, f'model_{prov}', lst[0])
+            except (ValueError, TypeError):
+                pass
 
         # 권한 설정
         if "allow_user" in data:

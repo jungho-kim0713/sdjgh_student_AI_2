@@ -92,31 +92,30 @@
 
                 <div class="form-section">
                     <h3>AI 모델 설정</h3>
-                    <div class="form-group">
-                        <label>OpenAI 모델</label>
-                        <select id="modelOpenai">
-                            <!-- JavaScript로 동적 생성 -->
-                        </select>
+                    <p class="form-hint">각 공급사에서 학생에게 제공할 모델을 선택하세요. 첫 번째 모델이 기본값으로 사용됩니다. (드래그로 순서 변경)</p>
+
+                    <div class="allowed-models-panel" id="allowedPanel-openai" data-provider="openai">
+                        <h4>OpenAI</h4>
+                        <div class="model-checklist" id="modelChecklist-openai"></div>
+                        <ul class="sortable-allowed-list" id="sortableAllowed-openai"></ul>
                     </div>
-                    <div class="form-group">
-                        <label>Anthropic 모델</label>
-                        <select id="modelAnthropic">
-                            <!-- JavaScript로 동적 생성 -->
-                        </select>
+                    <div class="allowed-models-panel" id="allowedPanel-anthropic" data-provider="anthropic">
+                        <h4>Anthropic Claude</h4>
+                        <div class="model-checklist" id="modelChecklist-anthropic"></div>
+                        <ul class="sortable-allowed-list" id="sortableAllowed-anthropic"></ul>
                     </div>
-                    <div class="form-group">
-                        <label>Google 모델</label>
-                        <select id="modelGoogle">
-                            <!-- JavaScript로 동적 생성 -->
-                        </select>
+                    <div class="allowed-models-panel" id="allowedPanel-google" data-provider="google">
+                        <h4>Google Gemini</h4>
+                        <div class="model-checklist" id="modelChecklist-google"></div>
+                        <ul class="sortable-allowed-list" id="sortableAllowed-google"></ul>
                     </div>
-                    <div class="form-group">
-                        <label>xAI (Grok) 모델</label>
-                        <select id="modelXai">
-                            <!-- JavaScript로 동적 생성 -->
-                        </select>
+                    <div class="allowed-models-panel" id="allowedPanel-xai" data-provider="xai">
+                        <h4>xAI Grok</h4>
+                        <div class="model-checklist" id="modelChecklist-xai"></div>
+                        <ul class="sortable-allowed-list" id="sortableAllowed-xai"></ul>
                     </div>
-                    <div class="form-group">
+
+                    <div class="form-group" style="margin-top:12px;">
                         <label>최대 토큰</label>
                         <input type="number" id="maxTokens" value="4096" min="512" max="16384">
                     </div>
@@ -545,6 +544,24 @@
         padding-bottom: 20px;
         border-bottom: 1px solid #eee;
     }
+
+    /* 허용 모델 설정 UI */
+    .form-hint { color: #888; font-size: 0.83em; margin-bottom: 10px; margin-top: -8px; }
+    .allowed-models-panel { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .allowed-models-panel h4 { margin: 0 0 8px 0; font-size: 0.9em; color: #4a5568; }
+    .model-checklist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 28px; }
+    .model-checklist label { display: flex; align-items: center; gap: 4px; padding: 3px 8px;
+        border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-size: 0.82em; background: #f7fafc; }
+    .model-checklist label:has(input:checked) { background: #ebf8ff; border-color: #3182ce; }
+    .sortable-allowed-list { list-style: none; padding: 0; margin: 0; min-height: 10px; }
+    .sortable-allowed-list li { display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 4px;
+        font-size: 0.82em; cursor: grab; }
+    .sortable-allowed-list li:active { cursor: grabbing; }
+    .sortable-allowed-list li .model-drag-handle { color: #aaa; flex-shrink: 0; }
+    .sortable-allowed-list li .model-name-hint { color: #888; font-size: 0.78em; flex: 1; }
+    .sortable-allowed-list li .default-badge { font-size: 0.72em; background: #3182ce; color: white;
+        padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
 
     .form-section:last-of-type {
         border-bottom: none;

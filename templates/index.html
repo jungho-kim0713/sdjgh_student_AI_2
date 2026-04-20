@@ -150,47 +150,55 @@
                     </div>
                     <h1 class="main-title">서대전여고 AI</h1>
                     <div class="header-right">
-                        <div class="provider-dropdown">
-                            <button id="current-provider-btn" class="provider-trigger" title="AI 모델 변경">
-                                <img id="current-provider-icon"
-                                    src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude"
-                                    class="provider-icon-main">
-                                <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
+                        <!-- 1줄: 공급사 선택 + 상태 버튼 -->
+                        <div class="header-right-top">
+                            {% if is_admin %}
+                            <button id="status-button" class="status-button active" title="상태 변경 (관리자용)">
+                                <span class="status-text">사용 가능</span>
                             </button>
-                            <div id="provider-menu" class="provider-menu">
-                                <button class="provider-option" data-provider="google">
-                                    <img src="{{ url_for('static', filename='images/gemini.png') }}" alt="Gemini"
-                                        class="provider-icon-small">
-                                    <span>Gemini</span>
+                            {% endif %}
+                            <div class="provider-dropdown">
+                                <button id="current-provider-btn" class="provider-trigger" title="AI 모델 변경">
+                                    <img id="current-provider-icon"
+                                        src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude"
+                                        class="provider-icon-main">
+                                    <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
                                 </button>
-                                <button class="provider-option active" data-provider="anthropic">
-                                    <img src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude"
-                                        class="provider-icon-small">
-                                    <span>Claude</span>
-                                </button>
-                                <button class="provider-option" data-provider="openai">
-                                    <img src="{{ url_for('static', filename='images/gpt.png') }}" alt="GPT"
-                                        class="provider-icon-small">
-                                    <span>GPT</span>
-                                </button>
-                                <button class="provider-option" data-provider="xai">
-                                    <img src="{{ url_for('static', filename='images/grok.png') }}"
-                                        onerror="this.onerror=null; this.src='https://placehold.co/24x24/000000/ffffff?text=X';"
-                                        alt="Grok" class="provider-icon-small">
-                                    <span>Grok</span>
-                                </button>
+                                <div id="provider-menu" class="provider-menu">
+                                    <button class="provider-option" data-provider="google">
+                                        <img src="{{ url_for('static', filename='images/gemini.png') }}" alt="Gemini"
+                                            class="provider-icon-small">
+                                        <span>Gemini</span>
+                                    </button>
+                                    <button class="provider-option active" data-provider="anthropic">
+                                        <img src="{{ url_for('static', filename='images/claude.png') }}" alt="Claude"
+                                            class="provider-icon-small">
+                                        <span>Claude</span>
+                                    </button>
+                                    <button class="provider-option" data-provider="openai">
+                                        <img src="{{ url_for('static', filename='images/gpt.png') }}" alt="GPT"
+                                            class="provider-icon-small">
+                                        <span>GPT</span>
+                                    </button>
+                                    <button class="provider-option" data-provider="xai">
+                                        <img src="{{ url_for('static', filename='images/grok.png') }}"
+                                            onerror="this.onerror=null; this.src='https://placehold.co/24x24/000000/ffffff?text=X';"
+                                            alt="Grok" class="provider-icon-small">
+                                        <span>Grok</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        {% if is_admin %}
-                        <button id="status-button" class="status-button active" title="상태 변경 (관리자용)">
-                            <span class="status-text">사용 가능</span>
-                        </button>
-                        {% endif %}
+                        <!-- 2줄: 모델 선택 드롭다운 (허용 모델 2개 이상일 때만 표시) -->
+                        <div id="model-id-wrapper" style="display:none;">
+                            <select id="model-id-selector" class="model-id-selector" title="AI 모델 선택">
+                            </select>
+                        </div>
                     </div>
                 </header>
 
