@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sdjgh-ai-v6';
+const CACHE_NAME = 'sdjgh-ai-v7';
 
 // 앱 설치 시 미리 캐싱할 정적 자산
 const PRECACHE_ASSETS = [
