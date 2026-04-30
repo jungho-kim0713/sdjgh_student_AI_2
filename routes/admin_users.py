@@ -1,9 +1,11 @@
 import csv
 import io
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, Response
+import os
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, Response, current_app
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from extensions import db
-from models import User
+from models import User, ChatSession, Message, ChatFile
 
 admin_users_bp = Blueprint("admin_users", __name__)
 
@@ -62,6 +64,72 @@ def export_users_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=users_export.csv"},
     )
+
+
+@admin_users_bp.route("/admin/users/no_history", methods=["GET"])
+@login_required
+def preview_no_history_users():
+    """대화기록이 없는 사용자 목록 조회 (관리자 전용)"""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+
+    subq = db.session.query(ChatSession.user_id).distinct().subquery()
+    users = (
+        User.query
+        .filter(~User.id.in_(db.session.query(subq.c.user_id)))
+        .filter(User.is_admin == False)
+        .filter(User.id != current_user.id)
+        .order_by(User.id.asc())
+        .all()
+    )
+    return jsonify([
+        {"id": u.id, "username": u.username, "email": u.email or "", "role": u.role, "is_approved": u.is_approved}
+        for u in users
+    ])
+
+
+@admin_users_bp.route("/admin/users/delete_no_history", methods=["POST"])
+@login_required
+def delete_no_history_users():
+    """대화기록이 없는 사용자 일괄 삭제 (관리자 전용, 관리자 계정 제외)"""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+
+    subq = db.session.query(ChatSession.user_id).distinct().subquery()
+    users = (
+        User.query
+        .filter(~User.id.in_(db.session.query(subq.c.user_id)))
+        .filter(User.is_admin == False)
+        .filter(User.id != current_user.id)
+        .all()
+    )
+
+    deleted = 0
+    try:
+        for u in users:
+            uid = u.id
+            # 파일 삭제
+            for f in ChatFile.query.filter_by(user_id=uid).all():
+                try:
+                    base = os.path.basename(f.storage_path)
+                    if f.file_type and f.file_type.startswith("image/"):
+                        path = os.path.join(current_app.config["UPLOAD_FOLDER"], base)
+                    else:
+                        path = os.path.join(current_app.config["UPLOAD_FOLDER"], "files", base)
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception:
+                    pass
+                db.session.delete(f)
+            Message.query.filter_by(user_id=uid).delete()
+            ChatSession.query.filter_by(user_id=uid).delete()
+            db.session.delete(u)
+            deleted += 1
+        db.session.commit()
+        return jsonify({"success": True, "deleted": deleted})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_users_bp.route("/admin/users/batch_add", methods=["POST"])

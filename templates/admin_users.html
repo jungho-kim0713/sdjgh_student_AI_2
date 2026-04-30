@@ -23,6 +23,25 @@
     </div>
 
     <div class="card" style="margin-top: 20px;">
+        <h3>대화기록 없는 계정 정리</h3>
+        <p style="color:#666; font-size:0.9em;">한 번도 대화한 적 없는 계정을 조회하고 일괄 삭제합니다. 관리자 계정은 자동 제외됩니다.</p>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button onclick="previewNoHistory()" class="btn-secondary" style="padding: 8px 16px;">🔍 조회</button>
+            <button id="btn-delete-no-history" onclick="deleteNoHistory()" class="btn-primary"
+                style="padding: 8px 16px; background:#e74c3c; display:none;">🗑 전체 삭제</button>
+            <span id="no-history-count" style="font-size:0.9em; color:#888;"></span>
+        </div>
+        <div id="no-history-list" style="margin-top: 12px; display:none;">
+            <table class="admin-table" style="margin-top:0;">
+                <thead>
+                    <tr><th>ID</th><th>Username / Email</th><th>Role</th><th>승인</th></tr>
+                </thead>
+                <tbody id="no-history-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="margin: 0;">사용자 목록</h3>
             <div id="bulk-actions-container" style="display: none; gap: 10px;">
@@ -120,6 +139,44 @@
             location.reload();
         } else {
             alert(data.error);
+        }
+    }
+
+    async function previewNoHistory() {
+        const res = await fetch('/admin/users/no_history');
+        const users = await res.json();
+        const tbody = document.getElementById('no-history-tbody');
+        const countEl = document.getElementById('no-history-count');
+        const listEl = document.getElementById('no-history-list');
+        const btnDel = document.getElementById('btn-delete-no-history');
+
+        tbody.innerHTML = '';
+        if (users.length === 0) {
+            countEl.textContent = '대화기록 없는 계정이 없습니다.';
+            listEl.style.display = 'none';
+            btnDel.style.display = 'none';
+            return;
+        }
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${u.id}</td><td>${u.username}${u.email ? '<br><span style="font-size:0.8em;color:#666;">('+u.email+')</span>' : ''}</td><td>${u.role}</td><td>${u.is_approved ? '✅' : '⏳'}</td>`;
+            tbody.appendChild(tr);
+        });
+        countEl.textContent = `${users.length}명 조회됨`;
+        listEl.style.display = 'block';
+        btnDel.style.display = 'inline-block';
+    }
+
+    async function deleteNoHistory() {
+        const countText = document.getElementById('no-history-count').textContent;
+        if (!confirm(`⚠️ ${countText}\n대화기록 없는 계정을 전부 삭제합니다. 복구 불가. 계속하시겠습니까?`)) return;
+        const res = await fetch('/admin/users/delete_no_history', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert(`✅ ${data.deleted}명 삭제 완료`);
+            location.reload();
+        } else {
+            alert('오류: ' + data.error);
         }
     }
 
