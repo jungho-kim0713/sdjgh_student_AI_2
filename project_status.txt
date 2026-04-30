@@ -431,11 +431,20 @@ docker-compose.yml: 컨테이너 오케스트레이션 설정
 
 [ 4.2 다음 단계 예정 사항 ]
 
-Season 7 RAG 시스템 구현 완료 (약 3-4주 소요 예정)
-  - Week 1: 인프라 및 서비스 레이어 (진행 중)
-  - Week 2: 관리자 기능
-  - Week 3: 교사 기능
-  - Week 4: RAG 통합 및 테스트
+Season 8 어드밴스드 AI 파이프라인 (Advanced AI Pipeline) 도입
+  - 컴퓨터 사용(Computer Use) 모델 연동:
+    - 샌드박스 가상 환경(Docker 기반 등) 구축
+    - 모델의 텍스트 명령(마우스, 키보드)을 실행하고 화면을 캡처해 반환하는 백엔드 에이전트 개발
+  - 딥리서치(Deep Research) 에이전트 도입:
+    - LangChain/LlamaIndex를 활용한 자율 탐색 에이전트 루프 설계
+    - 검색 API 통합 및 웹 크롤링 파이프라인 구축
+    - Celery를 활용한 장시간 리서치 백그라운드 처리 및 실시간 상태(SSE) 스트리밍 기능 구현
+  - 음악 생성(Music Generation) 모델 연동:
+    - Suno, Udio 등의 음악 생성 API 연동 및 전용 오디오 플레이어 UI 구축
+    - 학생/교사의 프롬프트를 음악 스타일 및 가사 형식으로 변환하는 파이프라인 개발
+  - 동영상 생성(Video Generation) 모델 연동:
+    - OpenAI Sora, Runway, Luma 등의 동영상 생성 API 파이프라인 구축
+    - 대용량 비디오 파일 다운로드/스트리밍을 위한 Celery 비동기 처리 및 비디오 플레이어 UI 확장
 
 로컬 개발 완료 후 OCI 서버 배포 예정
 

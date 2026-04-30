@@ -486,6 +486,160 @@ def generate_image_async(self, session_id, user_id, provider, selected_model_id,
         return {"success": False, "error": str(e)}
 
 
+@celery.task(bind=True, max_retries=2)
+def generate_music_async(self, session_id, user_id, provider, selected_model_id,
+                          prompt_model_id, system_prompt, user_message, upload_folder):
+    """
+    음악 생성 백그라운드 작업
+
+    Flask 워커를 블로킹하지 않고 음악을 생성합니다.
+    완료 후 DB에 메시지/파일 저장까지 처리합니다.
+
+    Returns:
+        {"success": True, "audio_html": "...", "session_id": ...}
+    """
+    from extensions import db
+    from models import Message, ChatFile
+    from services.ai_service import generate_ai_response
+
+    try:
+        # 1. 프롬프트 최적화 (텍스트 → 음악 작곡/가사 프롬프트)
+        final_prompt = generate_ai_response(
+            model_id=prompt_model_id,
+            system_prompt=system_prompt or "Convert to English music generation prompt including style, mood, and lyrics if necessary.",
+            messages=[{"role": "user", "content": user_message}],
+            max_tokens=300,
+            upload_folder=upload_folder,
+        ).strip()
+
+        if final_prompt.startswith("⚠️") or "차단" in final_prompt or "Error" in final_prompt:
+            final_prompt = user_message
+
+        generated_audio_filename = None
+        audio_data = None
+        audio_extension = "mp3"
+
+        # 2. 제공자별 음악 생성
+        if provider == "google":
+            if not os.getenv("GOOGLE_API_KEY"):
+                raise ValueError("Google API Key Missing")
+                
+            # Google Lyria-3 API 직접 호출 (REST 방식)
+            api_url = (
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{selected_model_id}:predict?key={os.getenv('GOOGLE_API_KEY')}"
+            )
+            response = http_requests.post(api_url, headers={"Content-Type": "application/json"}, json={
+                "instances": [{"prompt": final_prompt}],
+                "parameters": {"sampleCount": 1},
+            })
+            
+            if response.status_code != 200:
+                raise Exception(f"Google Music API Error ({response.status_code}): {response.text}")
+                
+            result = response.json()
+            if "predictions" not in result or not result["predictions"]:
+                raise Exception("오디오 데이터가 응답에 없습니다.")
+                
+            try:
+                # API 버전에 따라 키가 다를 수 있음
+                b64_data = result["predictions"][0].get("bytesBase64Encoded") or result["predictions"][0].get("audioBase64Encoded")
+                audio_data = base64.b64decode(b64_data)
+            except Exception:
+                raise Exception("오디오 데이터를 파싱할 수 없습니다.")
+                
+            generated_audio_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_google_music.mp3"
+
+        elif provider == "mureka":
+            if not os.getenv("MUREKA_API_KEY"):
+                raise ValueError("MUREKA_API_KEY Missing in .env")
+            
+            import time
+            mureka_api_url = "https://api.mureka.ai/v1/generate"
+            headers = {"Authorization": f"Bearer {os.getenv('MUREKA_API_KEY')}", "Content-Type": "application/json"}
+            payload = {"prompt": final_prompt, "model": selected_model_id}
+            
+            # 1. 생성 요청 (Task 생성)
+            resp = http_requests.post(mureka_api_url, headers=headers, json=payload)
+            if resp.status_code != 200:
+                raise Exception(f"Mureka API Error: {resp.text}")
+                
+            data = resp.json()
+            task_id = data.get("task_id") or data.get("id")
+            if not task_id:
+                raise Exception("Mureka API에서 작업 ID를 받지 못했습니다.")
+                
+            # 2. 폴링(Polling) 대기
+            status_url = f"https://api.mureka.ai/v1/tasks/{task_id}"
+            audio_url = None
+            for _ in range(60): # 최대 5분 대기 (5초 간격 * 60)
+                status_resp = http_requests.get(status_url, headers=headers)
+                if status_resp.status_code == 200:
+                    status_data = status_resp.json()
+                    status = status_data.get("status")
+                    if status in ["completed", "success"]:
+                        audio_url = status_data.get("audio_url") or status_data.get("result", {}).get("audio_url")
+                        break
+                    elif status in ["failed", "error"]:
+                        raise Exception("Mureka 오디오 생성 실패")
+                time.sleep(5)
+                
+            if not audio_url:
+                raise Exception("Mureka 오디오 생성 타임아웃 (5분 초과)")
+                
+            # 3. 오디오 다운로드
+            audio_data = http_requests.get(audio_url).content
+            generated_audio_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_mureka.mp3"
+
+        else:
+            raise ValueError(f"음악 생성을 지원하지 않는 provider: {provider}")
+
+        # 3. 파일 저장
+        save_path = os.path.join(upload_folder, generated_audio_filename)
+        with open(save_path, "wb") as f:
+            f.write(audio_data)
+
+        # 4. DB 저장 및 HTML 응답 생성
+        rel_path = f"uploads/{generated_audio_filename}"
+        response_html = (
+            "🎵 **생성된 음악**\n\n"
+            f"*(Prompt: {final_prompt})*\n\n"
+            f"<audio controls src='/static/{rel_path}' style='width:100%; margin-top:10px; border-radius:30px; outline:none;'></audio>\n"
+            f"<div style='text-align:right; margin-top:5px;'>"
+            f"<a href='/static/{rel_path}' download='{generated_audio_filename}' "
+            "style='font-size:0.85em; color:#EC4899; text-decoration:none; font-weight:bold;'>⬇️ MP3 다운로드</a>"
+            "</div>"
+        )
+        
+        new_file = ChatFile(
+            session_id=session_id,
+            user_id=user_id,
+            filename=generated_audio_filename,
+            storage_path=rel_path,
+            file_type="audio/mpeg",
+            file_size=os.path.getsize(save_path),
+            uploaded_by="ai",
+        )
+        db.session.add(new_file)
+        
+        db.session.add(Message(
+            session_id=session_id,
+            user_id=user_id,
+            is_user=False,
+            content=response_html,
+            provider=provider,
+        ))
+        db.session.commit()
+
+        return {"success": True, "audio_html": response_html, "session_id": session_id}
+
+    except Exception as e:
+        print(f"Music generation task error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=5)
+        return {"success": False, "error": str(e)}
+
+
 # Celery Beat 스케줄 (주기적 작업)
 celery.conf.beat_schedule = {
     'cleanup-old-failed-documents': {

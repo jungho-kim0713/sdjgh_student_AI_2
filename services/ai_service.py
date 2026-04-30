@@ -307,6 +307,22 @@ AVAILABLE_MODELS = {
         "output_price": 0.0,
         "description": "xAI의 비디오 생성 모델"
     },
+    
+    # ===== 음악 생성 모델 (Music Generation) =====
+    "lyria-3-pro-preview": {
+        "name": "Lyria 3 Pro (Music)",
+        "provider": "google",
+        "input_price": 0.10,
+        "output_price": 0.50,
+        "description": "Google DeepMind의 고품질 음악 및 보컬 생성 모델"
+    },
+    "mureka-v1": {
+        "name": "Mureka Music V1",
+        "provider": "mureka",
+        "input_price": 0.05,
+        "output_price": 0.20,
+        "description": "Mureka AI 기반 맞춤형 음악 및 가사 생성 모델"
+    }
 }
 
 

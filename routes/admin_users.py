@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+import csv
+import io
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, Response
 from flask_login import login_required, current_user
 from extensions import db
 from models import User
@@ -29,6 +31,38 @@ def approve_user(user_id):
         db.session.commit()
         return jsonify({"success": True})
     return jsonify({"error": "User not found"}), 404
+
+@admin_users_bp.route("/admin/users/export_csv", methods=["GET"])
+@login_required
+def export_users_csv():
+    """현재 사용자 DB를 CSV로 다운로드 (관리자 전용)"""
+    if not current_user.is_admin:
+        return jsonify({"error": "Denied"}), 403
+
+    users = User.query.order_by(User.id.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "username", "email", "google_id", "role", "is_admin", "is_approved", "password_hash"])
+    for u in users:
+        writer.writerow([
+            u.id,
+            u.username,
+            u.email or "",
+            u.google_id or "",
+            u.role,
+            u.is_admin,
+            u.is_approved,
+            u.password_hash,
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8-sig")  # BOM 포함 → 엑셀 한글 깨짐 방지
+    return Response(
+        csv_bytes,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=users_export.csv"},
+    )
+
 
 @admin_users_bp.route("/admin/users/batch_add", methods=["POST"])
 @login_required

@@ -501,24 +501,35 @@ def refresh_models(provider):
             openai_client = get_openai_client()
             if openai_client:
                 models_list = openai_client.models.list()
-                api_models = [m.id for m in models_list if m.id.startswith("gpt") or m.id.startswith("o1") or m.id.startswith("o3") or "dall-e" in m.id]
+                import time
+                three_years_ago = int(time.time()) - (3 * 365 * 24 * 3600)
+                
+                # 3년 이내 생성된 모델만 필터링
+                recent_models = [m for m in models_list if getattr(m, 'created', 0) >= three_years_ago]
+                
+                valid_models = [m for m in recent_models if m.id.startswith("gpt") or m.id.startswith("o1") or m.id.startswith("o3") or "dall-e" in m.id]
                 
                 # 504 Timeout 방지를 위한 2차 필터링: 구버전 스냅샷 등 파생 모델 제거
                 exclude_patterns = ["-0301", "-0613", "-1106", "-0314", "-0409", "vision-preview", "instruct", "realtime", "audio"]
-                api_models = [m for m in api_models if not any(p in m for p in exclude_patterns)]
+                valid_models = [m for m in valid_models if not any(p in m.id for p in exclude_patterns)]
                 
-                # 모델 수가 여전히 너무 많을 경우, 짧은 이름(Alias, 예: gpt-4o) 우선으로 최대 60개까지만 잘라서 Claude 호출 최소화
-                # 단, AI 화가 이미지 생성을 위한 dall-e 모델은 예외적으로 반드시 포함
-                dalle_models = [m for m in api_models if "dall-e" in m]
-                # API 응답 이름에 따라 필터가 누락될 수 있으므로, 하드코딩된 필수 DALL-E 모델 추가 보장 (중복 제거)
-                essential_dalle = ["dall-e-3", "dall-e-2"]
-                for ed in essential_dalle:
-                    if ed not in dalle_models:
-                        dalle_models.append(ed)
+                # 최신 생성일(created) 기준으로 내림차순 정렬
+                valid_models.sort(key=lambda x: getattr(x, 'created', 0), reverse=True)
+                api_models = [m.id for m in valid_models]
+                
+                # 모델 수가 여전히 너무 많을 경우, 최신 생성일 우선으로 최대 60개까지만 잘라서 Claude 호출 최소화
+                # 단, AI 화가 이미지 생성을 위한 dall-e 및 gpt-image 모델은 예외적으로 반드시 포함
+                image_models = [m for m in api_models if "dall-e" in m or "gpt-image" in m]
+                # API 응답 이름에 따라 필터가 누락될 수 있으므로, 하드코딩된 필수 이미지 모델 추가 보장 (중복 제거)
+                essential_image = ["dall-e-3", "dall-e-2", "gpt-image-2.0"]
+                for em in essential_image:
+                    if em not in image_models:
+                        image_models.append(em)
                         
-                other_models = [m for m in api_models if "dall-e" not in m]
-                other_models = sorted(other_models, key=lambda x: (len(x), x))[:60 - len(dalle_models)]
-                api_models = dalle_models + other_models
+                other_models = [m for m in api_models if "dall-e" not in m and "gpt-image" not in m]
+                # 최신순으로 이미 정렬되어 있으므로 그대로 상위 목록 추출
+                other_models = other_models[:60 - len(image_models)]
+                api_models = image_models + other_models
 
         elif provider == "anthropic":
             anthropic_client = get_anthropic_client()

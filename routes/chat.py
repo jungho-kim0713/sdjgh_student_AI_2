@@ -412,6 +412,84 @@ def chat():
                 yield f"data: {json.dumps({'error': f'이미지 생성 실패: {str(e)}'})}\n\n"
             return Response(stream_with_context(generate_error_stream()), mimetype="text/event-stream")
 
+    # 음악 생성 페르소나: 별도 플로우로 처리
+    if role_key == "ai_composer":
+        try:
+            persona = get_persona_from_db(role_key)
+            if not persona:
+                return jsonify({"error": "페르소나를 찾을 수 없습니다"}), 404
+
+            # 권한 확인
+            if not current_user.is_admin:
+                if provider == "google" and persona.restrict_google:
+                    return jsonify({"error": "권한 없음"}), 403
+                if provider == "anthropic" and persona.restrict_anthropic:
+                    return jsonify({"error": "권한 없음"}), 403
+                if provider == "openai" and persona.restrict_openai:
+                    return jsonify({"error": "권한 없음"}), 403
+                if provider == "xai" and persona.restrict_xai:
+                    return jsonify({"error": "권한 없음"}), 403
+
+            session_id = data.get("session_id")
+            if not session_id:
+                title = f"음악 생성: {user_message[:20]}" if user_message else "음악 생성"
+                current_session = ChatSession(
+                    title=title, user_id=current_user.id, role_key=role_key
+                )
+                db.session.add(current_session)
+                db.session.flush()
+                session_id = current_session.id
+
+            db.session.add(
+                Message(
+                    session_id=session_id,
+                    user_id=current_user.id,
+                    is_user=True,
+                    content=user_message,
+                    provider=provider,
+                )
+            )
+            db.session.commit()
+
+            selected_model_id = DEFAULT_MODEL
+            if provider == "google":
+                selected_model_id = persona.model_google or "lyria-3-pro-preview"
+            elif provider == "mureka":
+                # Mureka를 기본 지원 공급사로 추가 확장해야 하지만 임시로 model_xai 필드 등에 저장되거나 직접 지정
+                selected_model_id = "mureka-v1"
+
+            # 프롬프트 생성용 LLM
+            prompt_model_id = "gpt-4.1-mini"
+            if provider == "google":
+                prompt_model_id = "gemini-3-pro-preview"
+
+            system_prompt = get_system_prompt_from_db(persona.id, provider)
+
+            from tasks import generate_music_async
+            task = generate_music_async.delay(
+                session_id=session_id,
+                user_id=current_user.id,
+                provider=provider,
+                selected_model_id=selected_model_id,
+                prompt_model_id=prompt_model_id,
+                system_prompt=system_prompt,
+                user_message=user_message,
+                upload_folder=current_app.config["UPLOAD_FOLDER"],
+            )
+
+            def generate_task_queued():
+                # 프론트엔드가 이미지와 동일하게 polling을 할 수 있도록 image_pending 활용 또는 audio_pending
+                yield f"data: {json.dumps({'task_id': task.id, 'session_id': session_id, 'audio_pending': True})}\n\n"
+                yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+
+            return Response(stream_with_context(generate_task_queued()), mimetype="text/event-stream")
+
+        except Exception as e:
+            print(f"Music Gen Error: {e}")
+            def generate_error_stream():
+                yield f"data: {json.dumps({'error': f'음악 생성 실패: {str(e)}'})}\n\n"
+            return Response(stream_with_context(generate_error_stream()), mimetype="text/event-stream")
+
     image_paths_for_ai = []
 
     # 업로드된 파일 중 이미지 경로만 AI 입력으로 전달
@@ -643,8 +721,11 @@ def chat():
 @chat_bp.route("/api/image_task_status/<task_id>")
 @login_required
 def image_task_status(task_id):
-    """이미지 생성 Celery 태스크 상태 조회 (프론트 폴링용)"""
-    from tasks import generate_image_async
+    """이미지 및 음악 생성 Celery 태스크 상태 조회 (프론트 폴링용)"""
+    from tasks import generate_image_async, generate_music_async
+    
+    # task_id로 어느 쪽 큐인지 특정하기 어려우므로, 두 곳 모두 AsyncResult 생성하여 확인 (실제론 ID만으로도 공용 조회 가능)
+    # 현재 Celery 설정 상 같은 브로커를 쓰므로 AsyncResult는 동일하게 조회됨
     task = generate_image_async.AsyncResult(task_id)
 
     if task.state == "PENDING" or task.state == "STARTED":
@@ -652,7 +733,12 @@ def image_task_status(task_id):
     elif task.state == "SUCCESS":
         result = task.result or {}
         if result.get("success"):
-            return jsonify({"status": "done", "image_html": result["image_html"], "session_id": result["session_id"]})
+            # 응답에 image_html 또는 audio_html이 포함되어 있음
+            return jsonify({
+                "status": "done", 
+                "image_html": result.get("image_html", result.get("audio_html")), 
+                "session_id": result["session_id"]
+            })
         else:
             return jsonify({"status": "error", "error": result.get("error", "알 수 없는 오류")})
     elif task.state == "FAILURE":
