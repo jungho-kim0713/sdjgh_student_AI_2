@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
 import os
+import jwt
 
 from extensions import db
 from models import User
@@ -185,6 +186,62 @@ def google_register_name():
             return redirect(url_for("auth.login"))
             
     return render_template("google_register.html", email=email)
+
+
+@auth_bp.route("/sso")
+def sso_login():
+    """플랫폼 서버에서 발급한 JWT 토큰으로 자동 로그인"""
+    token = request.args.get("token", "")
+    if not token:
+        flash("토큰이 없습니다.", "error")
+        return redirect(url_for("auth.login"))
+
+    secret = os.getenv("PLATFORM_JWT_SECRET", "")
+    if not secret:
+        flash("서버 설정 오류입니다.", "error")
+        return redirect(url_for("auth.login"))
+
+    try:
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        flash("로그인 세션이 만료됐습니다. 플랫폼에서 다시 접속해주세요.", "warning")
+        return redirect(url_for("auth.login"))
+    except jwt.InvalidTokenError:
+        flash("유효하지 않은 토큰입니다.", "error")
+        return redirect(url_for("auth.login"))
+
+    user_id  = payload.get("userId", "")
+    platform_role = payload.get("role", "학생")
+
+    if not user_id:
+        flash("토큰에 사용자 정보가 없습니다.", "error")
+        return redirect(url_for("auth.login"))
+
+    # 플랫폼 role → 이 앱의 role 매핑
+    role_map = {"관리자": "teacher", "교사": "teacher", "학생": "user"}
+    role = role_map.get(platform_role, "user")
+    is_admin = (platform_role == "관리자")
+
+    user = User.query.filter_by(username=user_id).first()
+    if not user:
+        user = User(
+            username=user_id,
+            role=role,
+            is_admin=is_admin,
+            is_approved=True,
+        )
+        user.set_password(os.urandom(16).hex())  # SSO 전용 계정, PW 로그인 불가
+        db.session.add(user)
+        db.session.commit()
+    else:
+        # 플랫폼에서 권한이 바뀌었을 경우 동기화
+        if user.role != role or user.is_admin != is_admin:
+            user.role = role
+            user.is_admin = is_admin
+            db.session.commit()
+
+    login_user(user)
+    return redirect(url_for("chat.index"))
 
 
 @auth_bp.route("/logout")

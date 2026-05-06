@@ -5,7 +5,10 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from extensions import db
-from models import User, ChatSession, Message, ChatFile
+from models import (User, ChatSession, Message, ChatFile,
+                    PersonaDefinition, PersonaSystemPrompt, PersonaTeacherPermission,
+                    PersonaStudentPermission, PersonaPromptSnapshot,
+                    PersonaKnowledgeBase, KnowledgeDocument)
 
 admin_users_bp = Blueprint("admin_users", __name__)
 
@@ -108,7 +111,10 @@ def delete_no_history_users():
     try:
         for u in users:
             uid = u.id
-            # 파일 삭제
+
+            # --- user.id를 참조하는 FK 테이블 순서대로 처리 ---
+
+            # 1) 파일 물리 삭제 + ChatFile 레코드 삭제
             for f in ChatFile.query.filter_by(user_id=uid).all():
                 try:
                     base = os.path.basename(f.storage_path)
@@ -121,10 +127,27 @@ def delete_no_history_users():
                 except Exception:
                     pass
                 db.session.delete(f)
+
+            # 2) 메시지 / 세션
             Message.query.filter_by(user_id=uid).delete()
             ChatSession.query.filter_by(user_id=uid).delete()
+
+            # 3) 페르소나 권한 — 이 유저가 학생/교사로 등록된 행 삭제
+            PersonaStudentPermission.query.filter_by(student_id=uid).delete()
+            PersonaTeacherPermission.query.filter_by(teacher_id=uid).delete()
+
+            # 4) granted_by / created_by / updated_by 등 nullable FK → NULL 처리
+            PersonaStudentPermission.query.filter_by(granted_by=uid).update({"granted_by": None})
+            PersonaTeacherPermission.query.filter_by(granted_by=uid).update({"granted_by": None})
+            PersonaDefinition.query.filter_by(created_by=uid).update({"created_by": None})
+            PersonaSystemPrompt.query.filter_by(updated_by=uid).update({"updated_by": None})
+            PersonaPromptSnapshot.query.filter_by(saved_by=uid).update({"saved_by": None})
+            PersonaKnowledgeBase.query.filter_by(created_by=uid).update({"created_by": None})
+            KnowledgeDocument.query.filter_by(uploaded_by=uid).update({"uploaded_by": None})
+
             db.session.delete(u)
             deleted += 1
+
         db.session.commit()
         return jsonify({"success": True, "deleted": deleted})
     except Exception as e:
