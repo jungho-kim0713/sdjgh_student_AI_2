@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_user, logout_user, login_required
 from authlib.integrations.flask_client import OAuth
 import os
 import jwt
@@ -25,43 +25,9 @@ def init_oauth(app):
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """기존 ID/PW 회원가입 (관리자 승인 필요)"""
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        password_confirm = request.form.get("password_confirm")
-
-        if len(password) < 5:
-            flash("비밀번호가 너무 짧습니다. 5자 이상 입력해주세요.", "error")
-            return redirect(url_for("auth.register"))
-
-        if password != password_confirm:
-            flash("비밀번호가 일치하지 않습니다.", "error")
-            return redirect(url_for("auth.register"))
-
-        if User.query.filter_by(username=username).first():
-            flash("이미 존재하는 아이디입니다.", "error")
-            return redirect(url_for("auth.register"))
-        
-        # 신규 유저는 is_approved=False (단, 첫 유저는 관리자로 승인)
-        new_user = User(username=username)
-        new_user.set_password(password)
-        if User.query.count() == 0:
-            new_user.is_admin = True
-            new_user.is_approved = True
-        else:
-            new_user.is_approved = False
-            
-        db.session.add(new_user)
-        db.session.commit()
-        
-        if new_user.is_approved:
-            flash("가입 완료! 로그인해주세요.", "success")
-        else:
-            flash("가입 신청되었습니다. 관리자 승인 후 이용 가능합니다.", "info")
-            
-        return redirect(url_for("auth.login"))
-    return render_template("register.html")
+    """자체 회원가입 비활성화 — SSO(플랫폼)로만 가입 가능"""
+    flash("회원가입은 학교 플랫폼(SSO)을 통해 이루어집니다.", "info")
+    return redirect(url_for("auth.login"))
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -122,10 +88,9 @@ def google_callback():
     user = User.query.filter((User.google_id == google_id) | (User.email == email)).first()
 
     if not user:
-        # 신규 가입 (승인 대기) - 이름을 입력받기 위해 세션에 저장 후 리다이렉트
-        session['pending_google_email'] = email
-        session['pending_google_id'] = google_id
-        return redirect(url_for("auth.google_register_name"))
+        # 신규 가입 차단 — SSO를 통해서만 계정 생성 가능
+        flash("등록되지 않은 계정입니다. 학교 플랫폼(SSO)을 통해 접속해주세요.", "error")
+        return redirect(url_for("auth.login"))
     else:
         # 기존 사용자 정보 업데이트 (google_id가 없는 경우 연동)
         if not user.google_id:
@@ -143,49 +108,11 @@ def google_callback():
 
 @auth_bp.route("/google/register_name", methods=["GET", "POST"])
 def google_register_name():
-    """구글 로그인 후 이름 입력받기"""
-    if 'pending_google_email' not in session or 'pending_google_id' not in session:
-        return redirect(url_for("auth.login"))
-        
-    email = session['pending_google_email']
-    google_id = session['pending_google_id']
-    
-    if request.method == "POST":
-        name = request.form.get("name")
-        if not name:
-            flash("이름을 입력해주세요.", "error")
-            return redirect(url_for("auth.google_register_name"))
-            
-        user = User(
-            username=f"{name}/{email}",
-            email=email,
-            google_id=google_id,
-            role="user",
-            is_approved=False
-        )
-        # 비밀번호는 랜덤 설정 (구글 로그인 전용)
-        user.set_password(os.urandom(16).hex())
-        
-        # 첫 사용자는 관리자 자동 승인
-        if User.query.count() == 0:
-            user.is_admin = True
-            user.is_approved = True
-            
-        db.session.add(user)
-        db.session.commit()
-        
-        # 세션에서 임시 데이터 삭제
-        session.pop('pending_google_email', None)
-        session.pop('pending_google_id', None)
-        
-        if user.is_approved:
-            login_user(user)
-            return redirect(url_for("chat.index"))
-        else:
-            flash("가입 신청되었습니다. 관리자 승인 후 이용 가능합니다.", "info")
-            return redirect(url_for("auth.login"))
-            
-    return render_template("google_register.html", email=email)
+    """Google 신규 가입 비활성화 — SSO(플랫폼)로만 가입 가능"""
+    session.pop('pending_google_email', None)
+    session.pop('pending_google_id', None)
+    flash("등록되지 않은 계정입니다. 학교 플랫폼(SSO)을 통해 접속해주세요.", "error")
+    return redirect(url_for("auth.login"))
 
 
 @auth_bp.route("/sso")
@@ -248,4 +175,5 @@ def sso_login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("auth.login"))
+    platform_url = os.getenv("PLATFORM_URL", "https://platform.sdjgh-ai.kr/")
+    return redirect(platform_url)

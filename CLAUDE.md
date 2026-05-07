@@ -280,3 +280,50 @@ CSS·JS 정적 파일을 변경할 때마다 `static/service-worker.js`의 `CACH
 ```
 
 **캐시 버전**: CSS 변경마다 서비스 워커 캐시 버전 올림 (`v1` → `v2` → `v3` → `v4`).
+
+---
+
+## 12. SSO 전용 인증 전환 기록
+
+### [2026-05-08] 자체 회원가입 제거 — SSO 단일 진입점으로 통일
+
+**배경**: 구글 플레이 스토어 데이터 보안 정책상 "앱에서 사용자가 계정을 만들도록 허용하지 않음" 선택을 위해 자체 가입 기능 제거.
+
+#### 변경 파일
+
+**`routes/auth.py`**
+- `/register` → 즉시 로그인 페이지로 리다이렉트 (회원가입 폼 제거)
+- `/google/callback` → 신규 Google 사용자 계정 생성 차단, "플랫폼으로 접속하세요" 안내 후 리다이렉트
+- `/google/register_name` → 즉시 로그인 페이지로 리다이렉트 (이름 입력 폼 제거)
+- `/logout` → `PLATFORM_URL` 환경변수 주소로 리다이렉트 (기본값: `https://platform.sdjgh-ai.kr/`)
+
+**`app.py`**
+- `login_manager.login_view` 제거
+- `@login_manager.unauthorized_handler` 추가 → 미로그인 접근 시 `PLATFORM_URL`로 리다이렉트
+- `from flask import ... redirect` import 추가
+
+**`templates/login.html`**
+- "회원가입" 링크 → "계정은 학교 플랫폼을 통해 자동으로 생성됩니다." 안내 문구로 교체
+
+**`templates/index.html`**
+- 사이드바 로그아웃 버튼 텍스트: `로그아웃 ({{ current_user.display_name }})` → `플랫폼으로`
+
+#### 환경변수 분기 (`PLATFORM_URL`)
+
+| 환경 | .env 설정 | 이동 주소 |
+|------|-----------|----------|
+| 로컬 개발 | `PLATFORM_URL=http://127.0.0.1:5500/index-live.html` | 로컬 플랫폼 |
+| 운영 서버 | 미설정 (기본값 사용) | `https://platform.sdjgh-ai.kr/` |
+
+로그아웃 및 미인증 접근 모두 이 변수를 따름.
+
+#### 플랫폼 연동 (`sdjgh_platfom/home-variants.jsx`)
+
+학생용 AI 앱 URL을 접속 환경에 따라 자동 분기:
+```js
+url: ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:8081/sso'
+  : 'https://student-ai.sdjgh-ai.kr/sso',
+```
+- 로컬: `http://127.0.0.1:8081/sso`
+- 운영: `https://student-ai.sdjgh-ai.kr/sso`

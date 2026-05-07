@@ -16,7 +16,7 @@ except ImportError:
 
 import certifi
 from sqlalchemy import inspect, text
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect
 from dotenv import load_dotenv
 
 from extensions import db, login_manager, cache
@@ -120,8 +120,12 @@ if not os.path.exists(os.path.join(UPLOAD_FOLDER, "files")):
 # Flask 확장 초기화
 db.init_app(app)
 login_manager.init_app(app)
-login_manager.login_view = "auth.login"
 login_manager.login_message = ""
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    platform_url = os.environ.get("PLATFORM_URL", "https://platform.sdjgh-ai.kr/")
+    return redirect(platform_url)
 
 # Cache 설정 (CELERY_BROKER_URL이 설정된 경우에만 Redis 사용, 미설정 시 로컬 SimpleCache)
 _celery_broker = os.environ.get("CELERY_BROKER_URL")
